@@ -25,7 +25,7 @@ export const QuickActions: React.FC = () => {
       <button
         type="button"
         className="dashboard-btn-highlight"
-        onClick={() => navigate('/admin/loans')}
+        onClick={() => navigate('/admin/loans/new')}
       >
         <span>+ Nuevo préstamo</span>
       </button>

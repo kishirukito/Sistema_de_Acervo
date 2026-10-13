@@ -42,3 +42,34 @@ export interface ReturnsSummaryData {
   overdueCount: number;
   returnedTodayCount: number;
 }
+
+export interface ReturnedLoanPersistedData {
+  loanId: string;
+  folio: string;
+  returnDate: string;
+  notes?: string;
+  returnedAt: string;
+}
+
+export interface LoanReturnResolvedData {
+  loanId: string;
+  folio: string;
+  status: LoanStatus;
+  userId: string;
+  userName: string;
+  userEmail: string;
+  userCategory: string;
+  userInitials: string;
+  userAvatarColor: string;
+  resourceId: string;
+  resourceTitle: string;
+  resourceAuthor: string;
+  isbn?: string;
+  checkoutDate: string;
+  dueDate: string;
+  returnDate: string;
+  isOverdue: boolean;
+  overdueDays: number;
+  overdueDaysText: string;
+  notes?: string;
+}

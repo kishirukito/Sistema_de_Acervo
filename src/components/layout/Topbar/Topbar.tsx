@@ -4,7 +4,7 @@ import { useAuth } from '../../../features/auth/AuthContext';
 import './Topbar.css';
 
 interface TopbarProps {
-  title?: string;
+  title?: React.ReactNode;
 }
 
 export const Topbar: React.FC<TopbarProps> = ({ title = 'Dashboard' }) => {

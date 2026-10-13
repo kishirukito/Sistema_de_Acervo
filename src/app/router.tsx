@@ -13,9 +13,11 @@ import { AdminCatalogPage } from '../pages/admin/AdminCatalogPage';
 import { AdminNewBookPage } from '../pages/admin/AdminNewBookPage';
 import { AdminUsersPage } from '../pages/admin/AdminUsersPage';
 import { AdminLoansPage } from '../pages/admin/AdminLoansPage';
-import { AdminNewLoanPlaceholderPage } from '../pages/admin/AdminNewLoanPlaceholderPage';
+import { AdminNewLoanPage } from '../pages/admin/AdminNewLoanPage';
+import { LoanSuccessPage } from '../pages/admin/LoanSuccessPage';
 import { AdminReturnsPage } from '../pages/admin/AdminReturnsPage';
 import { AdminReturnConfirmationPlaceholderPage } from '../pages/admin/AdminReturnConfirmationPlaceholderPage';
+import { ReturnSuccessPage } from '../pages/admin/ReturnSuccessPage';
 import { AdminSmartSearchPage } from '../pages/admin/AdminSmartSearchPage';
 import { AdminReportsPage } from '../pages/admin/AdminReportsPage';
 import { AdminProfilePage } from '../pages/admin/AdminProfilePage';
@@ -86,7 +88,11 @@ export const router = createBrowserRouter([
       },
       {
         path: 'loans/new',
-        element: <AdminNewLoanPlaceholderPage />,
+        element: <AdminNewLoanPage />,
+      },
+      {
+        path: 'loans/:loanId/success',
+        element: <LoanSuccessPage />,
       },
       {
         path: 'returns',
@@ -95,6 +101,10 @@ export const router = createBrowserRouter([
       {
         path: 'returns/:loanId',
         element: <AdminReturnConfirmationPlaceholderPage />,
+      },
+      {
+        path: 'returns/:loanId/success',
+        element: <ReturnSuccessPage />,
       },
       {
         path: 'search',

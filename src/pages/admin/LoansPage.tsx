@@ -1,16 +1,16 @@
 import React, { useState, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Plus, SearchX, CheckCircle2 } from 'lucide-react';
 import { LoansSummary } from '../../features/loans/components/LoansSummary';
 import { LoansFilters } from '../../features/loans/components/LoansFilters';
 import { LoansTable } from '../../features/loans/components/LoansTable';
 import { LoansPagination } from '../../features/loans/components/LoansPagination';
-import { RegisterLoanModal } from '../../features/loans/components/RegisterLoanModal';
 import { LoanDetailModal } from '../../features/loans/components/LoanDetailModal';
 import { ReturnLoanModal } from '../../features/loans/components/ReturnLoanModal';
 import { RenewLoanModal } from '../../features/loans/components/RenewLoanModal';
 import { Button } from '../../components/ui/Button';
 import { LoadingSpinner } from '../../components/ui/LoadingSpinner';
-import { MOCK_RESOURCES } from '../../features/catalog/catalog.mock';
+import { executeLoanReturn } from '../../features/returns/returns.service';
 import {
   MOCK_LOANS,
   MOCK_LOANS_SUMMARY,
@@ -30,6 +30,7 @@ const INITIAL_FILTERS: LoansFilterState = {
 };
 
 export const LoansPage: React.FC = () => {
+  const navigate = useNavigate();
   const [loansList, setLoansList] = useState<Loan[]>(() => [...MOCK_LOANS]);
   const [loansSummary, setLoansSummary] = useState<LoansSummaryData>(() => ({
     ...MOCK_LOANS_SUMMARY,
@@ -38,10 +39,14 @@ export const LoansPage: React.FC = () => {
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [isLoading] = useState<boolean>(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
-  const [isRegisterModalOpen, setIsRegisterModalOpen] = useState<boolean>(false);
   const [selectedLoanForDetail, setSelectedLoanForDetail] = useState<Loan | null>(null);
   const [selectedLoanForReturn, setSelectedLoanForReturn] = useState<Loan | null>(null);
   const [selectedLoanForRenew, setSelectedLoanForRenew] = useState<Loan | null>(null);
+
+  React.useEffect(() => {
+    setLoansList([...MOCK_LOANS]);
+    setLoansSummary({ ...MOCK_LOANS_SUMMARY });
+  }, []);
 
   const itemsPerPage = 5;
 
@@ -126,70 +131,9 @@ export const LoansPage: React.FC = () => {
     loan: Loan,
     details: { returnDate: string; notes?: string }
   ) => {
-    const updatedNotes = details.notes
-      ? loan.notes
-        ? `${loan.notes} | ${details.notes}`
-        : details.notes
-      : loan.notes;
-
-    // 1. Update local loans list
-    setLoansList((prev) =>
-      prev.map((l) =>
-        l.id === loan.id
-          ? {
-              ...l,
-              status: 'RETURNED',
-              returnDate: details.returnDate,
-              dueDateNote: '—',
-              notes: updatedNotes,
-            }
-          : l
-      )
-    );
-
-    // 2. Synchronize in-memory MOCK_LOANS
-    const mockIdx = MOCK_LOANS.findIndex((l) => l.id === loan.id);
-    if (mockIdx !== -1) {
-      MOCK_LOANS[mockIdx] = {
-        ...MOCK_LOANS[mockIdx],
-        status: 'RETURNED',
-        returnDate: details.returnDate,
-        dueDateNote: '—',
-        notes: updatedNotes,
-      };
-    }
-
-    // 3. Synchronize MOCK_RESOURCES copies in memory
-    const matchedResource = MOCK_RESOURCES.find(
-      (r) =>
-        r.id === loan.resourceId ||
-        r.id === loan.resourceId.replace('-00', '-') ||
-        r.id === loan.resourceId.replace('-0', '-') ||
-        r.title.toLowerCase().trim() === loan.resourceTitle.toLowerCase().trim()
-    );
-    if (matchedResource) {
-      matchedResource.availableCopies = Math.min(
-        matchedResource.totalCopies,
-        matchedResource.availableCopies + 1
-      );
-    }
-
-    // 4. Update loansSummary metrics
-    setLoansSummary((prev) => ({
-      ...prev,
-      activeLoansCount: Math.max(0, prev.activeLoansCount - 1),
-      returnedThisMonthCount: prev.returnedThisMonthCount + 1,
-      overdueCount:
-        loan.status === 'OVERDUE'
-          ? Math.max(0, prev.overdueCount - 1)
-          : prev.overdueCount,
-      dueSoonCount:
-        loan.status === 'DUE_SOON'
-          ? Math.max(0, prev.dueSoonCount - 1)
-          : prev.dueSoonCount,
-    }));
-
-    showToast(`Devolución registrada correctamente.`);
+    setSelectedLoanForReturn(null);
+    executeLoanReturn(loan.id, details);
+    navigate(`/admin/returns/${loan.id}/success`);
   };
 
   const handleRenewLoan = (loan: Loan) => {
@@ -248,25 +192,7 @@ export const LoansPage: React.FC = () => {
   };
 
   const handleNewLoan = () => {
-    setIsRegisterModalOpen(true);
-  };
-
-  const handleCreateLoanSuccess = (newLoan: Loan) => {
-    setLoansList((prev) => [newLoan, ...prev]);
-
-    // Keep in-memory mock synchronized
-    MOCK_LOANS.unshift(newLoan);
-
-    // Update summary metrics
-    setLoansSummary((prev) => ({
-      ...prev,
-      activeLoansCount: prev.activeLoansCount + 1,
-    }));
-
-    // Reset pagination to first page
-    setCurrentPage(1);
-
-    showToast(`Préstamo registrado exitosamente con folio ${newLoan.folio}`);
+    navigate('/admin/loans/new');
   };
 
   return (
@@ -349,13 +275,6 @@ export const LoansPage: React.FC = () => {
         </div>
       )}
 
-      {/* Register New Loan Modal */}
-      <RegisterLoanModal
-        open={isRegisterModalOpen}
-        existingLoans={loansList}
-        onClose={() => setIsRegisterModalOpen(false)}
-        onSuccess={handleCreateLoanSuccess}
-      />
 
       {/* View Loan Detail Modal */}
       <LoanDetailModal

@@ -185,9 +185,13 @@ export const AdminReturnConfirmationPlaceholderPage: React.FC = () => {
       notes: notes.trim() || undefined,
     });
 
-    // Navigate back to returns with toast feedback
-    navigate('/admin/returns', {
-      state: { toastMessage: 'Devolución registrada correctamente.' },
+    // Navigate to dedicated success screen
+    navigate(`/admin/returns/${targetId}/success`, {
+      state: {
+        loanId: targetId,
+        returnDate: formattedReturnDate,
+        notes: notes.trim() || undefined,
+      },
       replace: true,
     });
   };
@@ -273,14 +277,21 @@ export const AdminReturnConfirmationPlaceholderPage: React.FC = () => {
                 </div>
               </div>
 
-              <Button
-                variant="primary"
-                leftIcon={<ArrowLeft size={16} />}
-                onClick={() => navigate('/admin/returns')}
-                style={{ marginTop: '0.75rem' }}
-              >
-                Volver a devoluciones
-              </Button>
+              <div style={{ display: 'flex', gap: '10px', marginTop: '0.75rem' }}>
+                <Button
+                  variant="outline"
+                  leftIcon={<ArrowLeft size={16} />}
+                  onClick={() => navigate('/admin/returns')}
+                >
+                  Volver a devoluciones
+                </Button>
+                <Button
+                  variant="primary"
+                  onClick={() => navigate(`/admin/returns/${folio || loanId}/success`)}
+                >
+                  Ver comprobante
+                </Button>
+              </div>
             </div>
           </CardBody>
         </Card>

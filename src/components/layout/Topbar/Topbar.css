@@ -26,6 +26,36 @@
   margin: 0;
 }
 
+.app-topbar-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 1.125rem;
+  font-weight: 500;
+  color: #6B7280;
+}
+
+.app-topbar-breadcrumb-parent {
+  color: #6B7280;
+  text-decoration: none;
+  font-weight: 500;
+  transition: color 0.15s ease;
+}
+
+.app-topbar-breadcrumb-parent:hover {
+  color: #1E3A5F;
+}
+
+.app-topbar-breadcrumb-sep {
+  color: #9CA3AF;
+  font-weight: 400;
+}
+
+.app-topbar-breadcrumb-active {
+  color: #1E3A5F;
+  font-weight: 700;
+}
+
 .app-topbar-right {
   display: flex;
   align-items: center;

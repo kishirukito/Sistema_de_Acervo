@@ -1,6 +1,13 @@
 import { MOCK_RETURN_RECORDS, MOCK_RETURNS_SUMMARY } from './returns.mock';
 import { MOCK_LOANS, MOCK_LOANS_SUMMARY } from '../loans/loans.mock';
 import { MOCK_RESOURCES } from '../catalog/catalog.mock';
+import type {
+  LoanStatus,
+  ReturnedLoanPersistedData,
+  LoanReturnResolvedData,
+} from './returns.types';
+
+export const RETURNED_LOANS_STORAGE_KEY = 'acervo_returned_loans';
 
 export interface ReturnExecutionDetails {
   returnDate: string; // Formatted date string, e.g. "13 oct. 2026"
@@ -53,6 +60,45 @@ export function parseDisplayOrIsoDate(dateStr: string): number | null {
   return null;
 }
 
+export function getPersistedReturnedLoans(): Record<string, ReturnedLoanPersistedData> {
+  try {
+    const raw = localStorage.getItem(RETURNED_LOANS_STORAGE_KEY);
+    return raw ? JSON.parse(raw) : {};
+  } catch {
+    return {};
+  }
+}
+
+export function persistLoanReturn(data: ReturnedLoanPersistedData): void {
+  try {
+    const all = getPersistedReturnedLoans();
+    all[data.loanId] = data;
+    if (data.folio) {
+      all[data.folio] = data;
+    }
+    localStorage.setItem(RETURNED_LOANS_STORAGE_KEY, JSON.stringify(all));
+  } catch (e) {
+    console.error('Error saving returned loan to localStorage:', e);
+  }
+}
+
+export function calculateOverdueDays(dueDateStr?: string, returnDateStr?: string): number {
+  if (!dueDateStr) return 0;
+  const dueTime = parseDisplayOrIsoDate(dueDateStr);
+  if (!dueTime) return 0;
+  const returnTime = returnDateStr ? parseDisplayOrIsoDate(returnDateStr) : Date.now();
+  if (!returnTime) return 0;
+
+  const diffMs = returnTime - dueTime;
+  if (diffMs <= 0) return 0;
+  return Math.ceil(diffMs / (1000 * 60 * 60 * 24));
+}
+
+export function formatOverdueDays(days: number): string {
+  if (days <= 0) return '0 días';
+  return `${days} ${days === 1 ? 'día' : 'días'}`;
+}
+
 /**
  * Executes a loan return in the mock store, synchronizing:
  * - MOCK_RETURN_RECORDS
@@ -60,6 +106,7 @@ export function parseDisplayOrIsoDate(dateStr: string): number | null {
  * - MOCK_RESOURCES copies and status
  * - MOCK_RETURNS_SUMMARY metrics
  * - MOCK_LOANS_SUMMARY metrics
+ * - localStorage persistent state (for reload stability)
  */
 export function executeLoanReturn(loanId: string, details: ReturnExecutionDetails): boolean {
   // 1. Locate in return records
@@ -145,5 +192,113 @@ export function executeLoanReturn(loanId: string, details: ReturnExecutionDetail
     MOCK_LOANS_SUMMARY.dueSoonCount = Math.max(0, MOCK_LOANS_SUMMARY.dueSoonCount - 1);
   }
 
+  // 8. Persist to localStorage for page-reload support
+  const targetId = loan?.id || returnRecord?.loanId || loanId;
+  const folio = loan?.folio || returnRecord?.folio || loanId;
+  persistLoanReturn({
+    loanId: targetId,
+    folio,
+    returnDate: details.returnDate,
+    notes: details.notes,
+    returnedAt: new Date().toISOString(),
+  });
+
   return true;
+}
+
+/**
+ * Retrieves comprehensive data for a loan return, synthesizing memory state
+ * and localStorage fallbacks so page reloads accurately display the return outcome.
+ */
+export function getLoanReturnData(loanId: string): LoanReturnResolvedData | null {
+  if (!loanId) return null;
+
+  // Check persistent storage
+  const persistedMap = getPersistedReturnedLoans();
+  const persisted = persistedMap[loanId];
+
+  // Search in return records
+  const returnRecord = MOCK_RETURN_RECORDS.find(
+    (r) => r.loanId === loanId || r.id === loanId || r.folio === loanId
+  );
+
+  // Search in loans
+  const loan = MOCK_LOANS.find(
+    (l) => l.id === loanId || l.folio === loanId || (returnRecord && l.id === returnRecord.loanId)
+  );
+
+  if (!returnRecord && !loan && !persisted) {
+    return null;
+  }
+
+  // Determine return status and return date
+  const isPersistedReturned = Boolean(persisted);
+  const status: LoanStatus = isPersistedReturned
+    ? 'RETURNED'
+    : (loan?.status || returnRecord?.status || 'ACTIVE');
+
+  const returnDate =
+    persisted?.returnDate ||
+    loan?.returnDate ||
+    returnRecord?.returnDate ||
+    (status === 'RETURNED' ? formatDisplayDate(getTodayIsoString()) : '');
+
+  // Synchronize memory records if persisted as RETURNED
+  if (isPersistedReturned) {
+    if (loan && loan.status !== 'RETURNED') {
+      loan.status = 'RETURNED';
+      loan.returnDate = returnDate;
+    }
+    if (returnRecord && returnRecord.status !== 'RETURNED') {
+      returnRecord.status = 'RETURNED';
+      returnRecord.returnDate = returnDate;
+    }
+  }
+
+  const folio = returnRecord?.folio || loan?.folio || persisted?.folio || loanId;
+  const userId = returnRecord?.userId || loan?.userId || '';
+  const userName = returnRecord?.userName || loan?.userName || 'Usuario';
+  const userEmail = returnRecord?.userEmail || '';
+  const userCategory = returnRecord?.userCategory || loan?.userCategory || 'STUDENT';
+  const userInitials =
+    returnRecord?.userInitials ||
+    loan?.userInitials ||
+    (userName ? userName.slice(0, 2).toUpperCase() : 'U');
+  const userAvatarColor =
+    returnRecord?.userAvatarColor || loan?.userAvatarColor || '#1E3A5F';
+
+  const resourceId = returnRecord?.resourceId || loan?.resourceId || '';
+  const resourceTitle = returnRecord?.resourceTitle || loan?.resourceTitle || 'Recurso';
+  const resourceAuthor = returnRecord?.resourceAuthor || loan?.resourceAuthor || '';
+  const isbn = returnRecord?.isbn;
+  const checkoutDate = returnRecord?.checkoutDate || loan?.checkoutDate || '';
+  const dueDate = returnRecord?.dueDate || loan?.dueDate || '';
+
+  const overdueDays = calculateOverdueDays(dueDate, returnDate);
+  const overdueDaysText = formatOverdueDays(overdueDays);
+  const isOverdue = overdueDays > 0;
+  const notes = persisted?.notes || loan?.notes;
+
+  return {
+    loanId: returnRecord?.loanId || loan?.id || persisted?.loanId || loanId,
+    folio,
+    status,
+    userId,
+    userName,
+    userEmail,
+    userCategory,
+    userInitials,
+    userAvatarColor,
+    resourceId,
+    resourceTitle,
+    resourceAuthor,
+    isbn,
+    checkoutDate,
+    dueDate,
+    returnDate,
+    isOverdue,
+    overdueDays,
+    overdueDaysText,
+    notes,
+  };
 }

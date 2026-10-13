@@ -48,6 +48,14 @@ export const ReturnsPage: React.FC = () => {
   }, [toastMessage]);
 
   useEffect(() => {
+    const state = location.state as { toastMessage?: string; openSearchModal?: boolean } | null;
+    if (state?.openSearchModal) {
+      setIsSearchModalOpen(true);
+      window.history.replaceState({}, document.title);
+    }
+  }, [location.state]);
+
+  useEffect(() => {
     setRecordsList([...MOCK_RETURN_RECORDS]);
   }, []);
 

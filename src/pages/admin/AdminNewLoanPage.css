@@ -1,0 +1,229 @@
+/* AdminNewLoanPage.css - Estilos para la pantalla administrativa de Nuevo Préstamo */
+@import '../../features/loans/components/RegisterLoanModal.css';
+
+.new-loan-page {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  font-family: var(--font-family-base, 'Inter', sans-serif);
+  color: #1F2937;
+  padding-bottom: 2.5rem;
+}
+
+/* Breadcrumb Navigation */
+.new-loan-breadcrumb {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.875rem;
+  color: #6B7280;
+  margin-bottom: -0.5rem;
+}
+
+.new-loan-breadcrumb-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: #1E3A5F;
+  font-weight: 500;
+  text-decoration: none;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font-size: inherit;
+  transition: color 0.15s ease;
+}
+
+.new-loan-breadcrumb-link:hover {
+  color: #2F80ED;
+  text-decoration: underline;
+}
+
+.new-loan-breadcrumb-sep {
+  color: #9CA3AF;
+  user-select: none;
+}
+
+.new-loan-breadcrumb-current {
+  color: #4B5563;
+  font-weight: 600;
+}
+
+/* Page Header */
+.new-loan-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.new-loan-header-titles {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.new-loan-title {
+  font-family: var(--font-family-heading, 'Poppins', sans-serif);
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #1E3A5F;
+  margin: 0;
+  letter-spacing: -0.02em;
+}
+
+.new-loan-subtitle {
+  font-size: 0.95rem;
+  color: #6B7280;
+  margin: 0;
+}
+
+/* Main Grid Layout */
+.new-loan-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.45fr) minmax(340px, 1fr);
+  gap: 1.5rem;
+  align-items: start;
+}
+
+@media (max-width: 992px) {
+  .new-loan-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.new-loan-col-main {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.new-loan-col-side {
+  position: sticky;
+  top: 80px;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+/* Section styling within Cards */
+.new-loan-card-section {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* Summary Card (Right Column) */
+.new-loan-summary-box {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.new-loan-summary-badge-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-bottom: 0.75rem;
+  border-bottom: 1px solid #F1F5F9;
+}
+
+.new-loan-summary-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background-color: #ECFDF5;
+  color: #065F46;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  padding: 4px 10px;
+  border-radius: 9999px;
+  border: 1px solid #A7F3D0;
+}
+
+.new-loan-summary-badge-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background-color: #10B981;
+}
+
+.new-loan-summary-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.875rem;
+  margin: 0;
+  padding: 0;
+}
+
+.new-loan-summary-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.new-loan-summary-label {
+  font-size: 0.8125rem;
+  color: #6B7280;
+  font-weight: 500;
+}
+
+.new-loan-summary-val {
+  font-size: 0.9375rem;
+  color: #1E293B;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.new-loan-summary-val--empty {
+  color: #9CA3AF;
+  font-weight: 400;
+  font-style: italic;
+}
+
+.new-loan-summary-notice {
+  display: flex;
+  gap: 10px;
+  background-color: #F0FDF4;
+  border: 1px solid #BBF7D0;
+  border-radius: 10px;
+  padding: 12px 14px;
+  font-size: 0.8125rem;
+  color: #166534;
+  line-height: 1.45;
+}
+
+.new-loan-summary-notice-icon {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.new-loan-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 0.5rem;
+}
+
+.new-loan-submit-btn {
+  width: 100%;
+}
+
+.new-loan-cancel-btn {
+  width: 100%;
+}
+
+/* Discard modal actions */
+.new-loan-discard-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  width: 100%;
+}
