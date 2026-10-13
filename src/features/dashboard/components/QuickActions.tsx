@@ -1,17 +1,15 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 
 export const QuickActions: React.FC = () => {
-  const handleAction = (label: string) => {
-    // Temporary notification feedback
-    alert(`Acción rápida seleccionada: "${label}". Esta funcionalidad estará disponible en su correspondiente módulo.`);
-  };
+  const navigate = useNavigate();
 
   return (
     <div className="dashboard-quick-actions" aria-label="Acciones rápidas">
       <button
         type="button"
         className="dashboard-btn-outline"
-        onClick={() => handleAction('Agregar libro')}
+        onClick={() => navigate('/admin/catalog/new')}
       >
         <span>+ Agregar libro</span>
       </button>
@@ -19,7 +17,7 @@ export const QuickActions: React.FC = () => {
       <button
         type="button"
         className="dashboard-btn-outline"
-        onClick={() => handleAction('Registrar usuario')}
+        onClick={() => navigate('/admin/users')}
       >
         <span>+ Registrar usuario</span>
       </button>
@@ -27,7 +25,7 @@ export const QuickActions: React.FC = () => {
       <button
         type="button"
         className="dashboard-btn-highlight"
-        onClick={() => handleAction('Nuevo préstamo')}
+        onClick={() => navigate('/admin/loans')}
       >
         <span>+ Nuevo préstamo</span>
       </button>
@@ -35,7 +33,7 @@ export const QuickActions: React.FC = () => {
       <button
         type="button"
         className="dashboard-btn-outline"
-        onClick={() => handleAction('Registrar devolución')}
+        onClick={() => navigate('/admin/returns')}
       >
         <span>Registrar devolución</span>
       </button>

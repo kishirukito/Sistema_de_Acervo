@@ -24,10 +24,10 @@
 
 | Pantalla | Botón o acción | Comportamiento actual | Comportamiento esperado | ¿Requiere modal? | Tipo de modal | Archivo y componente | Prioridad o dependencias |
 | :--- | :--- | :--- | :--- | :---: | :--- | :--- | :--- |
-| **Dashboard** | `+ Agregar libro` | Ejecuta `alert()` simulado | Abrir modal rápida de alta de libro o redirigir a `/admin/catalog/new` | **Sí (o Navegación)** | Formulario *(si es modal rápida)* / No aplica *(si navega)* | `QuickActions.tsx` (`<QuickActions />`) | Media (Depende de si se prefiere modal o pantalla completa) |
-| **Dashboard** | `+ Registrar usuario` | Ejecuta `alert()` simulado | Abrir modal de formulario para registrar un nuevo usuario en el sistema | **Sí** | Formulario | `QuickActions.tsx` (`<QuickActions />`) | **Alta** (Mismo formulario requerido en módulo Usuarios) |
-| **Dashboard** | `+ Nuevo préstamo` | Ejecuta `alert()` simulado | Abrir modal de asignación de préstamo o redirigir a `/admin/loans/new` | **Sí** | Formulario / Selección | `QuickActions.tsx` (`<QuickActions />`) | **Alta** (Acción operativa clave) |
-| **Dashboard** | `Registrar devolución` | Ejecuta `alert()` simulado | Redirigir al listado operativo de devoluciones `/admin/returns` | **No** | No aplica *(Navegación)* | `QuickActions.tsx` (`<QuickActions />`) | Baja |
+| **Dashboard** | `+ Agregar libro` | Navega a `/admin/catalog/new` | Redirige al formulario de alta de libro existente | **No (Navegación)** | No aplica *(Navegación completada)* | `QuickActions.tsx` (`<QuickActions />`) | N/A (**Completada**) |
+| **Dashboard** | `+ Registrar usuario` | Navega a `/admin/users` | Redirige al módulo de usuarios para gestión y registro | **No (Navegación)** | No aplica *(Navegación completada)* | `QuickActions.tsx` (`<QuickActions />`) | N/A (**Completada**) |
+| **Dashboard** | `+ Nuevo préstamo` | Navega a `/admin/loans` | Redirige al módulo de préstamos para consulta y nuevo registro | **No (Navegación)** | No aplica *(Navegación completada)* | `QuickActions.tsx` (`<QuickActions />`) | N/A (**Completada**) |
+| **Dashboard** | `Registrar devolución` | Navega a `/admin/returns` | Redirige al módulo operativo de devoluciones | **No (Navegación)** | No aplica *(Navegación completada)* | `QuickActions.tsx` (`<QuickActions />`) | N/A (**Completada**) |
 | **Dashboard** | `Ver todo` (Actividad reciente) | Ejecuta `alert()` simulado | Navegar al historial de préstamos `/admin/loans` | **No** | No aplica *(Navegación)* | `RecentActivity.tsx` (`<RecentActivity />`) | Baja |
 
 ---
