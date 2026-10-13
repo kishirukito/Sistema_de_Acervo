@@ -1,0 +1,186 @@
+/* ==========================================================================
+   Book Detail Modal Styles (Ficha Bibliográfica)
+   Reutilizable en Búsqueda Inteligente y Catálogo Administrativo
+   ========================================================================== */
+
+.book-detail-modal-body {
+  display: flex;
+  flex-direction: column;
+  gap: 1.15rem;
+  font-size: 0.875rem;
+  color: #374151;
+  line-height: 1.5;
+}
+
+.book-detail-header-card {
+  display: flex;
+  gap: 1rem;
+  align-items: flex-start;
+}
+
+.book-detail-cover {
+  width: 68px;
+  height: 94px;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  padding: 8px;
+  box-sizing: border-box;
+  flex-shrink: 0;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+  user-select: none;
+  position: relative;
+  overflow: hidden;
+}
+
+.book-detail-cover-initials {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: #FFFFFF;
+  letter-spacing: 0.05em;
+  text-shadow: 0 1px 2px rgba(0, 0, 0, 0.4);
+}
+
+.book-detail-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.book-detail-title {
+  margin: 0 0 4px;
+  font-size: 1.05rem;
+  color: var(--color-primary-dark, #1E3A5F);
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.book-detail-author {
+  margin: 0 0 8px;
+  font-size: 0.8125rem;
+  color: var(--color-text-muted, #6B7280);
+}
+
+.book-detail-badges {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.book-detail-badge {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.71875rem;
+  font-weight: 500;
+  padding: 2px 8px;
+  border-radius: 4px;
+}
+
+.book-detail-badge--primary {
+  background-color: #EFF6FF;
+  color: #2F80ED;
+}
+
+.book-detail-badge--neutral {
+  background-color: #F3F4F6;
+  color: #4B5563;
+}
+
+.book-detail-badge--status-avail {
+  background-color: #DDF5E7;
+  color: #27AE60;
+  font-weight: 600;
+}
+
+.book-detail-badge--status-low {
+  background-color: #FEF3C7;
+  color: #D97706;
+  font-weight: 600;
+}
+
+.book-detail-badge--status-loaned {
+  background-color: #FDE2E2;
+  color: #EB5757;
+  font-weight: 600;
+}
+
+.book-detail-description {
+  margin: 0;
+  font-size: 0.85rem;
+  color: #374151;
+  line-height: 1.55;
+  background-color: #F8FAFC;
+  padding: 0.75rem 0.9rem;
+  border-radius: 8px;
+  border: 1px solid #E2E8F0;
+}
+
+.book-detail-description--empty {
+  color: #9CA3AF;
+  font-style: italic;
+}
+
+.book-detail-meta-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.75rem;
+  background-color: #F9FAFB;
+  padding: 0.85rem;
+  border-radius: 8px;
+  border: 1px solid #E5E7EB;
+}
+
+.book-detail-meta-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.book-detail-meta-label {
+  font-size: 0.6875rem;
+  text-transform: uppercase;
+  color: #6B7280;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.book-detail-meta-val {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #1E3A5F;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.book-detail-close-btn {
+  background: #FFFFFF;
+  color: #1F2937;
+  border: 1px solid #D1D5DB;
+  padding: 0 1.25rem;
+  height: 36px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.book-detail-close-btn:hover {
+  background-color: #F9FAFB;
+  border-color: #9CA3AF;
+  color: #111827;
+}
+
+.book-detail-close-btn:focus-visible {
+  outline: 2px solid var(--color-primary, #2F80ED);
+  outline-offset: 2px;
+}

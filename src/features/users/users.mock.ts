@@ -1,0 +1,110 @@
+import type { ManagedUser, UsersMetricsData } from './users.types';
+
+export const MOCK_USERS_METRICS: UsersMetricsData = {
+  totalUsers: 248,
+  activeUsers: 231,
+  overdueLoansCount: 7,
+};
+
+export const MOCK_MANAGED_USERS: ManagedUser[] = [
+  {
+    id: 'usr-001',
+    fullName: 'Ana López',
+    email: 'ana.lopez@biblioteca.edu',
+    phone: '+52 55 1234 5678',
+    kind: 'NORMAL',
+    category: 'STUDENT',
+    status: 'ACTIVE',
+    activeLoans: 2,
+    borrowerCode: 'ALU-2025-012',
+    createdAt: 'Desde 12 Ene 2025',
+    avatarInitials: 'AL',
+    avatarColor: '#1E3A5F', // Dark navy blue as in Figma
+  },
+  {
+    id: 'usr-002',
+    fullName: 'Carlos Ruiz',
+    email: 'c.ruiz@biblioteca.edu',
+    phone: '+52 55 9876 5432',
+    kind: 'ADMINISTRATIVE',
+    role: 'LIBRARIAN',
+    status: 'SUSPENDED',
+    hasOverdueLoan: true,
+    activeLoans: 1,
+    borrowerCode: 'BIB-2024-045',
+    createdAt: 'Desde 03 Mar 2024',
+    avatarInitials: 'CR',
+    avatarColor: '#C05621', // Terracotta/warm brown as in Figma
+  },
+  {
+    id: 'usr-003',
+    fullName: 'Marta González',
+    email: 'marta.gonzalez@biblioteca.edu',
+    phone: '+52 55 5555 0011',
+    kind: 'NORMAL',
+    category: 'EXTERNAL',
+    status: 'INACTIVE',
+    activeLoans: 0,
+    borrowerCode: 'EXT-2023-088',
+    createdAt: 'Desde 27 Jun 2023',
+    avatarInitials: 'MG',
+    avatarColor: '#7C3AED', // Purple as in Figma
+  },
+  {
+    id: 'usr-004',
+    fullName: 'Camila Flores',
+    email: 'camila.flores@biblioteca.edu',
+    phone: '+52 55 3344 5566',
+    kind: 'ADMINISTRATIVE',
+    role: 'ADMIN',
+    status: 'ACTIVE',
+    activeLoans: 0,
+    borrowerCode: 'ADM-2022-001',
+    createdAt: 'Desde 18 Feb 2022',
+    avatarInitials: 'CF',
+    avatarColor: '#059669', // Emerald/green as in Figma
+  },
+  {
+    id: 'usr-005',
+    fullName: 'Diego Hernández',
+    email: 'd.hernandez@biblioteca.edu',
+    phone: '+52 55 7788 9900',
+    kind: 'NORMAL',
+    category: 'GRADUATE',
+    status: 'ACTIVE',
+    activeLoans: 3,
+    borrowerCode: 'EGR-2024-102',
+    createdAt: 'Desde 05 Nov 2024',
+    avatarInitials: 'DH',
+    avatarColor: '#1E3A5F', // Navy as in Figma
+  },
+  {
+    id: 'usr-006',
+    fullName: 'José Ramírez',
+    email: 'jose.ramirez@biblioteca.edu',
+    phone: '+52 55 4422 1100',
+    kind: 'NORMAL',
+    category: 'TEACHER',
+    status: 'ACTIVE',
+    activeLoans: 0,
+    borrowerCode: 'DOC-2023-019',
+    createdAt: 'Desde 14 Sep 2023',
+    avatarInitials: 'JR',
+    avatarColor: '#2563EB', // Blue
+  },
+  {
+    id: 'usr-007',
+    fullName: 'Sala de Cómputo 1',
+    email: 'sala.computo1@biblioteca.edu',
+    phone: '+52 55 8899 0011',
+    kind: 'NORMAL',
+    category: 'ROOM',
+    status: 'ACTIVE',
+    activeLoans: 0,
+    borrowerCode: 'SAL-2024-001',
+    roomResponsibleName: 'Mtro. Roberto Gómez',
+    createdAt: 'Desde 20 Ago 2024',
+    avatarInitials: 'SC',
+    avatarColor: '#0D9488', // Teal
+  },
+];

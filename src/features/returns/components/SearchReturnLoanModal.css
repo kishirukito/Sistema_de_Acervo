@@ -1,0 +1,328 @@
+/* ==========================================================================
+   Search Return Loan Modal Styles
+   Modal de búsqueda y selección rápida de préstamo pendiente de devolución
+   Sistema de Acervo
+   ========================================================================== */
+
+.search-return-modal-body {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  font-size: 0.875rem;
+  color: #374151;
+}
+
+/* --------------------------------------------------------------------------
+   Search Input Section
+   -------------------------------------------------------------------------- */
+.search-return-search-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.search-return-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #374151;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+}
+
+.search-return-input-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.search-return-input-icon {
+  position: absolute;
+  left: 12px;
+  color: #9CA3AF;
+  pointer-events: none;
+}
+
+.search-return-input {
+  width: 100%;
+  padding: 0.65rem 2.25rem 0.65rem 2.5rem;
+  border: 1.5px solid #CBD5E1;
+  border-radius: var(--radius-sm, 8px);
+  font-size: 0.875rem;
+  font-family: inherit;
+  color: #1F2937;
+  background-color: #FFFFFF;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.search-return-input:focus {
+  outline: none;
+  border-color: #27AE60;
+  box-shadow: 0 0 0 3px rgba(39, 174, 96, 0.15);
+}
+
+.search-return-clear-btn {
+  position: absolute;
+  right: 10px;
+  background: transparent;
+  border: none;
+  color: #9CA3AF;
+  cursor: pointer;
+  padding: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  transition: color 0.15s ease;
+}
+
+.search-return-clear-btn:hover {
+  color: #4B5563;
+}
+
+/* --------------------------------------------------------------------------
+   Section Header / Count Subtitle
+   -------------------------------------------------------------------------- */
+.search-return-results-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--color-text-muted, #6B7280);
+  padding: 0 2px;
+}
+
+/* --------------------------------------------------------------------------
+   Results List
+   -------------------------------------------------------------------------- */
+.search-return-results-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 340px;
+  overflow-y: auto;
+  padding-right: 2px;
+}
+
+.search-return-result-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: var(--radius-md, 10px);
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.search-return-result-item:hover {
+  background-color: #F8FAFC;
+  border-color: #CBD5E1;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.04);
+}
+
+.search-return-result-item:focus-visible {
+  outline: 2px solid #27AE60;
+  outline-offset: 1px;
+}
+
+.search-return-item-main {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.search-return-item-top {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.search-return-item-folio {
+  font-family: var(--font-family-mono, monospace);
+  font-weight: 700;
+  font-size: 0.75rem;
+  background-color: #E2E8F0;
+  color: #1E293B;
+  padding: 1px 6px;
+  border-radius: 4px;
+  letter-spacing: 0.02em;
+}
+
+.search-return-item-title {
+  margin: 0;
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--color-primary-dark, #1E3A5F);
+  line-height: 1.3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.search-return-item-author {
+  font-size: 0.78125rem;
+  color: #4B5563;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.search-return-item-bottom {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  font-size: 0.75rem;
+  color: var(--color-text-muted, #6B7280);
+  flex-wrap: wrap;
+  margin-top: 2px;
+}
+
+.search-return-item-user {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-weight: 600;
+  color: #374151;
+}
+
+.search-return-item-date {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.search-return-item-due-overdue {
+  color: #DC2626;
+  font-weight: 600;
+}
+
+.search-return-item-due-soon {
+  color: #D97706;
+  font-weight: 600;
+}
+
+.search-return-item-action {
+  flex-shrink: 0;
+}
+
+.search-return-select-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 6px 12px;
+  background-color: #27AE60;
+  color: #FFFFFF;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.search-return-select-btn:hover {
+  background-color: #219653;
+  box-shadow: 0 2px 6px rgba(39, 174, 96, 0.3);
+}
+
+/* --------------------------------------------------------------------------
+   Empty and Closed Loan States
+   -------------------------------------------------------------------------- */
+.search-return-empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  padding: 2.25rem 1.5rem;
+  background: #F8FAFC;
+  border: 1px dashed #CBD5E1;
+  border-radius: var(--radius-md, 10px);
+  gap: 6px;
+}
+
+.search-return-empty-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background-color: #F1F5F9;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #64748B;
+  margin-bottom: 4px;
+}
+
+.search-return-empty-title {
+  margin: 0;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: #1E3A5F;
+}
+
+.search-return-empty-desc {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: #64748B;
+  max-width: 380px;
+  line-height: 1.45;
+}
+
+/* Already Returned Warning Alert */
+.search-return-returned-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 1rem 1.15rem;
+  background-color: #EFF6FF;
+  border: 1.5px solid #BFDBFE;
+  border-radius: var(--radius-md, 10px);
+  color: #1E40AF;
+}
+
+.search-return-returned-icon {
+  color: #2563EB;
+  margin-top: 2px;
+  flex-shrink: 0;
+}
+
+.search-return-returned-info {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.search-return-returned-title {
+  font-size: 0.875rem;
+  font-weight: 700;
+  margin: 0;
+  color: #1E40AF;
+}
+
+.search-return-returned-desc {
+  font-size: 0.8125rem;
+  margin: 0;
+  color: #1E3A8A;
+  line-height: 1.4;
+}
+
+/* --------------------------------------------------------------------------
+   Footer Section
+   -------------------------------------------------------------------------- */
+.search-return-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.search-return-footer-hint {
+  font-size: 0.75rem;
+  color: #6B7280;
+}

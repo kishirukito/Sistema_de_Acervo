@@ -1,0 +1,631 @@
+/* ==========================================================================
+   Register Loan Modal Styles (Modal de Registro de Nuevo Préstamo)
+   Sistema de Acervo
+   ========================================================================== */
+
+.register-loan-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  width: 100%;
+}
+
+/* --------------------------------------------------------------------------
+   Section Headers
+   -------------------------------------------------------------------------- */
+.register-loan-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #F1F5F9;
+}
+
+.register-loan-section:last-of-type {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.register-loan-section-header {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.register-loan-step-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background-color: var(--color-primary, #2F80ED);
+  color: #FFFFFF;
+  font-size: 0.75rem;
+  font-weight: 700;
+  line-height: 1;
+}
+
+.register-loan-section-title {
+  margin: 0;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: var(--color-primary-dark, #1E3A5F);
+  letter-spacing: -0.01em;
+}
+
+/* --------------------------------------------------------------------------
+   Search Input & Results Block
+   -------------------------------------------------------------------------- */
+.register-loan-search-block {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.register-loan-search-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.register-loan-search-icon {
+  position: absolute;
+  left: 12px;
+  color: var(--color-text-muted, #9CA3AF);
+  pointer-events: none;
+}
+
+.register-loan-search-input {
+  width: 100%;
+  height: 38px;
+  padding: 0 36px 0 36px;
+  font-size: 0.84375rem;
+  color: var(--color-text, #1F2937);
+  background-color: #FFFFFF;
+  border: 1px solid var(--color-border, #E5E7EB);
+  border-radius: var(--radius-sm, 8px);
+  outline: none;
+  transition: all var(--transition-fast, 150ms ease);
+}
+
+.register-loan-search-input:focus {
+  border-color: var(--color-primary, #2F80ED);
+  box-shadow: 0 0 0 3px rgba(47, 128, 237, 0.12);
+}
+
+.register-loan-search-clear {
+  position: absolute;
+  right: 10px;
+  background: transparent;
+  border: none;
+  color: #9CA3AF;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  border-radius: 4px;
+}
+
+.register-loan-search-clear:hover {
+  color: #4B5563;
+  background-color: #F3F4F6;
+}
+
+.register-loan-results-list {
+  max-height: 180px;
+  overflow-y: auto;
+  border: 1px solid #E5E7EB;
+  border-radius: var(--radius-sm, 8px);
+  background-color: #FAFAFB;
+  display: flex;
+  flex-direction: column;
+  divide-y: 1px solid #E5E7EB;
+}
+
+.register-loan-no-results {
+  padding: 1rem;
+  text-align: center;
+  font-size: 0.8125rem;
+  color: var(--color-text-muted, #6B7280);
+  font-style: italic;
+}
+
+/* User Row Item in Search Results */
+.register-loan-user-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 12px;
+  background-color: #FFFFFF;
+  border-bottom: 1px solid #F1F5F9;
+  transition: background-color 0.1s ease;
+}
+
+.register-loan-user-row:last-child {
+  border-bottom: none;
+}
+
+.register-loan-user-row:hover:not(.register-loan-user-row--ineligible) {
+  background-color: #F8FAFC;
+}
+
+.register-loan-user-row--ineligible {
+  background-color: #F9FAFB;
+  opacity: 0.78;
+}
+
+.register-loan-user-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  color: #FFFFFF;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.register-loan-user-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.register-loan-user-name-line {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.register-loan-user-name {
+  font-size: 0.84375rem;
+  font-weight: 700;
+  color: var(--color-primary-dark, #1E3A5F);
+}
+
+.register-loan-user-meta-line {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  font-size: 0.75rem;
+  color: var(--color-text-muted, #6B7280);
+}
+
+.register-loan-separator {
+  color: #D1D5DB;
+}
+
+.register-loan-code-pill {
+  font-family: monospace;
+  font-weight: 600;
+  background-color: #F1F5F9;
+  padding: 1px 5px;
+  border-radius: 4px;
+  color: #334155;
+}
+
+.register-loan-ineligible-reason {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.71875rem;
+  color: #B91C1C;
+  font-weight: 600;
+  margin-top: 2px;
+}
+
+/* --------------------------------------------------------------------------
+   Selected User Card
+   -------------------------------------------------------------------------- */
+.register-loan-selected-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  background: linear-gradient(135deg, #F8FAFC 0%, #F1F5F9 100%);
+  border: 1.5px solid #CBD5E1;
+  border-radius: var(--radius-sm, 8px);
+}
+
+.register-loan-selected-info {
+  flex: 1;
+  min-width: 0;
+}
+
+.register-loan-selected-title {
+  margin: 0;
+  font-size: 0.9375rem;
+  font-weight: 700;
+  color: var(--color-primary-dark, #1E3A5F);
+}
+
+.register-loan-selected-sub {
+  margin: 3px 0 0;
+  font-size: 0.78125rem;
+  color: var(--color-text-muted, #6B7280);
+}
+
+/* --------------------------------------------------------------------------
+   Resource Row Item in Search Results
+   -------------------------------------------------------------------------- */
+.register-loan-resource-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 12px;
+  background-color: #FFFFFF;
+  border-bottom: 1px solid #F1F5F9;
+  transition: background-color 0.1s ease;
+}
+
+.register-loan-resource-row:last-child {
+  border-bottom: none;
+}
+
+.register-loan-resource-row:hover:not(.register-loan-resource-row--unavailable) {
+  background-color: #F8FAFC;
+}
+
+.register-loan-resource-row--unavailable {
+  background-color: #F9FAFB;
+  opacity: 0.75;
+}
+
+.register-loan-book-thumb {
+  width: 38px;
+  height: 50px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #FFFFFF;
+  font-size: 0.71875rem;
+  font-weight: 700;
+  flex-shrink: 0;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.12);
+}
+
+.register-loan-resource-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.register-loan-resource-title-line {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.register-loan-resource-title {
+  font-size: 0.84375rem;
+  font-weight: 700;
+  color: var(--color-primary-dark, #1E3A5F);
+}
+
+.register-loan-category-pill {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  padding: 1px 6px;
+  border-radius: 4px;
+  background-color: #EFF6FF;
+  color: #2F80ED;
+}
+
+.register-loan-resource-author {
+  font-size: 0.75rem;
+  color: var(--color-text-muted, #6B7280);
+}
+
+.register-loan-resource-meta-line {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+  font-size: 0.71875rem;
+  color: #64748B;
+}
+
+.register-loan-location {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  color: #475569;
+}
+
+.register-loan-avail-line {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 2px;
+}
+
+.register-loan-avail-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.71875rem;
+  font-weight: 600;
+  background-color: #DDF5E7;
+  color: #27AE60;
+  padding: 1px 7px;
+  border-radius: 4px;
+}
+
+.register-loan-unavail-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.71875rem;
+  font-weight: 600;
+  background-color: #FEE2E2;
+  color: #B91C1C;
+  padding: 1px 7px;
+  border-radius: 4px;
+}
+
+/* --------------------------------------------------------------------------
+   Selected Book Card (Inspired by Figma Solicitar Préstamo Reference)
+   -------------------------------------------------------------------------- */
+.register-loan-selected-book-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 14px;
+  background-color: #FFFFFF;
+  border: 1.5px solid #CBD5E1;
+  border-radius: var(--radius-md, 10px);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.register-loan-selected-book-cover {
+  width: 72px;
+  height: 96px;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.register-loan-selected-book-initials {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  color: #FFFFFF;
+  letter-spacing: 0.05em;
+}
+
+.register-loan-selected-book-details {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.register-loan-selected-book-title {
+  margin: 2px 0 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--color-primary-dark, #1E3A5F);
+  line-height: 1.3;
+}
+
+.register-loan-selected-book-author {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: var(--color-text-muted, #6B7280);
+}
+
+.register-loan-selected-book-meta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin-top: 4px;
+  font-size: 0.75rem;
+  color: #475569;
+}
+
+.register-loan-meta-key {
+  font-weight: 600;
+  color: #1E293B;
+}
+
+/* --------------------------------------------------------------------------
+   Dates Grid
+   -------------------------------------------------------------------------- */
+.register-loan-dates-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 14px;
+  width: 100%;
+}
+
+@media (max-width: 600px) {
+  .register-loan-dates-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.register-loan-field-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  width: 100%;
+}
+
+.register-loan-field-label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--color-text, #1F2937);
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.register-loan-date-input {
+  width: 100%;
+  height: 38px;
+  padding: 0 10px;
+  font-size: 0.84375rem;
+  color: var(--color-text, #1F2937);
+  background-color: #FFFFFF;
+  border: 1px solid var(--color-border, #E5E7EB);
+  border-radius: var(--radius-sm, 8px);
+  outline: none;
+  transition: all var(--transition-fast, 150ms ease);
+}
+
+.register-loan-date-input:focus {
+  border-color: var(--color-primary, #2F80ED);
+  box-shadow: 0 0 0 3px rgba(47, 128, 237, 0.12);
+}
+
+.register-loan-date-input--error {
+  border-color: var(--color-danger, #EB5757);
+}
+
+.register-loan-field-helper {
+  font-size: 0.71875rem;
+  color: var(--color-text-muted, #6B7280);
+}
+
+.register-loan-field-error {
+  font-size: 0.71875rem;
+  color: var(--color-danger, #EB5757);
+  font-weight: 600;
+}
+
+/* --------------------------------------------------------------------------
+   Notes Textarea
+   -------------------------------------------------------------------------- */
+.register-loan-textarea {
+  width: 100%;
+  padding: 8px 10px;
+  font-size: 0.84375rem;
+  font-family: inherit;
+  color: var(--color-text, #1F2937);
+  background-color: #FFFFFF;
+  border: 1px solid var(--color-border, #E5E7EB);
+  border-radius: var(--radius-sm, 8px);
+  outline: none;
+  resize: vertical;
+  min-height: 52px;
+  transition: all var(--transition-fast, 150ms ease);
+}
+
+.register-loan-textarea:focus {
+  border-color: var(--color-primary, #2F80ED);
+  box-shadow: 0 0 0 3px rgba(47, 128, 237, 0.12);
+}
+
+.register-loan-char-counter {
+  font-size: 0.6875rem;
+  color: var(--color-text-muted, #9CA3AF);
+  text-align: right;
+}
+
+/* --------------------------------------------------------------------------
+   Footer Actions
+   -------------------------------------------------------------------------- */
+.register-loan-footer-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  width: 100%;
+}
+
+/* --------------------------------------------------------------------------
+   Discard Confirmation Overlay
+   -------------------------------------------------------------------------- */
+.register-loan-discard-overlay {
+  position: absolute;
+  inset: -1rem;
+  background-color: rgba(15, 23, 42, 0.65);
+  backdrop-filter: blur(2px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 50;
+  border-radius: var(--radius-lg, 12px);
+  animation: registerLoanFadeIn 0.15s ease-out;
+}
+
+@keyframes registerLoanFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+.register-loan-discard-card {
+  background-color: #FFFFFF;
+  border-radius: var(--radius-md, 10px);
+  padding: 1.25rem 1.4rem;
+  max-width: 400px;
+  width: 90%;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.25);
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.register-loan-discard-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.register-loan-discard-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background-color: #FEF3C7;
+  color: #D97706;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.register-loan-discard-title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--color-primary-dark, #1E3A5F);
+}
+
+.register-loan-discard-text {
+  margin: 0;
+  font-size: 0.84375rem;
+  color: #4B5563;
+  line-height: 1.45;
+}
+
+.register-loan-discard-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 4px;
+}

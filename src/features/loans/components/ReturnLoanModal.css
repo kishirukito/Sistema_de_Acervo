@@ -1,0 +1,366 @@
+/* ==========================================================================
+   Return Loan Modal Styles (Modal de Confirmación de Devolución)
+   Sistema de Acervo
+   ========================================================================== */
+
+.return-loan-modal-body {
+  display: flex;
+  flex-direction: column;
+  gap: 1.15rem;
+  font-size: 0.875rem;
+  color: #374151;
+  line-height: 1.5;
+}
+
+/* --------------------------------------------------------------------------
+   Header Summary Card (Folio + Badges)
+   -------------------------------------------------------------------------- */
+.return-loan-header-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
+  background: linear-gradient(135deg, #F8FAFC 0%, #F1F5F9 100%);
+  border: 1px solid #E2E8F0;
+  border-radius: var(--radius-md, 10px);
+}
+
+.return-loan-folio-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.return-loan-folio-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--color-text-muted, #6B7280);
+  letter-spacing: 0.04em;
+}
+
+.return-loan-folio-badge {
+  font-family: var(--font-family-mono, monospace);
+  font-weight: 700;
+  font-size: 0.95rem;
+  background-color: #E2E8F0;
+  color: #1E293B;
+  padding: 2px 8px;
+  border-radius: 6px;
+  letter-spacing: 0.02em;
+}
+
+/* --------------------------------------------------------------------------
+   Summary Cards (Book and User details)
+   -------------------------------------------------------------------------- */
+.return-loan-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.75rem;
+}
+
+.return-loan-summary-card {
+  background: #FFFFFF;
+  border: 1px solid #E5E7EB;
+  border-radius: var(--radius-md, 10px);
+  padding: 0.875rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.02);
+}
+
+.return-loan-card-title {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--color-text-muted, #6B7280);
+  letter-spacing: 0.03em;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  margin: 0;
+}
+
+.return-loan-item-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.return-loan-book-cover {
+  width: 40px;
+  height: 52px;
+  border-radius: 6px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  flex-shrink: 0;
+  color: #FFFFFF;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+}
+
+.return-loan-book-initials {
+  font-size: 0.625rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.return-loan-book-meta {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.return-loan-book-title {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--color-primary-dark, #1E3A5F);
+  margin: 0;
+  line-height: 1.25;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.return-loan-book-author {
+  font-size: 0.78125rem;
+  color: #4B5563;
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.return-loan-book-code {
+  font-family: var(--font-family-mono, monospace);
+  font-size: 0.71875rem;
+  color: #6B7280;
+  font-weight: 600;
+}
+
+.return-loan-user-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  color: #FFFFFF;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.875rem;
+  font-weight: 700;
+  flex-shrink: 0;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+}
+
+.return-loan-user-meta {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.return-loan-user-name {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--color-primary-dark, #1E3A5F);
+  margin: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.return-loan-user-sub {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.return-loan-category-pill {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  background-color: #EFF6FF;
+  color: #1D4ED8;
+  padding: 1px 6px;
+  border-radius: 4px;
+}
+
+/* --------------------------------------------------------------------------
+   Dates & Delay Status Section
+   -------------------------------------------------------------------------- */
+.return-loan-dates-card {
+  background: #FFFFFF;
+  border: 1px solid #E5E7EB;
+  border-radius: var(--radius-md, 10px);
+  padding: 0.875rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.return-loan-dates-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.75rem;
+}
+
+.return-loan-date-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.return-loan-date-label {
+  font-size: 0.71875rem;
+  font-weight: 600;
+  color: var(--color-text-muted, #6B7280);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.return-loan-date-val {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #1F2937;
+}
+
+/* Delay Banner */
+.return-loan-delay-alert {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border-radius: var(--radius-sm, 8px);
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.return-loan-delay-alert--overdue {
+  background-color: #FEE2E2;
+  border: 1px solid #FECACA;
+  color: #B91C1C;
+}
+
+.return-loan-delay-alert--warning {
+  background-color: #FEF3C7;
+  border: 1px solid #FDE68A;
+  color: #92400E;
+}
+
+.return-loan-delay-alert--ok {
+  background-color: #ECFDF5;
+  border: 1px solid #A7F3D0;
+  color: #065F46;
+}
+
+/* --------------------------------------------------------------------------
+   Form Fields (Return Date and Notes)
+   -------------------------------------------------------------------------- */
+.return-loan-form-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.85rem;
+}
+
+.return-loan-field-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.return-loan-field-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #374151;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.return-loan-input-date {
+  width: 100%;
+  padding: 0.55rem 0.75rem;
+  border: 1.5px solid #CBD5E1;
+  border-radius: var(--radius-sm, 8px);
+  font-size: 0.875rem;
+  font-family: inherit;
+  color: #1F2937;
+  background-color: #FFFFFF;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.return-loan-input-date:focus {
+  outline: none;
+  border-color: #2F80ED;
+  box-shadow: 0 0 0 3px rgba(47, 128, 237, 0.15);
+}
+
+.return-loan-input-date--error {
+  border-color: #EB5757;
+  background-color: #FFFDFD;
+}
+
+.return-loan-textarea {
+  width: 100%;
+  padding: 0.55rem 0.75rem;
+  border: 1.5px solid #CBD5E1;
+  border-radius: var(--radius-sm, 8px);
+  font-size: 0.84375rem;
+  font-family: inherit;
+  color: #1F2937;
+  background-color: #FFFFFF;
+  resize: vertical;
+  min-height: 64px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.return-loan-textarea:focus {
+  outline: none;
+  border-color: #2F80ED;
+  box-shadow: 0 0 0 3px rgba(47, 128, 237, 0.15);
+}
+
+.return-loan-field-error {
+  font-size: 0.71875rem;
+  color: #DC2626;
+  font-weight: 600;
+}
+
+.return-loan-char-count {
+  font-size: 0.6875rem;
+  color: #9CA3AF;
+  font-weight: 500;
+}
+
+/* --------------------------------------------------------------------------
+   Footer
+   -------------------------------------------------------------------------- */
+.return-loan-modal-footer {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 10px;
+  width: 100%;
+}
+
+/* Responsive adjustment */
+@media (max-width: 600px) {
+  .return-loan-summary-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .return-loan-dates-grid {
+    grid-template-columns: 1fr;
+  }
+}

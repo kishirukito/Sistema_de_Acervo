@@ -1,0 +1,475 @@
+/* Catalog Page CSS - Sistema de Acervo */
+
+.catalog-container {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  width: 100%;
+  max-width: 1360px;
+  margin: 0 auto;
+  font-family: var(--font-family-base, 'Inter', sans-serif);
+  color: #1F2937;
+}
+
+/* Header Section */
+.catalog-header {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+}
+
+.catalog-header-titles {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.catalog-title {
+  font-family: var(--font-family-heading, sans-serif);
+  font-size: 1.6rem;
+  font-weight: 700;
+  color: #1E3A5F;
+  margin: 0;
+  letter-spacing: -0.015em;
+}
+
+.catalog-subtitle {
+  font-size: 0.9rem;
+  color: #6B7280;
+  margin: 0;
+}
+
+.catalog-add-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 0.65rem 1.25rem;
+  background-color: #2F80ED;
+  color: #FFFFFF;
+  border: none;
+  border-radius: 8px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 6px rgba(47, 128, 237, 0.2);
+  text-decoration: none;
+}
+
+.catalog-add-btn:hover {
+  background-color: #1C6DD0;
+  box-shadow: 0 4px 12px rgba(47, 128, 237, 0.3);
+}
+
+/* Search & Filters Card */
+.catalog-filter-card {
+  background: #FFFFFF;
+  border: 1px solid #E5E7EB;
+  border-radius: 12px;
+  padding: 1.25rem 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  box-shadow: 0 2px 8px -2px rgba(16, 24, 40, 0.04);
+}
+
+.catalog-toolbar-row {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+}
+
+.catalog-search-wrapper {
+  position: relative;
+  flex: 1;
+  display: flex;
+  align-items: center;
+}
+
+.catalog-search-icon {
+  position: absolute;
+  left: 14px;
+  color: #9CA3AF;
+  pointer-events: none;
+}
+
+.catalog-search-input {
+  width: 100%;
+  height: 42px;
+  padding: 0 14px 0 40px;
+  font-size: 0.875rem;
+  color: #1F2937;
+  background-color: #FFFFFF;
+  border: 1px solid #E5E7EB;
+  border-radius: 8px;
+  outline: none;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.catalog-search-input::placeholder {
+  color: #9CA3AF;
+}
+
+.catalog-search-input:focus {
+  border-color: #2F80ED;
+  box-shadow: 0 0 0 3px rgba(47, 128, 237, 0.15);
+}
+
+.catalog-select {
+  height: 42px;
+  padding: 0 32px 0 14px;
+  font-size: 0.875rem;
+  color: #6B7280;
+  background-color: #FFFFFF;
+  border: 1px solid #E5E7EB;
+  border-radius: 8px;
+  outline: none;
+  cursor: pointer;
+  appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='16' height='16' viewBox='0 0 24 24' fill='none' stroke='%209CA3AF' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  transition: border-color 0.2s ease;
+}
+
+.catalog-select:focus {
+  border-color: #2F80ED;
+  color: #1F2937;
+}
+
+.catalog-clear-btn {
+  height: 42px;
+  padding: 0 14px;
+  background-color: #F3F4F6;
+  color: #4B5563;
+  border: 1px solid #E5E7EB;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: background-color 0.2s ease;
+}
+
+.catalog-clear-btn:hover {
+  background-color: #E5E7EB;
+  color: #1F2937;
+}
+
+.catalog-summary-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.8125rem;
+  color: #9CA3AF;
+  padding-top: 0.25rem;
+}
+
+/* Results Block */
+.catalog-results-block {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  width: 100%;
+}
+
+/* Resource Table Card */
+.catalog-table-card {
+  background: #FFFFFF;
+  border: 1px solid #E5E7EB;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 2px 8px -2px rgba(16, 24, 40, 0.04);
+}
+
+.catalog-table-wrapper {
+  width: 100%;
+  overflow-x: auto;
+}
+
+.catalog-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  font-size: 0.875rem;
+}
+
+.catalog-table thead {
+  background-color: #EFF6FF;
+  border-bottom: 1px solid #E5E7EB;
+}
+
+.catalog-table th {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #1E3A5F;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 0.85rem 1rem;
+}
+
+.catalog-table td {
+  padding: 0.95rem 1rem;
+  color: #1F2937;
+  border-bottom: 1px solid #F3F4F6;
+  vertical-align: middle;
+}
+
+.catalog-table tbody tr:last-child td {
+  border-bottom: none;
+}
+
+.catalog-table tbody tr:hover {
+  background-color: #F9FAFB;
+}
+
+/* Book Cover Thumbnail */
+.book-cover-thumb {
+  width: 38px;
+  height: 52px;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #FFFFFF;
+  font-weight: 700;
+  font-size: 0.85rem;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.12);
+  user-select: none;
+  flex-shrink: 0;
+}
+
+/* Title & Subtitle cell */
+.book-title-cell {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.book-title-name {
+  font-weight: 700;
+  color: #1F2937;
+  font-size: 0.9rem;
+}
+
+.book-title-year {
+  font-size: 0.775rem;
+  color: #9CA3AF;
+}
+
+/* Category Pill */
+.category-pill {
+  display: inline-block;
+  padding: 0.25rem 0.65rem;
+  border-radius: 6px;
+  background-color: #EFF6FF;
+  color: #1E3A5F;
+  font-size: 0.775rem;
+  font-weight: 600;
+}
+
+/* ISBN cell */
+.isbn-cell {
+  font-family: monospace;
+  color: #6B7280;
+  font-size: 0.8125rem;
+}
+
+/* Copies cell */
+.copies-cell {
+  font-size: 0.85rem;
+}
+
+.copies-available--green {
+  font-weight: 700;
+  color: #27AE60;
+}
+
+.copies-available--orange {
+  font-weight: 700;
+  color: #D97706;
+}
+
+.copies-available--red {
+  font-weight: 700;
+  color: #EB5757;
+}
+
+.copies-total {
+  color: #6B7280;
+}
+
+/* Status Badges */
+.resource-status-badge {
+  display: inline-block;
+  padding: 0.3rem 0.8rem;
+  border-radius: 9999px;
+  font-size: 0.775rem;
+  font-weight: 600;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.resource-status-badge--available {
+  background-color: #DDF5E7;
+  color: #1D7A46;
+}
+
+.resource-status-badge--low_stock {
+  background-color: #FFF4CC;
+  color: #9A6700;
+}
+
+.resource-status-badge--loaned {
+  background-color: #DDEBFF;
+  color: #1C5BA8;
+}
+
+.resource-status-badge--unavailable {
+  background-color: #E5E7EB;
+  color: #4B5563;
+}
+
+/* Actions cell */
+.catalog-actions-cell {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.catalog-action-btn {
+  background: none;
+  border: none;
+  padding: 6px;
+  border-radius: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s ease, transform 0.1s ease;
+}
+
+.catalog-action-btn:hover {
+  background-color: #F3F4F6;
+}
+
+.catalog-action-btn--view {
+  color: #6B7280;
+}
+
+.catalog-action-btn--view:hover {
+  color: #1F2937;
+  background-color: #EFF6FF;
+}
+
+.catalog-action-btn--edit {
+  color: #2F80ED;
+}
+
+.catalog-action-btn--edit:hover {
+  background-color: #EFF6FF;
+}
+
+.catalog-action-btn--delete {
+  color: #EB5757;
+}
+
+.catalog-action-btn--delete:hover {
+  background-color: #FDE2E2;
+}
+
+/* Pagination Row */
+.catalog-pagination-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.25rem 0.25rem 0.5rem 0.25rem;
+  width: 100%;
+}
+
+.catalog-pagination-info {
+  font-size: 0.8125rem;
+  color: #9CA3AF;
+}
+
+.catalog-pagination-controls {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.catalog-page-btn {
+  height: 36px;
+  padding: 0 12px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  border-radius: 6px;
+  border: 1px solid #E5E7EB;
+  background-color: #FFFFFF;
+  color: #4B5563;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  transition: all 0.2s ease;
+}
+
+.catalog-page-btn:hover:not(:disabled) {
+  background-color: #F9FAFB;
+  border-color: #2F80ED;
+  color: #2F80ED;
+}
+
+.catalog-page-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  border-color: #E5E7EB;
+}
+
+.catalog-page-btn--active {
+  background-color: #2F80ED !important;
+  color: #FFFFFF !important;
+  border-color: #2F80ED !important;
+  font-weight: 600;
+}
+
+/* Empty State */
+.catalog-empty-state {
+  background-color: #FFFFFF;
+  border: 1px solid #E5E7EB;
+  border-radius: 12px;
+  padding: 3rem 2rem;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+.catalog-empty-icon {
+  width: 54px;
+  height: 54px;
+  border-radius: 50%;
+  background-color: #EFF6FF;
+  color: #2F80ED;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.catalog-empty-title {
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: #1E3A5F;
+  margin: 0;
+}
+
+.catalog-empty-text {
+  font-size: 0.9rem;
+  color: #6B7280;
+  margin: 0;
+  max-width: 360px;
+}

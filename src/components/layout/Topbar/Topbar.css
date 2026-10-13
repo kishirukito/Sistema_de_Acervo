@@ -1,0 +1,108 @@
+/* Topbar CSS matching Figma Design */
+
+.app-topbar {
+  height: 64px;
+  background-color: #FFFFFF;
+  border-bottom: 1px solid #E5E7EB;
+  padding: 0 32px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 30;
+}
+
+.app-topbar-left {
+  display: flex;
+  align-items: center;
+}
+
+.app-topbar-title {
+  font-family: var(--font-family-heading, sans-serif);
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #1E3A5F;
+  margin: 0;
+}
+
+.app-topbar-right {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+}
+
+/* Bell Notification Button */
+.app-topbar-bell-btn {
+  position: relative;
+  background: none;
+  border: none;
+  padding: 6px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  transition: background-color 0.2s ease;
+}
+
+.app-topbar-bell-btn:hover {
+  background-color: #F3F4F6;
+}
+
+.app-topbar-bell-dot {
+  position: absolute;
+  top: 4px;
+  right: 5px;
+  width: 8px;
+  height: 8px;
+  background-color: #EB5757;
+  border: 2px solid #FFFFFF;
+  border-radius: 50%;
+}
+
+/* User profile */
+.app-topbar-user {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  cursor: pointer;
+  padding: 4px 6px;
+  border-radius: 8px;
+  transition: background-color 0.2s ease;
+}
+
+.app-topbar-user:hover {
+  background-color: #F9FAFB;
+}
+
+.app-topbar-avatar {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  background-color: #162D4A;
+  color: #FFFFFF;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.85rem;
+  flex-shrink: 0;
+}
+
+.app-topbar-user-info {
+  display: flex;
+  flex-direction: column;
+  line-height: 1.25;
+}
+
+.app-topbar-user-name {
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: #1F2937;
+}
+
+.app-topbar-user-role {
+  font-size: 0.7rem;
+  color: #6B7280;
+}

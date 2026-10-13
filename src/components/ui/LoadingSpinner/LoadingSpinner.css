@@ -1,0 +1,52 @@
+.ui-spinner-container {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+}
+
+.ui-spinner-container--center {
+  display: flex;
+  width: 100%;
+  padding: 48px 0;
+}
+
+.ui-spinner {
+  border-radius: 50%;
+  border: 3px solid #E5E7EB;
+  border-top-color: var(--color-primary);
+  animation: ui-spin 0.75s linear infinite;
+}
+
+.ui-spinner--sm {
+  width: 20px;
+  height: 20px;
+  border-width: 2px;
+}
+
+.ui-spinner--md {
+  width: 32px;
+  height: 32px;
+  border-width: 3px;
+}
+
+.ui-spinner--lg {
+  width: 48px;
+  height: 48px;
+  border-width: 4px;
+}
+
+.ui-spinner-text {
+  font-size: 0.875rem;
+  color: var(--color-text-muted);
+}
+
+@keyframes ui-spin {
+  0% {
+    transform: rotate(0deg);
+  }
+  100% {
+    transform: rotate(360deg);
+  }
+}

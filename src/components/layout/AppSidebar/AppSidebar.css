@@ -1,0 +1,123 @@
+/* AppSidebar CSS - Dark Navy Theme matching Figma Design */
+
+.app-sidebar {
+  width: 240px;
+  min-width: 240px;
+  background-color: #162D4A;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  position: sticky;
+  top: 0;
+  left: 0;
+  z-index: 40;
+  user-select: none;
+  color: #FFFFFF;
+}
+
+.app-sidebar-header {
+  padding: 24px 20px 20px 20px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.app-sidebar-logo-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background-color: rgba(255, 255, 255, 0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #FFFFFF;
+  flex-shrink: 0;
+}
+
+.app-sidebar-brand {
+  display: flex;
+  flex-direction: column;
+}
+
+.app-sidebar-brand-name {
+  font-family: var(--font-family-heading, sans-serif);
+  font-size: 1rem;
+  font-weight: 700;
+  color: #FFFFFF;
+  letter-spacing: -0.01em;
+  line-height: 1.25;
+}
+
+.app-sidebar-nav {
+  flex: 1;
+  padding: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  overflow-y: auto;
+}
+
+.app-sidebar-link {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  color: rgba(255, 255, 255, 0.7);
+  font-weight: 500;
+  font-size: 0.875rem;
+  text-decoration: none;
+  transition: all 0.2s ease;
+}
+
+.app-sidebar-link:hover {
+  background-color: rgba(255, 255, 255, 0.08);
+  color: #FFFFFF;
+}
+
+.app-sidebar-link--active {
+  background-color: #2F80ED !important;
+  color: #FFFFFF !important;
+  font-weight: 600;
+  box-shadow: 0 2px 8px rgba(47, 128, 237, 0.3);
+}
+
+.app-sidebar-link--active .app-sidebar-icon {
+  color: #FFFFFF;
+}
+
+.app-sidebar-icon {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+  color: inherit;
+}
+
+.app-sidebar-footer {
+  padding: 16px 12px 20px 12px;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.app-sidebar-logout-btn {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 10px 14px;
+  width: 100%;
+  border-radius: 8px;
+  background: transparent;
+  border: none;
+  color: #EB5757;
+  font-weight: 500;
+  font-size: 0.875rem;
+  transition: background-color 0.2s ease;
+  cursor: pointer;
+  text-align: left;
+}
+
+.app-sidebar-logout-btn:hover {
+  background-color: rgba(235, 87, 87, 0.1);
+}

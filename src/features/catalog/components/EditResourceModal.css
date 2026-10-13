@@ -1,0 +1,179 @@
+/* ==========================================================================
+   Edit Resource Modal Styles (Modal de Edición Rápida)
+   Sistema de Acervo
+   ========================================================================== */
+
+.edit-modal-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  width: 100%;
+}
+
+.edit-modal-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 1rem;
+  width: 100%;
+}
+
+@media (max-width: 640px) {
+  .edit-modal-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.edit-modal-col-span-2 {
+  grid-column: 1 / -1;
+}
+
+.edit-modal-textarea-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+}
+
+.edit-modal-textarea-label {
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: var(--color-text, #1F2937);
+}
+
+.edit-modal-textarea {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px 12px;
+  border-radius: var(--radius-sm, 8px);
+  border: 1px solid var(--color-border, #E5E7EB);
+  font-family: inherit;
+  font-size: 0.875rem;
+  outline: none;
+  background-color: var(--color-surface, #FFFFFF);
+  color: var(--color-text, #1F2937);
+  resize: vertical;
+  min-height: 80px;
+  transition: border-color var(--transition-fast, 150ms ease),
+    box-shadow var(--transition-fast, 150ms ease);
+}
+
+.edit-modal-textarea:focus {
+  border-color: var(--color-primary, #2F80ED);
+  box-shadow: 0 0 0 3px rgba(47, 128, 237, 0.15);
+}
+
+.edit-modal-footer-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  width: 100%;
+}
+
+/* Discard Unsaved Changes Confirmation Overlay */
+.edit-modal-discard-overlay {
+  position: absolute;
+  inset: 0;
+  background-color: rgba(15, 23, 42, 0.65);
+  backdrop-filter: blur(2px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  z-index: 50;
+  border-radius: inherit;
+  animation: uiModalFadeIn 0.15s ease;
+}
+
+.edit-modal-discard-card {
+  background: #FFFFFF;
+  border-radius: 14px;
+  padding: 1.5rem;
+  max-width: 420px;
+  width: 100%;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  animation: uiModalScaleUp 0.15s ease;
+}
+
+.edit-modal-discard-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.edit-modal-discard-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background-color: #FEF3C7;
+  color: #D97706;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.edit-modal-discard-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--color-primary-dark, #1E3A5F);
+  margin: 0;
+}
+
+.edit-modal-discard-text {
+  font-size: 0.84rem;
+  color: var(--color-text-muted, #6B7280);
+  margin: 0;
+  line-height: 1.5;
+}
+
+.edit-modal-discard-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 6px;
+}
+
+/* Catalog success notification banner */
+.catalog-toast-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 16px;
+  border-radius: var(--radius-md, 12px);
+  background-color: var(--color-success-bg, #DDF5E7);
+  color: var(--color-success, #27AE60);
+  border: 1px solid #B8E8CE;
+  font-size: 0.875rem;
+  font-weight: 500;
+  margin-bottom: 1rem;
+  animation: uiModalFadeIn 0.2s ease;
+}
+
+.catalog-toast-content {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.catalog-toast-close {
+  background: transparent;
+  border: none;
+  color: inherit;
+  cursor: pointer;
+  padding: 4px;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  opacity: 0.7;
+  transition: opacity 150ms ease;
+}
+
+.catalog-toast-close:hover {
+  opacity: 1;
+}
+

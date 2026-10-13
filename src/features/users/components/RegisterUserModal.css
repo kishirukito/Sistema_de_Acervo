@@ -1,0 +1,189 @@
+/* ==========================================================================
+   Register User Modal Styles (Modal de Registro de Usuario)
+   Sistema de Acervo
+   ========================================================================== */
+
+.register-user-form {
+  display: flex;
+  flex-direction: column;
+  gap: 1.15rem;
+  width: 100%;
+}
+
+.register-user-type-selector {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  width: 100%;
+}
+
+@media (max-width: 600px) {
+  .register-user-type-selector {
+    grid-template-columns: 1fr;
+  }
+}
+
+.register-user-type-card {
+  border: 1.5px solid var(--color-border, #E5E7EB);
+  border-radius: var(--radius-md, 12px);
+  padding: 12px 14px;
+  cursor: pointer;
+  background-color: #FFFFFF;
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  transition: all var(--transition-fast, 150ms ease);
+  text-align: left;
+}
+
+.register-user-type-card:hover {
+  border-color: #CBD5E1;
+  background-color: #F8FAFC;
+}
+
+.register-user-type-card--active {
+  border-color: var(--color-primary, #2F80ED);
+  background-color: #F0F7FF;
+  box-shadow: 0 0 0 2px rgba(47, 128, 237, 0.15);
+}
+
+.register-user-type-card--admin-active {
+  border-color: #059669;
+  background-color: #ECFDF5;
+  box-shadow: 0 0 0 2px rgba(5, 150, 105, 0.15);
+}
+
+.register-user-type-radio {
+  margin-top: 3px;
+  accent-color: var(--color-primary, #2F80ED);
+}
+
+.register-user-type-card--admin-active .register-user-type-radio {
+  accent-color: #059669;
+}
+
+.register-user-type-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.register-user-type-title {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: var(--color-primary-dark, #1E3A5F);
+}
+
+.register-user-type-desc {
+  font-size: 0.75rem;
+  color: var(--color-text-muted, #6B7280);
+  line-height: 1.35;
+}
+
+/* Administrative warning banner */
+.register-user-admin-warning {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 14px;
+  border-radius: var(--radius-sm, 8px);
+  background-color: #FEF3C7;
+  border: 1px solid #FCD34D;
+  color: #92400E;
+  font-size: 0.8125rem;
+  line-height: 1.45;
+}
+
+/* Grid layout for fields */
+.register-user-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 14px;
+  width: 100%;
+}
+
+@media (max-width: 600px) {
+  .register-user-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.register-user-full-width {
+  grid-column: 1 / -1;
+}
+
+/* Footer actions */
+.register-user-footer-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  width: 100%;
+}
+
+/* Discard Unsaved Changes Confirmation Dialog */
+.register-user-discard-overlay {
+  position: absolute;
+  inset: 0;
+  background-color: rgba(15, 23, 42, 0.65);
+  backdrop-filter: blur(2px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1.5rem;
+  z-index: 50;
+  border-radius: inherit;
+  animation: uiModalFadeIn 0.15s ease;
+}
+
+.register-user-discard-card {
+  background: #FFFFFF;
+  border-radius: 14px;
+  padding: 1.5rem;
+  max-width: 420px;
+  width: 100%;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2);
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  animation: uiModalScaleUp 0.15s ease;
+}
+
+.register-user-discard-header {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.register-user-discard-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  background-color: #FEF3C7;
+  color: #D97706;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.register-user-discard-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: var(--color-primary-dark, #1E3A5F);
+  margin: 0;
+}
+
+.register-user-discard-text {
+  font-size: 0.84rem;
+  color: var(--color-text-muted, #6B7280);
+  margin: 0;
+  line-height: 1.5;
+}
+
+.register-user-discard-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 6px;
+}
