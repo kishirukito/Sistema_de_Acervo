@@ -17,6 +17,7 @@ import {
   MOCK_OVERDUE_LOANS,
 } from '../../features/reports/reports.mock';
 import type { ReportsFilterState, QuickReportItem } from '../../features/reports/reports.types';
+import { resolveCategory } from '../../constants';
 import '../../features/reports/reports.css';
 
 export const ReportsPage: React.FC = () => {
@@ -104,7 +105,14 @@ export const ReportsPage: React.FC = () => {
 
   const categoriesMetrics = useMemo(() => {
     if (!activeFilters.category) return MOCK_CATEGORIES_METRICS;
-    return MOCK_CATEGORIES_METRICS.filter((c) => c.category === activeFilters.category);
+    const filterCat = resolveCategory(activeFilters.category);
+    return MOCK_CATEGORIES_METRICS.filter((c) => {
+      const metricCat = resolveCategory(c.category);
+      return (
+        c.category === activeFilters.category ||
+        (filterCat && metricCat && filterCat.code === metricCat.code)
+      );
+    });
   }, [activeFilters]);
 
   // Export handlers

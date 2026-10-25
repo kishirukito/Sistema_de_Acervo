@@ -27,13 +27,13 @@ export const MOCK_ACCOUNTS: MockAccount[] = [
   {
     user: {
       id: 'usr-std-02',
-      name: 'Carlos Mendoza Ruiz',
+      name: 'Camila Flores',
       email: 'alumno@acervo.com',
       kind: 'NORMAL',
       category: 'STUDENT',
       status: 'ACTIVE',
       identifierCode: '2023-TI-0482',
-      departmentOrCareer: 'Ingeniería en Tecnologías de la Información',
+      departmentOrCareer: 'Estudiante',
       createdAt: '2024-09-01T10:30:00Z',
     },
     passwordHash: 'Alumno1234',

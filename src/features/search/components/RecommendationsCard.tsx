@@ -2,6 +2,7 @@ import React from 'react';
 import { BookOpen, ChevronRight } from 'lucide-react';
 import { MOCK_RECOMMENDED_BOOKS } from '../search.mock';
 import type { RecommendedBook } from '../search.types';
+import { getCategoryFullLabel } from '../../../constants';
 
 interface RecommendationsCardProps {
   onSelectRecommendation: (book: RecommendedBook) => void;
@@ -53,7 +54,7 @@ export const RecommendationsCard: React.FC<RecommendationsCardProps> = ({
                 <p className="search-rec-author" title={book.author}>
                   {book.author}
                 </p>
-                <span className="search-rec-badge">{book.category}</span>
+                <span className="search-rec-badge">{getCategoryFullLabel(book.category)}</span>
               </div>
 
               <ChevronRight size={16} className="search-rec-chevron" aria-hidden="true" />

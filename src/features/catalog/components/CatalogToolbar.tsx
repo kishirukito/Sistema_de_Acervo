@@ -1,6 +1,7 @@
 import React from 'react';
 import { Search } from 'lucide-react';
 import type { CatalogFilterState } from '../catalog.types';
+import { BIBLIOGRAPHIC_CATEGORIES } from '../../../constants';
 
 interface CatalogToolbarProps {
   filters: CatalogFilterState;
@@ -52,14 +53,12 @@ export const CatalogToolbar: React.FC<CatalogToolbarProps> = ({
           className="catalog-select"
           aria-label="Filtrar por categoría"
         >
-          <option value="">Categoría</option>
-          <option value="Literatura">Literatura</option>
-          <option value="Infantil">Infantil</option>
-          <option value="Clásicos">Clásicos</option>
-          <option value="Historia">Historia</option>
-          <option value="Ciencia ficción">Ciencia ficción</option>
-          <option value="Tecnología">Tecnología</option>
-          <option value="Administración">Administración</option>
+          <option value="">Todas las categorías</option>
+          {BIBLIOGRAPHIC_CATEGORIES.map((cat) => (
+            <option key={cat.code} value={cat.code}>
+              {cat.label}
+            </option>
+          ))}
         </select>
 
         {/* Availability Status Dropdown */}

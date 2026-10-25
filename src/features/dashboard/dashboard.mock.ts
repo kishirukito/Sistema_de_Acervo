@@ -58,12 +58,12 @@ export const MOCK_MONTHLY_LOANS: MonthlyLoanData[] = [
 ];
 
 export const MOCK_CATEGORY_CONSULTS: CategoryConsultData[] = [
-  { category: 'Ciencias', count: 185 },
-  { category: 'Historia', count: 142 },
-  { category: 'Literatura', count: 228 },
-  { category: 'Tecnología', count: 168 },
-  { category: 'Arte', count: 98 },
-  { category: 'Filosofía', count: 112 },
+  { category: '800 — Literatura', count: 228 },
+  { category: '000 — Ciencias de las Computadoras, Información y Obras Generales', count: 185 },
+  { category: '600 — Tecnología', count: 168 },
+  { category: '900 — Historia y Geografía', count: 142 },
+  { category: '100 — Filosofía y Psicología', count: 112 },
+  { category: '700 — Artes y Recreación', count: 98 },
 ];
 
 export const MOCK_RECENT_ACTIVITIES: RecentActivityItem[] = [

@@ -15,7 +15,7 @@ export const MOCK_SEARCH_RESULTS: ResourceSearchResult[] = [
     author: 'Eric Matthes',
     publicationYear: 2023,
     pages: 548,
-    category: 'Tecnología',
+    category: '000',
     resourceType: 'Libro impreso',
     subjects: ['Python', 'Programación', 'Algoritmos', 'Desarrollo web'],
     description:
@@ -40,7 +40,7 @@ export const MOCK_SEARCH_RESULTS: ResourceSearchResult[] = [
     author: 'Jon Duckett',
     publicationYear: 2022,
     pages: 640,
-    category: 'Tecnología',
+    category: '000',
     resourceType: 'Libro impreso',
     subjects: ['JavaScript', 'Frontend', 'DOM', 'Programación interactiva'],
     description:
@@ -65,7 +65,7 @@ export const MOCK_SEARCH_RESULTS: ResourceSearchResult[] = [
     author: 'Luis Joyanes Aguilar',
     publicationYear: 2021,
     pages: 784,
-    category: 'Ciencias',
+    category: '000',
     resourceType: 'Libro impreso',
     subjects: ['Algoritmos', 'Pseudocódigo', 'Diagramas de flujo', 'Estructuras de datos'],
     description:
@@ -90,7 +90,7 @@ export const MOCK_SEARCH_RESULTS: ResourceSearchResult[] = [
     author: 'Alfred V. Aho',
     publicationYear: 2020,
     pages: 448,
-    category: 'Ciencias',
+    category: '000',
     resourceType: 'Libro impreso',
     subjects: ['Programación', 'Estructuras de datos', 'Algoritmos', 'Grafos', 'Árboles'],
     description:
@@ -115,7 +115,7 @@ export const MOCK_SEARCH_RESULTS: ResourceSearchResult[] = [
     author: 'Robert C. Martin',
     publicationYear: 2020,
     pages: 464,
-    category: 'Tecnología',
+    category: '000',
     resourceType: 'Libro impreso',
     subjects: ['Programación', 'Clean Code', 'Buenas prácticas', 'Refactorización', 'Testing'],
     description:
@@ -140,7 +140,7 @@ export const MOCK_SEARCH_RESULTS: ResourceSearchResult[] = [
     author: 'Addy Osmani',
     publicationYear: 2023,
     pages: 412,
-    category: 'Tecnología',
+    category: '000',
     resourceType: 'Libro impreso',
     subjects: ['Programación', 'TypeScript', 'Design Patterns', 'Arquitectura', 'POO'],
     description:
@@ -157,7 +157,7 @@ export const MOCK_SEARCH_RESULTS: ResourceSearchResult[] = [
     },
     coverInitials: 'PD',
     aiSummary:
-      'Explica patrones Gang of Four adaptados al ecosistema TypeScript moderno, reduciendo acoplamiento y aumentando la reutilización en proyectos a gran escala.',
+      'Explica patrones Gang of Go adaptados al ecosistema TypeScript moderno, reduciendo acoplamiento y aumentando la reutilización en proyectos a gran escala.',
   },
   {
     id: 'res-alg-07',
@@ -165,7 +165,7 @@ export const MOCK_SEARCH_RESULTS: ResourceSearchResult[] = [
     author: 'Aditya Bhargava',
     publicationYear: 2019,
     pages: 288,
-    category: 'Ciencias',
+    category: '000',
     resourceType: 'Libro impreso',
     subjects: ['Programación', 'Algoritmos', 'Notación Big O', 'Búsqueda binaria', 'Recursión'],
     description:
@@ -190,7 +190,7 @@ export const MOCK_SEARCH_RESULTS: ResourceSearchResult[] = [
     author: 'Alex Banks',
     publicationYear: 2022,
     pages: 380,
-    category: 'Tecnología',
+    category: '000',
     resourceType: 'Libro impreso',
     subjects: ['Programación', 'React', 'JavaScript', 'Hooks', 'Single Page Applications'],
     description:
@@ -215,7 +215,7 @@ export const MOCK_SEARCH_RESULTS: ResourceSearchResult[] = [
     author: 'Stuart Russell',
     publicationYear: 2022,
     pages: 1152,
-    category: 'Tecnología',
+    category: '000',
     resourceType: 'Libro impreso',
     subjects: ['Programación', 'Inteligencia Artificial', 'Machine Learning', 'Agentes inteligentes'],
     description:
@@ -240,7 +240,7 @@ export const MOCK_SEARCH_RESULTS: ResourceSearchResult[] = [
     author: 'Abraham Silberschatz',
     publicationYear: 2021,
     pages: 920,
-    category: 'Ciencias',
+    category: '000',
     resourceType: 'Libro impreso',
     subjects: ['Programación', 'SQL', 'Bases de datos', 'Modelado entidad-relación', 'Transacciones'],
     description:
@@ -265,7 +265,7 @@ export const MOCK_SEARCH_RESULTS: ResourceSearchResult[] = [
     author: 'Robert C. Martin',
     publicationYear: 2018,
     pages: 432,
-    category: 'Tecnología',
+    category: '000',
     resourceType: 'Libro impreso',
     subjects: ['Programación', 'Arquitectura de software', 'SOLID', 'Independencia de frameworks'],
     description:
@@ -290,7 +290,7 @@ export const MOCK_SEARCH_RESULTS: ResourceSearchResult[] = [
     author: 'Scott Chacon',
     publicationYear: 2021,
     pages: 350,
-    category: 'Tecnología',
+    category: '000',
     resourceType: 'Libro impreso',
     subjects: ['Programación', 'Git', 'Control de versiones', 'GitHub', 'Flujos de trabajo'],
     description:
@@ -309,6 +309,81 @@ export const MOCK_SEARCH_RESULTS: ResourceSearchResult[] = [
     aiSummary:
       'Comprende el modelo de objetos de Git (blobs, trees, commits), gestión eficiente de tags, sub-módulos y estrategias de branching profesional.',
   },
+  {
+    id: 'res-hist-mex-13',
+    title: 'Nueva historia mínima de México',
+    author: 'El Colegio de México',
+    publicationYear: 2020,
+    pages: 318,
+    category: '900',
+    resourceType: 'Libro impreso',
+    subjects: ['Historia de México', 'Sociedad', 'Independencia', 'Revolución', 'Geografía histórica'],
+    description:
+      'Recorrido riguroso y sintético por el devenir histórico mexicano desde los orígenes mesoamericanos hasta el siglo XXI.',
+    location: 'Estante H-01, Nivel 3',
+    isbn: '978-9681211417',
+    totalCopies: 4,
+    availableCopies: 3,
+    availability: 'AVAILABLE',
+    matchLevel: 'high',
+    coverGradient: {
+      from: '#991B1B',
+      to: '#DC2626',
+    },
+    coverInitials: 'HM',
+    aiSummary:
+      'Síntesis fundamental de la historia de México elaborada por destacados académicos de El Colegio de México.',
+  },
+  {
+    id: 'res-nov-cambio-14',
+    title: 'El Ministerio del Futuro',
+    author: 'Kim Stanley Robinson',
+    publicationYear: 2021,
+    pages: 576,
+    category: '800',
+    resourceType: 'Libro impreso',
+    subjects: ['Novela', 'Cambio climático', 'Ciencia ficción', 'Futuro ecológico', 'Literatura'],
+    description:
+      'Impactante novela de ficción climática que explora las consecuencias globales del calentamiento global y la resistencia humana.',
+    location: 'Estante L-12, Nivel 1',
+    isbn: '978-8445011744',
+    totalCopies: 3,
+    availableCopies: 2,
+    availability: 'AVAILABLE',
+    matchLevel: 'high',
+    coverGradient: {
+      from: '#065F46',
+      to: '#059669',
+    },
+    coverInitials: 'MF',
+    aiSummary:
+      'Novela aclamada que combina geopolítica, ciencia y drama humano ante los desafíos climáticos del siglo XXI.',
+  },
+  {
+    id: 'res-admin-emp-15',
+    title: 'Administración de empresas: Teoría y práctica',
+    author: 'Stephen P. Robbins',
+    publicationYear: 2022,
+    pages: 512,
+    category: '600',
+    resourceType: 'Libro impreso',
+    subjects: ['Administración de empresas', 'Gestión', 'Liderazgo', 'Organización', 'Estrategia'],
+    description:
+      'Fundamentos contemporáneos de gestión estratégica, procesos operativos, innovación tecnológica y liderazgo organizacional.',
+    location: 'Estante E-05, Nivel 2',
+    isbn: '978-6073243124',
+    totalCopies: 4,
+    availableCopies: 3,
+    availability: 'AVAILABLE',
+    matchLevel: 'high',
+    coverGradient: {
+      from: '#854D0E',
+      to: '#CA8A04',
+    },
+    coverInitials: 'AE',
+    aiSummary:
+      'Obra de referencia para estudiantes y profesionales sobre toma de decisiones gerenciales, estructura organizativa y modelos de negocio.',
+  },
 ];
 
 export const MOCK_RECOMMENDED_BOOKS: RecommendedBook[] = [
@@ -316,7 +391,7 @@ export const MOCK_RECOMMENDED_BOOKS: RecommendedBook[] = [
     id: 'rec-01',
     title: 'Clean Code',
     author: 'Robert C. Martin',
-    category: 'Tecnología',
+    category: '000',
     coverGradient: {
       from: '#1E3A5F',
       to: '#2F80ED',
@@ -327,7 +402,7 @@ export const MOCK_RECOMMENDED_BOOKS: RecommendedBook[] = [
     id: 'rec-02',
     title: 'El programador pr...',
     author: 'David Thomas',
-    category: 'Tecnología',
+    category: '000',
     coverGradient: {
       from: '#6B21A8',
       to: '#9333EA',
@@ -338,7 +413,7 @@ export const MOCK_RECOMMENDED_BOOKS: RecommendedBook[] = [
     id: 'rec-03',
     title: 'Estructura y diseño...',
     author: 'Alfred V. Aho',
-    category: 'Ciencias',
+    category: '000',
     coverGradient: {
       from: '#9A3412',
       to: '#EA580C',

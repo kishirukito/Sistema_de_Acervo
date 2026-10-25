@@ -52,3 +52,6 @@ export const USER_NAV_ITEMS = [
   { label: 'Mis préstamos', path: '/user/loans', icon: BookmarkCheck },
   { label: 'Mi perfil', path: '/user/profile', icon: User },
 ];
+
+export * from './categories';
+

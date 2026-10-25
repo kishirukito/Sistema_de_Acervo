@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Bookmark, Sparkles } from 'lucide-react';
 import type { ResourceSearchResult } from '../search.types';
+import { getCategoryFullLabel } from '../../../constants';
 
 interface ResourceCardProps {
   resource: ResourceSearchResult;
@@ -48,7 +49,7 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({
               <span>{matchLabel}</span>
             </span>
 
-            <span className="search-category-badge">{resource.category}</span>
+            <span className="search-category-badge">{getCategoryFullLabel(resource.category)}</span>
           </div>
 
           <button

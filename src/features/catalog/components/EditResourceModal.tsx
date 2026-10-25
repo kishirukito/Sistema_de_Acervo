@@ -13,18 +13,14 @@ import { Input } from '../../../components/ui/Input';
 import { Select } from '../../../components/ui/Select';
 import { Button } from '../../../components/ui/Button';
 import { MOCK_BOOKS } from '../../../mocks/data';
-import type { Resource, ResourceStatus, ResourceCategory } from '../catalog.types';
+import type { Resource, ResourceStatus } from '../catalog.types';
+import { BIBLIOGRAPHIC_CATEGORIES, resolveCategory } from '../../../constants';
 import './EditResourceModal.css';
 
-const CATEGORY_OPTIONS = [
-  { label: 'Literatura', value: 'Literatura' },
-  { label: 'Infantil', value: 'Infantil' },
-  { label: 'Clásicos', value: 'Clásicos' },
-  { label: 'Historia', value: 'Historia' },
-  { label: 'Ciencia ficción', value: 'Ciencia ficción' },
-  { label: 'Tecnología', value: 'Tecnología' },
-  { label: 'Administración', value: 'Administración' },
-];
+const CATEGORY_OPTIONS = BIBLIOGRAPHIC_CATEGORIES.map((c) => ({
+  label: c.label,
+  value: c.code,
+}));
 
 const editResourceSchema = z.object({
   title: z.string().min(2, 'El título debe tener al menos 2 caracteres'),
@@ -35,7 +31,7 @@ const editResourceSchema = z.object({
     .number()
     .min(1000, 'Ingresa un año válido')
     .max(2035, 'El año no puede ser superior a 2035'),
-  category: z.string().min(2, 'Selecciona una categoría válida'),
+  category: z.string().min(1, 'Selecciona una categoría válida'),
   totalCopies: z.coerce
     .number()
     .min(1, 'El número total de ejemplares debe ser al menos 1'),
@@ -81,13 +77,15 @@ export const EditResourceModal: React.FC<EditResourceModalProps> = ({
           b.title.trim().toLowerCase() === resource.title.trim().toLowerCase()
       );
 
+      const catCode = resolveCategory(resource.category)?.code || resolveCategory(resource.categoryLabel)?.code || '000';
+
       reset({
         title: resource.title,
         author: resource.author,
         isbn: resource.isbn,
         publisher: resource.publisher || matchedBook?.publisher || '',
         publicationYear: resource.publicationYear,
-        category: resource.categoryLabel || 'Tecnología',
+        category: catCode,
         totalCopies: resource.totalCopies,
         location: resource.location,
         description: resource.description || matchedBook?.description || '',
@@ -116,24 +114,6 @@ export const EditResourceModal: React.FC<EditResourceModalProps> = ({
     setShowDiscardConfirm(false);
   };
 
-  const mapCategoryCode = (label: string): ResourceCategory => {
-    switch (label) {
-      case 'Infantil':
-        return 'CHILDREN';
-      case 'Historia':
-        return 'HISTORY';
-      case 'Tecnología':
-        return 'TECHNOLOGY';
-      case 'Administración':
-        return 'ADMINISTRATION';
-      case 'Literatura':
-      case 'Clásicos':
-      case 'Ciencia ficción':
-      default:
-        return 'NOVEL';
-    }
-  };
-
   const onSubmit = (data: EditResourceFormData) => {
     const diff = data.totalCopies - resource.totalCopies;
     const newAvailableCopies = Math.max(
@@ -150,6 +130,8 @@ export const EditResourceModal: React.FC<EditResourceModalProps> = ({
       newStatus = 'AVAILABLE';
     }
 
+    const resolvedCat = resolveCategory(data.category) || BIBLIOGRAPHIC_CATEGORIES[0];
+
     const updatedResource: Resource = {
       ...resource,
       title: data.title.trim(),
@@ -157,8 +139,8 @@ export const EditResourceModal: React.FC<EditResourceModalProps> = ({
       isbn: data.isbn.trim(),
       publisher: data.publisher?.trim() || undefined,
       publicationYear: Number(data.publicationYear),
-      category: mapCategoryCode(data.category),
-      categoryLabel: data.category,
+      category: resolvedCat.code,
+      categoryLabel: resolvedCat.label,
       totalCopies: Number(data.totalCopies),
       availableCopies: newAvailableCopies,
       location: data.location.trim(),

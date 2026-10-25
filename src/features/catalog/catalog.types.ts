@@ -1,13 +1,17 @@
 export type ResourceStatus = 'AVAILABLE' | 'LOW_STOCK' | 'LOANED' | 'UNAVAILABLE';
 
 export type ResourceCategory =
-  | 'NOVEL'
-  | 'TECHNOLOGY'
-  | 'HISTORY'
-  | 'SCIENCE'
-  | 'ADMINISTRATION'
-  | 'CHILDREN'
-  | 'OTHER';
+  | '000'
+  | '100'
+  | '200'
+  | '300'
+  | '400'
+  | '500'
+  | '600'
+  | '700'
+  | '800'
+  | '900';
+
 
 export interface Resource {
   id: string;

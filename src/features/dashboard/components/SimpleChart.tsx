@@ -1,5 +1,6 @@
 import React from 'react';
 import type { MonthlyLoanData, CategoryConsultData } from '../dashboard.types';
+import { getCategoryCode, getCategoryFullLabel } from '../../../constants';
 
 interface LineChartProps {
   data: MonthlyLoanData[];
@@ -159,6 +160,8 @@ export const CategoryConsultsChart: React.FC<BarChartProps> = ({ data, title, su
             const x = paddingLeft + index * slotWidth + (slotWidth - barWidth) / 2;
             const barH = (item.count / maxY) * chartHeight;
             const y = paddingTop + chartHeight - barH;
+            const fullLabel = getCategoryFullLabel(item.category);
+            const code = getCategoryCode(item.category) || item.category;
 
             return (
               <g key={item.category}>
@@ -169,7 +172,9 @@ export const CategoryConsultsChart: React.FC<BarChartProps> = ({ data, title, su
                   height={barH}
                   rx="4"
                   fill="#2F80ED"
-                />
+                >
+                  <title>{`${fullLabel}: ${item.count} consultas`}</title>
+                </rect>
                 <text
                   x={x + barWidth / 2}
                   y={height - 8}
@@ -177,12 +182,21 @@ export const CategoryConsultsChart: React.FC<BarChartProps> = ({ data, title, su
                   fontSize="11"
                   textAnchor="middle"
                 >
-                  {item.category}
+                  {code}
                 </text>
               </g>
             );
           })}
         </svg>
+      </div>
+
+      {/* Accessible legend preventing label overlap */}
+      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px 12px', marginTop: 10, fontSize: '0.75rem', color: '#64748B' }}>
+        {data.map((item) => (
+          <span key={item.category} title={`${getCategoryFullLabel(item.category)}: ${item.count} consultas`}>
+            <strong style={{ color: '#1E293B' }}>{getCategoryCode(item.category)}</strong> — {getCategoryFullLabel(item.category).replace(/^\d{3}\s*—\s*/, '')} ({item.count})
+          </span>
+        ))}
       </div>
     </div>
   );

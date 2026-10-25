@@ -1,12 +1,13 @@
 import React from 'react';
 import { X, RotateCcw } from 'lucide-react';
 import type { SearchFilterState } from '../search.types';
+import { BIBLIOGRAPHIC_CATEGORIES, getCategoryFullLabel } from '../../../constants';
 
 interface SearchFiltersProps {
   filters: SearchFilterState;
   onFilterChange: <K extends keyof SearchFilterState>(key: K, value: SearchFilterState[K]) => void;
   onClearFilters: () => void;
-  categories: string[];
+  categories?: string[];
   authors: string[];
   years: number[];
 }
@@ -15,7 +16,6 @@ export const SearchFilters: React.FC<SearchFiltersProps> = ({
   filters,
   onFilterChange,
   onClearFilters,
-  categories,
   authors,
   years,
 }) => {
@@ -36,10 +36,10 @@ export const SearchFilters: React.FC<SearchFiltersProps> = ({
             className={`search-filter-select ${filters.category ? 'search-filter-select--has-value' : ''}`}
             aria-label="Filtrar por categoría"
           >
-            <option value="">Categoría</option>
-            {categories.map((cat) => (
-              <option key={cat} value={cat}>
-                {cat}
+            <option value="">Todas las categorías</option>
+            {BIBLIOGRAPHIC_CATEGORIES.map((cat) => (
+              <option key={cat.code} value={cat.code}>
+                {cat.label}
               </option>
             ))}
           </select>
@@ -103,12 +103,12 @@ export const SearchFilters: React.FC<SearchFiltersProps> = ({
 
           {filters.category && (
             <span className="search-active-pill">
-              Categoría: <strong>{filters.category}</strong>
+              Categoría: <strong>{getCategoryFullLabel(filters.category)}</strong>
               <button
                 type="button"
                 onClick={() => onFilterChange('category', '')}
                 className="search-active-pill-remove"
-                aria-label={`Quitar filtro de categoría ${filters.category}`}
+                aria-label={`Quitar filtro de categoría ${getCategoryFullLabel(filters.category)}`}
               >
                 <X size={12} />
               </button>

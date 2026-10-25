@@ -9,14 +9,15 @@ import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { Select } from '../../components/ui/Select';
 import { booksService } from '../../services/api/books.service';
+import { CATEGORY_SELECT_OPTIONS, BIBLIOGRAPHIC_CATEGORIES, resolveCategory } from '../../constants';
 
 const bookSchema = z.object({
   isbn: z.string().min(10, 'El ISBN debe tener al menos 10 caracteres'),
   title: z.string().min(2, 'El título es obligatorio'),
   author: z.string().min(2, 'El autor es obligatorio'),
   publisher: z.string().min(2, 'La editorial es obligatoria'),
-  publishYear: z.coerce.number().min(1900, 'Año inválido').max(2030, 'Año no válido'),
-  category: z.string().min(2, 'Selecciona una categoría'),
+  publishYear: z.coerce.number().min(1000, 'Año inválido').max(2035, 'Año no válido'),
+  category: z.string().min(1, 'Selecciona una categoría válida'),
   totalCopies: z.coerce.number().min(1, 'Debe haber al menos 1 ejemplar'),
   location: z.string().min(2, 'La ubicación física es requerida (ej. Estante A-1)'),
   description: z.string().optional(),
@@ -39,7 +40,7 @@ export const AdminNewBookPage: React.FC = () => {
       author: '',
       publisher: '',
       publishYear: new Date().getFullYear(),
-      category: 'Ingeniería de Software',
+      category: '000',
       totalCopies: 3,
       location: 'Estante A-1, Nivel 1',
       description: '',
@@ -47,8 +48,10 @@ export const AdminNewBookPage: React.FC = () => {
   });
 
   const onSubmit = async (data: BookFormData) => {
+    const resolvedCat = resolveCategory(data.category) || BIBLIOGRAPHIC_CATEGORIES[0];
     await booksService.create({
       ...data,
+      category: resolvedCat.code,
       availableCopies: data.totalCopies,
     });
     navigate('/admin/catalog');
@@ -129,14 +132,7 @@ export const AdminNewBookPage: React.FC = () => {
 
               <Select
                 label="Categoría Temática"
-                options={[
-                  { label: 'Ingeniería de Software', value: 'Ingeniería de Software' },
-                  { label: 'Patrones de Diseño', value: 'Patrones de Diseño' },
-                  { label: 'Arquitectura de Software', value: 'Arquitectura de Software' },
-                  { label: 'Sistemas Distribuidos', value: 'Sistemas Distribuidos' },
-                  { label: 'Bases de Datos', value: 'Bases de Datos' },
-                  { label: 'Redes y Telecomunicaciones', value: 'Redes y Telecomunicaciones' },
-                ]}
+                options={CATEGORY_SELECT_OPTIONS}
                 error={errors.category?.message}
                 {...register('category')}
               />

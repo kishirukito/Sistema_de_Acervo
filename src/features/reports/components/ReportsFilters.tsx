@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Clock, Filter, Download, ChevronDown } from 'lucide-react';
 import type { ReportsFilterState } from '../reports.types';
+import { BIBLIOGRAPHIC_CATEGORIES } from '../../../constants';
 
 interface ReportsFiltersProps {
   filters: ReportsFilterState;
@@ -95,12 +96,12 @@ export const ReportsFilters: React.FC<ReportsFiltersProps> = ({
           className="reports-select"
           aria-label="Filtrar por categoría"
         >
-          <option value="">Categoría</option>
-          <option value="Novela">Novela</option>
-          <option value="Tecnología">Tecnología</option>
-          <option value="Historia">Historia</option>
-          <option value="Ciencia">Ciencia</option>
-          <option value="Administración">Administración</option>
+          <option value="">Todas las categorías</option>
+          {BIBLIOGRAPHIC_CATEGORIES.map((cat) => (
+            <option key={cat.code} value={cat.code}>
+              {cat.label}
+            </option>
+          ))}
         </select>
 
         {/* Usuario */}

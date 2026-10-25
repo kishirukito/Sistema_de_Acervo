@@ -14,6 +14,7 @@ import type {
   SortOption,
   RecommendedBook,
 } from '../../features/search/search.types';
+import { resolveCategory } from '../../constants';
 import '../../features/search/search.css';
 
 const PAGE_SIZE = 3;
@@ -60,14 +61,17 @@ export const SearchPage: React.FC = () => {
     const term = activeSearchTerm.trim().toLowerCase();
 
     return MOCK_SEARCH_RESULTS.filter((resource) => {
-      // 1. Keyword search (matches title, author, subjects, description, ISBN)
+      // 1. Keyword search (matches title, author, subjects, description, ISBN, category)
       if (term) {
         const titleMatch = resource.title.toLowerCase().includes(term);
         const authorMatch = resource.author.toLowerCase().includes(term);
         const descMatch = resource.description.toLowerCase().includes(term);
         const isbnMatch = resource.isbn.toLowerCase().includes(term);
         const subjectMatch = resource.subjects.some((s) => s.toLowerCase().includes(term));
-        const categoryMatch = resource.category.toLowerCase().includes(term);
+        const resCat = resolveCategory(resource.category);
+        const categoryMatch =
+          resource.category.toLowerCase().includes(term) ||
+          Boolean(resCat && resCat.label.toLowerCase().includes(term));
 
         // Also check if any word from multi-word search term matches (fuzzy support)
         const words = term.split(/\s+/).filter((w) => w.length > 2);
@@ -86,8 +90,12 @@ export const SearchPage: React.FC = () => {
       }
 
       // 2. Category filter
-      if (filters.category && resource.category !== filters.category) {
-        return false;
+      if (filters.category) {
+        const filterCatCode = resolveCategory(filters.category)?.code || filters.category;
+        const resCatCode = resolveCategory(resource.category)?.code || resource.category;
+        if (resCatCode !== filterCatCode) {
+          return false;
+        }
       }
 
       // 3. Author filter

@@ -7,6 +7,7 @@ import { Badge } from '../../components/ui/Badge';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { MOCK_BOOKS, MOCK_REQUESTS } from '../../mocks/data';
 import { useAuth } from '../../features/auth/AuthContext';
+import { getCategoryFullLabel } from '../../constants';
 
 export const UserBookDetailPage: React.FC = () => {
   const { bookId } = useParams<{ bookId: string }>();
@@ -122,9 +123,15 @@ export const UserBookDetailPage: React.FC = () => {
                 <span style={{ color: 'var(--color-text-muted)' }}>Año de publicación:</span>
                 <span>{book.publishYear}</span>
               </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ color: 'var(--color-text-muted)' }}>Categoría temática:</span>
-                <Badge variant="primary" size="sm">{book.category}</Badge>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
+                <span style={{ color: 'var(--color-text-muted)', flexShrink: 0 }}>Categoría temática:</span>
+                <Badge
+                  variant="primary"
+                  size="sm"
+                  style={{ whiteSpace: 'normal', lineHeight: 1.35, textAlign: 'right', maxWidth: '70%' }}
+                >
+                  {getCategoryFullLabel(book.category)}
+                </Badge>
               </div>
               <div style={{ marginTop: 10 }}>
                 <span style={{ color: 'var(--color-text-muted)', fontSize: '0.8125rem', display: 'block', marginBottom: 4 }}>

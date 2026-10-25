@@ -1,5 +1,6 @@
 import React from 'react';
 import type { CategoryLoanMetric } from '../reports.types';
+import { getCategoryCode, getCategoryFullLabel } from '../../../constants';
 
 interface CategoriesBarChartProps {
   categories: CategoryLoanMetric[];
@@ -31,6 +32,7 @@ export const CategoriesBarChart: React.FC<CategoriesBarChartProps> = ({ categori
             {/* Vertical Bars */}
             {categories.map((cat) => {
               const heightPercent = Math.min((cat.count / maxVal) * 100, 100);
+              const fullLabel = getCategoryFullLabel(cat.category);
 
               return (
                 <div key={cat.category} className="reports-vbar-column">
@@ -40,7 +42,7 @@ export const CategoriesBarChart: React.FC<CategoriesBarChartProps> = ({ categori
                       height: `${heightPercent}%`,
                       backgroundColor: cat.color,
                     }}
-                    title={`${cat.category}: ${cat.count} préstamos`}
+                    title={`${fullLabel}: ${cat.count} préstamos`}
                   />
                 </div>
               );
@@ -49,13 +51,67 @@ export const CategoriesBarChart: React.FC<CategoriesBarChartProps> = ({ categori
 
           {/* X Axis Labels */}
           <div className="reports-vbar-x-axis">
-            {categories.map((cat) => (
-              <span key={cat.category} className="reports-vbar-x-label" title={cat.category}>
-                {cat.category}
-              </span>
-            ))}
+            {categories.map((cat) => {
+              const code = getCategoryCode(cat.category) || cat.category;
+              const fullLabel = getCategoryFullLabel(cat.category);
+
+              return (
+                <span
+                  key={cat.category}
+                  className="reports-vbar-x-label"
+                  title={fullLabel}
+                  style={{ fontWeight: 600, color: '#1E293B' }}
+                >
+                  {code}
+                </span>
+              );
+            })}
           </div>
         </div>
+      </div>
+
+      {/* Accessible Legend showing full category names without truncation */}
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 6, marginTop: 8, borderTop: '1px solid #F1F5F9', paddingTop: 10 }}>
+        {categories.map((cat) => {
+          const fullLabel = getCategoryFullLabel(cat.category);
+
+          return (
+            <div
+              key={cat.category}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                fontSize: '0.75rem',
+                gap: 8,
+              }}
+            >
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, minWidth: 0 }}>
+                <span
+                  style={{
+                    width: 8,
+                    height: 8,
+                    borderRadius: '50%',
+                    backgroundColor: cat.color,
+                    flexShrink: 0,
+                  }}
+                  aria-hidden="true"
+                />
+                <span
+                  style={{
+                    color: '#374151',
+                    lineHeight: 1.35,
+                    wordBreak: 'normal',
+                    overflowWrap: 'break-word',
+                  }}
+                >
+                  {fullLabel}
+                </span>
+              </div>
+              <strong style={{ color: '#111827', flexShrink: 0 }}>{cat.count}</strong>
+            </div>
+          );
+        })}
       </div>
     </div>
   );

@@ -13,6 +13,7 @@ import { Modal } from '../../../components/ui/Modal';
 import { MOCK_BOOKS } from '../../../mocks/data';
 import type { ResourceSearchResult } from '../search.types';
 import type { Resource } from '../../catalog/catalog.types';
+import { getCategoryFullLabel } from '../../../constants';
 import './BookDetailModal.css';
 
 export type BookDetailItem = ResourceSearchResult | Resource;
@@ -67,10 +68,11 @@ export const BookDetailModal: React.FC<BookDetailModalProps> = ({
     resource.coverInitials || resource.title.slice(0, 2).toUpperCase();
 
   // Category and secondary badges
-  const categoryLabel =
+  const rawCat =
     'categoryLabel' in resource && resource.categoryLabel
       ? resource.categoryLabel
-      : resource.category || 'General';
+      : resource.category || '';
+  const categoryLabel = getCategoryFullLabel(rawCat);
 
   const resourceCode = 'code' in resource && resource.code ? resource.code : null;
   const resourceType =

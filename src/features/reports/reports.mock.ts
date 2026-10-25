@@ -60,11 +60,11 @@ export const MOCK_STATUS_DISTRIBUTION: LoanStatusDistribution[] = [
 ];
 
 export const MOCK_CATEGORIES_METRICS: CategoryLoanMetric[] = [
-  { category: 'Novela', count: 92, color: '#2F80ED' },
-  { category: 'Tecnología', count: 73, color: '#1E293B' },
-  { category: 'Historia', count: 58, color: '#22C55E' },
-  { category: 'Ciencia', count: 44, color: '#EAB308' },
-  { category: 'Administración', count: 30, color: '#8B5CF6' },
+  { category: '800 — Literatura', count: 92, color: '#2F80ED' },
+  { category: '000 — Ciencias de las Computadoras, Información y Obras Generales', count: 73, color: '#1E293B' },
+  { category: '900 — Historia y Geografía', count: 58, color: '#22C55E' },
+  { category: '500 — Ciencias', count: 44, color: '#EAB308' },
+  { category: '600 — Tecnología', count: 30, color: '#8B5CF6' },
 ];
 
 export const MOCK_OVERDUE_LOANS: OverdueLoanItem[] = [

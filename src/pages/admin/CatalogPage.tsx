@@ -9,6 +9,7 @@ import { EditResourceModal } from '../../features/catalog/components/EditResourc
 import { DeleteBookModal } from '../../features/catalog/components/DeleteBookModal';
 import { MOCK_RESOURCES } from '../../features/catalog/catalog.mock';
 import type { CatalogFilterState, Resource } from '../../features/catalog/catalog.types';
+import { resolveCategory } from '../../constants';
 import '../../features/catalog/catalog.css';
 
 const INITIAL_FILTERS: CatalogFilterState = {
@@ -43,11 +44,15 @@ export const CatalogPage: React.FC = () => {
       }
 
       if (filters.category) {
-        if (
-          resource.categoryLabel.toLowerCase() !== filters.category.toLowerCase() &&
-          resource.category.toLowerCase() !== filters.category.toLowerCase()
-        ) {
-          return false;
+        const targetCat = resolveCategory(filters.category);
+        const resCat = resolveCategory(resource.category) || resolveCategory(resource.categoryLabel);
+        if (targetCat && resCat) {
+          if (targetCat.code !== resCat.code) return false;
+        } else {
+          const q = filters.category.toLowerCase();
+          const matchLabel = resource.categoryLabel.toLowerCase().includes(q);
+          const matchCat = String(resource.category).toLowerCase().includes(q);
+          if (!matchLabel && !matchCat) return false;
         }
       }
 
