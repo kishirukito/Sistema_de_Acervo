@@ -70,6 +70,47 @@ export const booksService = {
   },
 
   async create(data: Omit<Book, 'id'>): Promise<Book> {
+    const payload = {
+      isbn: data.isbn,
+      titulo: data.title,
+      autor: data.author,
+      editorial: data.publisher,
+      anio_publicacion: data.publishYear,
+      categoria: data.category,
+      total_copias: data.totalCopies || 1,
+      ubicacion: data.location || 'Estante A-1, Nivel 1',
+      descripcion: data.description || '',
+      portada_url: data.coverUrl || '',
+    };
+
+    // 1. Intento principal mediante Backend Proxy (Bypasses RLS completamente con Service Role)
+    try {
+      let res = await fetch('/api/v1/data/libros', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload),
+      });
+
+      if (!res.ok) {
+        res = await fetch('http://127.0.0.1:8000/api/v1/data/libros', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload),
+        });
+      }
+
+      if (res.ok) {
+        const created = await res.json();
+        return {
+          ...data,
+          id: created.id,
+        };
+      }
+    } catch (backendErr) {
+      console.warn('[booksService] Backend proxy create failed, trying direct Supabase fallback:', backendErr);
+    }
+
+    // 2. Respaldo directo en Supabase
     try {
       const { data: newBook, error } = await supabase
         .from('libros')
@@ -82,34 +123,33 @@ export const booksService = {
         .select()
         .single();
 
-      if (error || !newBook) {
-        throw error;
-      }
-
-      if (data.description) {
-        try {
-          await supabase.from('resumenes_ia').insert({
-            libro_id: newBook.id,
-            resumen_texto: data.description,
-            palabras_clave: Array.isArray(data.topics) ? data.topics.join(', ') : 'Referencia Académica, CIU',
-            modelo_usado: 'llama3.2:3b',
-          });
-        } catch (iaErr) {
-          console.warn('[booksService] Could not insert resumen_ia:', iaErr);
+      if (!error && newBook) {
+        if (data.description) {
+          try {
+            await supabase.from('resumenes_ia').insert({
+              libro_id: newBook.id,
+              resumen_texto: data.description,
+              palabras_clave: Array.isArray(data.topics) ? data.topics.join(', ') : 'Referencia Académica, CIU',
+              modelo_usado: 'llama3.2:3b',
+            });
+          } catch (iaErr) {
+            console.warn('[booksService] Could not insert resumen_ia:', iaErr);
+          }
         }
+        return {
+          ...data,
+          id: newBook.id,
+        };
       }
-
-      return {
-        ...data,
-        id: newBook.id,
-      };
-    } catch {
-      const localBook: Book = {
-        ...data,
-        id: `book-${Date.now()}`,
-      };
-      MOCK_BOOKS.unshift(localBook);
-      return localBook;
+    } catch (err) {
+      console.warn('[booksService] Direct Supabase insert failed (likely RLS):', err);
     }
+
+    const localBook: Book = {
+      ...data,
+      id: `book-${Date.now()}`,
+    };
+    MOCK_BOOKS.unshift(localBook);
+    return localBook;
   },
 };

@@ -54,3 +54,4 @@ export async function requestAISummary(params: GenerateAISummaryParams): Promise
 
   return await directRes.json();
 }
+
