@@ -9,6 +9,7 @@ import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
 import { Select } from '../../components/ui/Select';
 import { booksService } from '../../services/api/books.service';
+import { requestAISummary } from '../../services/api/ai.service';
 import { CATEGORY_SELECT_OPTIONS, BIBLIOGRAPHIC_CATEGORIES, resolveCategory } from '../../constants';
 
 const bookSchema = z.object({
@@ -63,28 +64,21 @@ export const AdminNewBookPage: React.FC = () => {
     setAiNotice(null);
     setIsGeneratingAI(true);
     try {
-      const res = await fetch('/api/v1/ai/resumen', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          titulo: currentTitle.trim(),
-          autor: currentAuthor ? currentAuthor.trim() : 'Autor especializado',
-          sinopsis_o_tema: currentCategory || 'Ciencias e Ingeniería',
-        }),
+      const data = await requestAISummary({
+        titulo: currentTitle.trim(),
+        autor: currentAuthor ? currentAuthor.trim() : 'Autor especializado',
+        sinopsis_o_tema: currentCategory || 'Ciencias e Ingeniería',
       });
 
-      if (res.ok) {
-        const data = await res.json();
-        if (data.resumen) {
-          setValue('description', data.resumen, { shouldDirty: true });
-          setAiNotice('¡Resumen generado con éxito mediante IA!');
-        }
+      if (data?.resumen) {
+        setValue('description', data.resumen, { shouldDirty: true });
+        setAiNotice('¡Resumen generado con éxito mediante IA!');
       } else {
-        setAiNotice('No se pudo conectar con el servicio de IA local.');
+        setAiNotice('No se obtuvo texto de resumen del microservicio.');
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      setAiNotice('Error al invocar el microservicio de IA.');
+      setAiNotice(err?.message || 'Error al invocar el microservicio de IA.');
     } finally {
       setIsGeneratingAI(false);
     }

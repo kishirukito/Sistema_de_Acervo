@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Sparkles, X, MapPin, RefreshCw } from 'lucide-react';
 import type { ResourceSearchResult } from '../search.types';
+import { requestAISummary } from '../../../services/api/ai.service';
 
 interface AISummaryModalProps {
   resource: ResourceSearchResult | null;
@@ -27,35 +28,28 @@ export const AISummaryModal: React.FC<AISummaryModalProps> = ({ resource, onClos
     setIsGenerating(true);
     setNotice(null);
     try {
-      const res = await fetch('/api/v1/ai/resumen', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          titulo: resource.title,
-          autor: resource.author,
-          sinopsis_o_tema: resource.category || '',
-          libro_id: resource.id,
-        }),
+      const data = await requestAISummary({
+        titulo: resource.title,
+        autor: resource.author,
+        sinopsis_o_tema: resource.category || '',
+        libro_id: resource.id,
       });
 
-      if (res.ok) {
-        const data = await res.json();
-        if (data.resumen) {
-          setCurrentSummary(data.resumen);
-          resource.aiSummary = data.resumen;
-          if (data.palabras_clave) {
-            const tags = data.palabras_clave.split(',').map((s: string) => s.trim()).filter(Boolean);
-            setCurrentSubjects(tags);
-            resource.subjects = tags;
-          }
-          setNotice('¡Resumen generado y guardado en la base de datos!');
+      if (data?.resumen) {
+        setCurrentSummary(data.resumen);
+        resource.aiSummary = data.resumen;
+        if (data.palabras_clave) {
+          const tags = data.palabras_clave.split(',').map((s: string) => s.trim()).filter(Boolean);
+          setCurrentSubjects(tags);
+          resource.subjects = tags;
         }
+        setNotice('¡Resumen generado y guardado en la base de datos!');
       } else {
         setNotice('No se pudo generar el resumen.');
       }
-    } catch (e) {
+    } catch (e: any) {
       console.error(e);
-      setNotice('Error al conectar con el microservicio de IA.');
+      setNotice(e?.message || 'Error al conectar con el microservicio de IA.');
     } finally {
       setIsGenerating(false);
     }

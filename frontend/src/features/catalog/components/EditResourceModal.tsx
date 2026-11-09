@@ -15,6 +15,7 @@ import { Select } from '../../../components/ui/Select';
 import { Button } from '../../../components/ui/Button';
 import { MOCK_BOOKS } from '../../../mocks/data';
 import type { Resource, ResourceStatus } from '../catalog.types';
+import { requestAISummary } from '../../../services/api/ai.service';
 import { BIBLIOGRAPHIC_CATEGORIES, resolveCategory } from '../../../constants';
 import './EditResourceModal.css';
 
@@ -76,29 +77,22 @@ export const EditResourceModal: React.FC<EditResourceModalProps> = ({
     setIsGeneratingAI(true);
     setAiNotice(null);
     try {
-      const res = await fetch('/api/v1/ai/resumen', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          titulo: resource.title,
-          autor: resource.author,
-          sinopsis_o_tema: resource.categoryLabel || resource.category || '',
-          libro_id: resource.id,
-        }),
+      const data = await requestAISummary({
+        titulo: resource.title,
+        autor: resource.author,
+        sinopsis_o_tema: resource.categoryLabel || String(resource.category) || '',
+        libro_id: resource.id,
       });
 
-      if (res.ok) {
-        const data = await res.json();
-        if (data.resumen) {
-          setValue('description', data.resumen, { shouldDirty: true });
-          setAiNotice('¡Resumen generado y guardado en la base de datos!');
-        }
+      if (data?.resumen) {
+        setValue('description', data.resumen, { shouldDirty: true });
+        setAiNotice('¡Resumen generado y guardado en la base de datos!');
       } else {
-        setAiNotice('No se pudo conectar con el servicio de IA local.');
+        setAiNotice('No se obtuvo texto de resumen del microservicio.');
       }
-    } catch (err) {
+    } catch (err: any) {
       console.error(err);
-      setAiNotice('Error al generar resumen.');
+      setAiNotice(err?.message || 'Error al generar resumen.');
     } finally {
       setIsGeneratingAI(false);
     }
