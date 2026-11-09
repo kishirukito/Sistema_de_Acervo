@@ -1,54 +1,90 @@
-export type UserRole = 'alumno' | 'personal' | 'administrador';
+export type UserKind = 'ADMINISTRATIVE' | 'NORMAL';
+
+export type AdministrativeRole = 'ADMIN' | 'LIBRARIAN';
+
+export type NormalUserCategory = 'TEACHER' | 'STUDENT' | 'EXTERNAL' | 'ROOM' | 'GRADUATE';
+
+export type UserStatus = 'ACTIVE' | 'INACTIVE' | 'SUSPENDED';
 
 export interface User {
   id: string;
+  name: string;
   email: string;
-  nombre_completo: string;
-  matricula_o_nomina?: string;
-  carrera_o_depto?: string;
-  rol: UserRole;
-  activo: boolean;
-  creado_en?: string;
+  kind: UserKind;
+  role?: AdministrativeRole;
+  category?: NormalUserCategory;
+  status: UserStatus;
+  avatarUrl?: string;
+  phone?: string;
+  identifierCode?: string; // Matricula or employee ID
+  departmentOrCareer?: string;
+  createdAt: string;
 }
+
+export type BookStatus = 'AVAILABLE' | 'BORROWED' | 'MAINTENANCE' | 'RESERVED';
 
 export interface Book {
   id: string;
-  titulo: string;
-  autor: string;
-  isbn?: string;
-  editorial?: string;
-  año_edicion?: number;
-  categoria?: string;
-  sinopsis?: string;
-  portada_url?: string;
-  total_ejemplares: number;
-  disponibles: number;
-  resumen_ia?: string;
-  palabras_clave_ia?: string;
+  isbn: string;
+  title: string;
+  author: string;
+  publisher: string;
+  publishYear: number;
+  category: string;
+  totalCopies: number;
+  availableCopies: number;
+  location: string; // e.g. "Estante A-3, Nivel 2"
+  coverUrl?: string;
+  description?: string;
+  rating?: number;
+  reviewsCount?: number;
+  topics?: string[];
+  language?: string;
+  materialType?: string;
+  schedule?: string;
 }
+
+export type LoanStatus = 'ACTIVE' | 'RETURNED' | 'OVERDUE';
 
 export interface Loan {
   id: string;
-  libro_id: string;
-  libro_titulo?: string;
-  usuario_id: string;
-  usuario_nombre?: string;
-  fecha_prestamo: string;
-  fecha_devolucion_esperada: string;
-  fecha_devolucion_real?: string;
-  estado: 'activo' | 'devuelto' | 'vencido';
-  observaciones?: string;
+  bookId: string;
+  bookTitle: string;
+  bookIsbn: string;
+  userId: string;
+  userName: string;
+  userEmail: string;
+  loanDate: string;
+  dueDate: string;
+  returnDate?: string;
+  status: LoanStatus;
+  renewalsCount: number;
+  notes?: string;
 }
 
-export interface AISummary {
-  resumen: string;
-  palabras_clave: string;
-  modelo: string;
-  proveedor: string;
+export type RequestStatus =
+  | 'PENDING'
+  | 'APPROVED'
+  | 'READY_FOR_PICKUP'
+  | 'REJECTED'
+  | 'CANCELLED'
+  | 'EXPIRED';
+
+export interface BorrowRequest {
+  id: string;
+  bookId: string;
+  bookTitle: string;
+  userId: string;
+  userName: string;
+  userEmail: string;
+  requestDate: string;
+  status: RequestStatus;
+  notes?: string;
+  pickupLocation?: string;
+  suggestedDate?: string;
 }
 
-export interface AISearchResult {
-  query: string;
-  topicos_relacionados: string[];
-  total: number;
+export interface SmartSearchResult {
+  answer: string;
+  suggestedTerms: string[];
 }

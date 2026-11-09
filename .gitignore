@@ -5,6 +5,7 @@
 venv/
 env/
 .venv/
+frontend_backup_pre_merge/
 
 # Python
 __pycache__/

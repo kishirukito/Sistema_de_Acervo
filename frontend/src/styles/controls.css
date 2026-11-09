@@ -1,0 +1,419 @@
+/* ==========================================================================
+   GLOBAL CONTROLS & LISTS STYLES - Sistema de Acervo
+   Centralized visual design for selects, dropdowns, filters, results lists,
+   popovers, and suggestion controls across Admin and Reader modules.
+   ========================================================================== */
+
+/* --------------------------------------------------------------------------
+   1. Universal Filter Selects & Native Dropdown Controls
+   Targets all filter selects across Admin and Reader layouts.
+   -------------------------------------------------------------------------- */
+
+.catalog-select,
+.loans-select,
+.returns-select,
+.users-select,
+.reports-select,
+.search-filter-select,
+.search-sort-select,
+.catalog-filter-select,
+.catalog-filter-modal-select,
+.catalog-search-scope-select,
+.catalog-sort-select,
+.user-requests-sort-select,
+.borrow-request-select,
+.ui-select-field {
+  box-sizing: border-box;
+  font-family: var(--font-family-base, 'Inter', system-ui, sans-serif);
+  font-size: 0.84375rem;
+  font-weight: 500;
+  color: #334155;
+  background-color: #FFFFFF;
+  border: 1.5px solid #CBD5E1;
+  border-radius: 8px;
+  height: 40px;
+  padding: 0 32px 0 12px;
+  outline: none;
+  cursor: pointer;
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  line-height: 1.4;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  min-width: 120px;
+  max-width: 240px;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='15' height='15' viewBox='0 0 24 24' fill='none' stroke='%2364748B' stroke-width='2.2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 10px center;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease, color 0.15s ease;
+}
+
+/* Hover State */
+.catalog-select:hover:not(:disabled),
+.loans-select:hover:not(:disabled),
+.returns-select:hover:not(:disabled),
+.users-select:hover:not(:disabled),
+.reports-select:hover:not(:disabled),
+.search-filter-select:hover:not(:disabled),
+.search-sort-select:hover:not(:disabled),
+.catalog-filter-select:hover:not(:disabled),
+.catalog-filter-modal-select:hover:not(:disabled),
+.catalog-search-scope-select:hover:not(:disabled),
+.catalog-sort-select:hover:not(:disabled),
+.user-requests-sort-select:hover:not(:disabled),
+.borrow-request-select:hover:not(:disabled),
+.ui-select-field:hover:not(:disabled) {
+  border-color: #94A3B8;
+  background-color: #F8FAFC;
+  color: #0F172A;
+}
+
+/* Focus State */
+.catalog-select:focus,
+.loans-select:focus,
+.returns-select:focus,
+.users-select:focus,
+.reports-select:focus,
+.search-filter-select:focus,
+.search-sort-select:focus,
+.catalog-filter-select:focus,
+.catalog-filter-modal-select:focus,
+.catalog-search-scope-select:focus,
+.catalog-sort-select:focus,
+.user-requests-sort-select:focus,
+.borrow-request-select:focus,
+.ui-select-field:focus {
+  border-color: #2563EB;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.14);
+  background-color: #FFFFFF;
+  color: #0F172A;
+}
+
+/* Active / Filter Applied State (has value) */
+.search-filter-select--has-value,
+.catalog-select[value]:not([value=""]),
+.loans-select[value]:not([value=""]),
+.returns-select[value]:not([value=""]),
+.users-select[value]:not([value=""]),
+.reports-select[value]:not([value=""]) {
+  border-color: #3B82F6;
+  background-color: #EFF6FF;
+  color: #1D4ED8;
+  font-weight: 600;
+}
+
+/* Disabled State */
+.catalog-select:disabled,
+.loans-select:disabled,
+.returns-select:disabled,
+.users-select:disabled,
+.reports-select:disabled,
+.search-filter-select:disabled,
+.search-sort-select:disabled,
+.catalog-filter-select:disabled,
+.catalog-filter-modal-select:disabled,
+.catalog-search-scope-select:disabled,
+.catalog-sort-select:disabled,
+.user-requests-sort-select:disabled,
+.borrow-request-select:disabled,
+.ui-select-field:disabled {
+  background-color: #F8FAFC;
+  border-color: #E2E8F0;
+  color: #94A3B8;
+  cursor: not-allowed;
+  opacity: 0.72;
+  box-shadow: none;
+}
+
+/* Option & Optgroup typography inside native selects */
+.catalog-select optgroup,
+.loans-select optgroup,
+.returns-select optgroup,
+.users-select optgroup,
+.reports-select optgroup,
+.search-filter-select optgroup,
+.catalog-filter-select optgroup,
+.ui-select-field optgroup {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #475569;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  background-color: #F8FAFC;
+  padding: 6px 4px;
+}
+
+.catalog-select option,
+.loans-select option,
+.returns-select option,
+.users-select option,
+.reports-select option,
+.search-filter-select option,
+.catalog-filter-select option,
+.ui-select-field option {
+  font-size: 0.875rem;
+  font-weight: 400;
+  color: #1E293B;
+  background-color: #FFFFFF;
+  padding: 6px 10px;
+}
+
+/* --------------------------------------------------------------------------
+   2. Dropdown Menus, Popovers & Floating Option Lists
+   Shared presentation for date pickers, notifications, and context menus.
+   -------------------------------------------------------------------------- */
+
+.ui-dropdown-panel,
+.reports-date-dropdown-menu,
+.app-notifications-popover,
+.reader-notifications-popover {
+  position: absolute;
+  background-color: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 12px;
+  box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.1), 0 8px 10px -6px rgba(15, 23, 42, 0.04);
+  padding: 6px;
+  z-index: 60;
+  box-sizing: border-box;
+  animation: uiDropdownFadeIn 0.15s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes uiDropdownFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-4px) scale(0.99);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.ui-dropdown-item,
+.reports-date-preset-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 8px 12px;
+  font-size: 0.8125rem;
+  font-weight: 500;
+  color: #334155;
+  background: transparent;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  text-align: left;
+  box-sizing: border-box;
+  transition: all 0.12s ease;
+}
+
+.ui-dropdown-item:hover,
+.reports-date-preset-item:hover {
+  background-color: #F1F5F9;
+  color: #0F172A;
+}
+
+.ui-dropdown-item:focus-visible,
+.reports-date-preset-item:focus-visible {
+  outline: 2px solid #2563EB;
+  outline-offset: -1px;
+}
+
+.ui-dropdown-item--selected,
+.reports-date-preset-item--selected {
+  background-color: #EFF6FF;
+  color: #2563EB;
+  font-weight: 600;
+}
+
+.ui-dropdown-item--danger {
+  color: #DC2626;
+}
+
+.ui-dropdown-item--danger:hover {
+  background-color: #FEF2F2;
+  color: #B91C1C;
+}
+
+/* --------------------------------------------------------------------------
+   3. Search Suggestions & Query Chips
+   -------------------------------------------------------------------------- */
+
+.search-suggestions-container {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+  margin-top: 14px;
+}
+
+.search-suggestions-label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #64748B;
+}
+
+.search-suggestions-chips {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.search-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 5px 12px;
+  background-color: #FFFFFF;
+  border: 1px solid #CBD5E1;
+  border-radius: 9999px;
+  font-size: 0.78125rem;
+  font-weight: 500;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+
+.search-chip:hover {
+  background-color: #EFF6FF;
+  border-color: #93C5FD;
+  color: #1D4ED8;
+  transform: translateY(-1px);
+}
+
+.search-chip:focus-visible {
+  outline: 2px solid #2563EB;
+  outline-offset: 2px;
+}
+
+.search-chip--active {
+  background-color: #2563EB;
+  border-color: #2563EB;
+  color: #FFFFFF;
+  font-weight: 600;
+  box-shadow: 0 2px 4px rgba(37, 99, 235, 0.2);
+}
+
+.search-chip--active:hover {
+  background-color: #1D4ED8;
+  border-color: #1D4ED8;
+  color: #FFFFFF;
+}
+
+/* --------------------------------------------------------------------------
+   4. Results Lists & Selection Panels (Modals & Search)
+   Elevates lists in RegisterLoanModal, AdminNewLoanPage, and SearchReturnLoanModal.
+   -------------------------------------------------------------------------- */
+
+.register-loan-results-list,
+.search-return-results-list {
+  background-color: #FFFFFF;
+  border: 1.5px solid #E2E8F0;
+  border-radius: 10px;
+  box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.03);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.register-loan-results-list::-webkit-scrollbar,
+.search-return-results-list::-webkit-scrollbar {
+  width: 6px;
+}
+
+.register-loan-results-list::-webkit-scrollbar-thumb,
+.search-return-results-list::-webkit-scrollbar-thumb {
+  background-color: #CBD5E1;
+  border-radius: 9999px;
+}
+
+.register-loan-results-list::-webkit-scrollbar-thumb:hover,
+.search-return-results-list::-webkit-scrollbar-thumb:hover {
+  background-color: #94A3B8;
+}
+
+.register-loan-user-row,
+.register-loan-resource-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 10px 14px;
+  background-color: #FFFFFF;
+  border-bottom: 1px solid #F1F5F9;
+  transition: background-color 0.12s ease;
+}
+
+.register-loan-user-row:last-child,
+.register-loan-resource-row:last-child {
+  border-bottom: none;
+}
+
+.register-loan-user-row:hover:not(.register-loan-user-row--ineligible),
+.register-loan-resource-row:hover:not(.register-loan-resource-row--unavailable) {
+  background-color: #F8FAFC;
+}
+
+.register-loan-user-row--ineligible,
+.register-loan-resource-row--unavailable {
+  background-color: #FAFAFC;
+  opacity: 0.72;
+}
+
+.register-loan-no-results,
+.search-return-empty-state {
+  padding: 1.25rem;
+  text-align: center;
+  font-size: 0.8125rem;
+  color: #64748B;
+  background-color: #F8FAFC;
+  font-style: italic;
+}
+
+/* --------------------------------------------------------------------------
+   5. Action Buttons in Tables & Lists
+   -------------------------------------------------------------------------- */
+
+.catalog-action-btn,
+.loans-action-btn,
+.users-action-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+  border: 1px solid #E2E8F0;
+  background-color: #FFFFFF;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.catalog-action-btn:hover,
+.loans-action-btn:hover,
+.users-action-btn:hover {
+  background-color: #F8FAFC;
+  border-color: #CBD5E1;
+  color: #0F172A;
+}
+
+.catalog-action-btn:focus-visible,
+.loans-action-btn:focus-visible,
+.users-action-btn:focus-visible {
+  outline: 2px solid #2563EB;
+  outline-offset: 2px;
+}
+
+.catalog-action-btn--delete:hover,
+.loans-action-btn--delete:hover,
+.users-action-btn--delete:hover {
+  background-color: #FEF2F2;
+  border-color: #FECACA;
+  color: #DC2626;
+}
+

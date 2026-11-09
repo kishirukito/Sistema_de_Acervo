@@ -1,0 +1,652 @@
+/* UserProfilePage.css - Matches Figma reference for "Perfil del lector" */
+
+.user-profile-page {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 1240px;
+  margin: 0 auto;
+  gap: 20px;
+  box-sizing: border-box;
+}
+
+/* --------------------------------------------------------------------------
+   1. Page Header
+   -------------------------------------------------------------------------- */
+.user-profile-header {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.user-profile-title {
+  font-family: var(--font-family-heading, 'Inter', system-ui, sans-serif);
+  font-size: 1.75rem;
+  font-weight: 800;
+  color: #1E293B;
+  letter-spacing: -0.02em;
+  margin: 0;
+  line-height: 1.25;
+}
+
+.user-profile-subtitle {
+  font-size: 0.9375rem;
+  color: #64748B;
+  margin: 0;
+  line-height: 1.45;
+}
+
+/* --------------------------------------------------------------------------
+   2. Shared Card Style
+   -------------------------------------------------------------------------- */
+.user-profile-card {
+  background-color: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 16px;
+  padding: 24px;
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.04);
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+  width: 100%;
+}
+
+.user-profile-section-title {
+  font-family: var(--font-family-heading, 'Inter', system-ui, sans-serif);
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: #1E293B;
+  margin: 0 0 18px 0;
+  line-height: 1.3;
+}
+
+/* --------------------------------------------------------------------------
+   3. Card 1: Identity & Avatar Card
+   -------------------------------------------------------------------------- */
+.user-profile-identity-card {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  padding: 24px 28px;
+  gap: 20px;
+}
+
+.user-profile-identity-left {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  min-width: 0;
+}
+
+.user-profile-avatar-circle {
+  width: 68px;
+  height: 68px;
+  border-radius: 50%;
+  background-color: #2563EB;
+  color: #FFFFFF;
+  font-family: var(--font-family-heading, 'Inter', system-ui, sans-serif);
+  font-size: 1.375rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  overflow: hidden;
+  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.2);
+  user-select: none;
+}
+
+.user-profile-avatar-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.user-profile-identity-info {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.user-profile-name-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.user-profile-name {
+  font-family: var(--font-family-heading, 'Inter', system-ui, sans-serif);
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #0F172A;
+  margin: 0;
+  line-height: 1.25;
+  letter-spacing: -0.01em;
+}
+
+.user-profile-badge-role {
+  display: inline-flex;
+  align-items: center;
+  padding: 3px 10px;
+  border-radius: 9999px;
+  background-color: #EFF6FF;
+  border: 1px solid #DBEAFE;
+  color: #2563EB;
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.2;
+}
+
+.user-profile-email-text {
+  font-size: 0.875rem;
+  color: #64748B;
+  margin: 0;
+  line-height: 1.35;
+}
+
+.user-profile-member-date {
+  font-size: 0.8125rem;
+  color: #94A3B8;
+  margin: 0;
+  line-height: 1.35;
+}
+
+.user-profile-btn-photo {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background-color: #FFFFFF;
+  border: 1.5px solid #2563EB;
+  color: #2563EB;
+  font-family: inherit;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  padding: 8px 16px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.user-profile-btn-photo:hover {
+  background-color: #EFF6FF;
+  border-color: #1D4ED8;
+  color: #1D4ED8;
+}
+
+.user-profile-btn-photo:focus-visible {
+  outline: 2px solid #2563EB;
+  outline-offset: 2px;
+}
+
+/* --------------------------------------------------------------------------
+   4. Card 2: Personal Information Form
+   -------------------------------------------------------------------------- */
+.user-profile-form-grid-2col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 18px 24px;
+  width: 100%;
+}
+
+.user-profile-field-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+}
+
+.user-profile-field-label {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #334155;
+  line-height: 1.25;
+}
+
+.user-profile-input-wrapper {
+  position: relative;
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.user-profile-input {
+  width: 100%;
+  background-color: #FFFFFF;
+  border: 1px solid #CBD5E1;
+  border-radius: 8px;
+  padding: 10px 14px;
+  font-family: inherit;
+  font-size: 0.875rem;
+  color: #1E293B;
+  box-sizing: border-box;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.user-profile-input:hover:not(:disabled) {
+  border-color: #94A3B8;
+}
+
+.user-profile-input:focus {
+  outline: none;
+  border-color: #2563EB;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+.user-profile-input--disabled {
+  background-color: #F8FAFC;
+  border-color: #E2E8F0;
+  color: #64748B;
+  cursor: not-allowed;
+  padding-right: 36px;
+}
+
+.user-profile-input-icon-right {
+  position: absolute;
+  right: 12px;
+  color: #94A3B8;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  pointer-events: none;
+}
+
+.user-profile-field-error {
+  font-size: 0.75rem;
+  color: #DC2626;
+  font-weight: 500;
+  line-height: 1.25;
+  margin-top: 2px;
+}
+
+.user-profile-actions-left {
+  display: flex;
+  align-items: center;
+  margin-top: 20px;
+}
+
+.user-profile-btn-primary {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background-color: #2563EB;
+  border: 1.5px solid #2563EB;
+  color: #FFFFFF;
+  font-family: inherit;
+  font-size: 0.875rem;
+  font-weight: 600;
+  padding: 10px 20px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.user-profile-btn-primary:hover {
+  background-color: #1D4ED8;
+  border-color: #1D4ED8;
+  transform: translateY(-1px);
+}
+
+.user-profile-btn-primary:focus-visible {
+  outline: 2px solid #2563EB;
+  outline-offset: 2px;
+}
+
+/* --------------------------------------------------------------------------
+   5. Card 3: Notification Preferences
+   -------------------------------------------------------------------------- */
+.user-profile-preferences-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  width: 100%;
+}
+
+.user-profile-pref-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 8px 0;
+  border-bottom: 1px solid #F1F5F9;
+}
+
+.user-profile-pref-item:last-child {
+  border-bottom: none;
+  padding-bottom: 0;
+}
+
+.user-profile-pref-text {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.user-profile-pref-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #1E293B;
+  margin: 0;
+  line-height: 1.3;
+}
+
+.user-profile-pref-desc {
+  font-size: 0.8125rem;
+  color: #64748B;
+  margin: 0;
+  line-height: 1.35;
+}
+
+/* Accessible Toggle Switch */
+.user-profile-toggle {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  width: 44px;
+  height: 24px;
+  flex-shrink: 0;
+  cursor: pointer;
+}
+
+.user-profile-toggle input {
+  opacity: 0;
+  width: 0;
+  height: 0;
+}
+
+.user-profile-toggle-slider {
+  position: absolute;
+  inset: 0;
+  background-color: #CBD5E1;
+  border-radius: 9999px;
+  transition: background-color 0.2s ease;
+}
+
+.user-profile-toggle-slider::before {
+  content: '';
+  position: absolute;
+  height: 18px;
+  width: 18px;
+  left: 3px;
+  bottom: 3px;
+  background-color: #FFFFFF;
+  border-radius: 50%;
+  transition: transform 0.2s ease;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+}
+
+.user-profile-toggle input:checked + .user-profile-toggle-slider {
+  background-color: #2563EB;
+}
+
+.user-profile-toggle input:checked + .user-profile-toggle-slider::before {
+  transform: translateX(20px);
+}
+
+.user-profile-toggle input:focus-visible + .user-profile-toggle-slider {
+  outline: 2px solid #2563EB;
+  outline-offset: 2px;
+}
+
+.user-profile-btn-outline {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #FFFFFF;
+  border: 1.5px solid #2563EB;
+  color: #2563EB;
+  font-family: inherit;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  padding: 8px 18px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.user-profile-btn-outline:hover {
+  background-color: #EFF6FF;
+  border-color: #1D4ED8;
+  color: #1D4ED8;
+}
+
+.user-profile-btn-outline:focus-visible {
+  outline: 2px solid #2563EB;
+  outline-offset: 2px;
+}
+
+/* --------------------------------------------------------------------------
+   6. Card 4: Security (Password Update)
+   -------------------------------------------------------------------------- */
+.user-profile-info-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background-color: #EFF6FF;
+  border: 1px solid #DBEAFE;
+  border-radius: 8px;
+  padding: 12px 16px;
+  margin-bottom: 20px;
+  color: #1E40AF;
+  font-size: 0.875rem;
+  line-height: 1.4;
+}
+
+.user-profile-info-banner-icon {
+  color: #2563EB;
+  flex-shrink: 0;
+}
+
+.user-profile-form-grid-3col {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 18px;
+  width: 100%;
+}
+
+.user-profile-input-eye-btn {
+  position: absolute;
+  right: 10px;
+  background: transparent;
+  border: none;
+  color: #94A3B8;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 4px;
+  border-radius: 4px;
+}
+
+.user-profile-input-eye-btn:hover {
+  color: #475569;
+}
+
+.user-profile-input-eye-btn:focus-visible {
+  outline: 2px solid #2563EB;
+}
+
+.user-profile-helper-text {
+  font-size: 0.75rem;
+  color: #64748B;
+  margin: 6px 0 0 0;
+  line-height: 1.35;
+}
+
+.user-profile-btn-dark {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background-color: #1E293B;
+  border: 1.5px solid #1E293B;
+  color: #FFFFFF;
+  font-family: inherit;
+  font-size: 0.875rem;
+  font-weight: 600;
+  padding: 10px 20px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.user-profile-btn-dark:hover {
+  background-color: #0F172A;
+  border-color: #0F172A;
+  transform: translateY(-1px);
+}
+
+.user-profile-btn-dark:focus-visible {
+  outline: 2px solid #1E293B;
+  outline-offset: 2px;
+}
+
+/* --------------------------------------------------------------------------
+   7. Card 5: Session
+   -------------------------------------------------------------------------- */
+.user-profile-session-desc {
+  font-size: 0.875rem;
+  color: #64748B;
+  margin: 0 0 16px 0;
+  line-height: 1.45;
+}
+
+.user-profile-btn-danger {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background-color: #EF4444;
+  border: 1.5px solid #EF4444;
+  color: #FFFFFF;
+  font-family: inherit;
+  font-size: 0.875rem;
+  font-weight: 600;
+  padding: 10px 20px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  white-space: nowrap;
+}
+
+.user-profile-btn-danger:hover {
+  background-color: #DC2626;
+  border-color: #DC2626;
+  transform: translateY(-1px);
+}
+
+.user-profile-btn-danger:focus-visible {
+  outline: 2px solid #EF4444;
+  outline-offset: 2px;
+}
+
+/* --------------------------------------------------------------------------
+   8. Floating Toast Notification
+   -------------------------------------------------------------------------- */
+.user-profile-toast {
+  position: fixed;
+  bottom: 24px;
+  right: 24px;
+  background-color: #0F172A;
+  color: #FFFFFF;
+  padding: 12px 18px;
+  border-radius: 10px;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.2);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.875rem;
+  font-weight: 500;
+  z-index: 1000;
+  animation: userProfileToastIn 0.2s ease-out;
+}
+
+@keyframes userProfileToastIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* --------------------------------------------------------------------------
+   9. Responsive Breakpoints (Desktop -> Tablet -> Mobile)
+   -------------------------------------------------------------------------- */
+@media (max-width: 900px) {
+  .user-profile-form-grid-3col {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+}
+
+@media (max-width: 768px) {
+  .user-profile-form-grid-2col {
+    grid-template-columns: 1fr;
+    gap: 14px;
+  }
+
+  .user-profile-identity-card {
+    flex-direction: column;
+    align-items: flex-start;
+    padding: 20px;
+  }
+
+  .user-profile-btn-photo {
+    width: 100%;
+    justify-content: center;
+  }
+}
+
+@media (max-width: 580px) {
+  .user-profile-page {
+    gap: 16px;
+  }
+
+  .user-profile-title {
+    font-size: 1.5rem;
+  }
+
+  .user-profile-card {
+    padding: 18px 16px;
+    border-radius: 14px;
+  }
+
+  .user-profile-identity-left {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 14px;
+    width: 100%;
+  }
+
+  .user-profile-name-row {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+
+  .user-profile-actions-left {
+    width: 100%;
+  }
+
+  .user-profile-btn-primary,
+  .user-profile-btn-outline,
+  .user-profile-btn-dark,
+  .user-profile-btn-danger {
+    width: 100%;
+    justify-content: center;
+  }
+
+  .user-profile-pref-item {
+    align-items: flex-start;
+  }
+}
+

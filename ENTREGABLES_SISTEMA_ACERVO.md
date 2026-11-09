@@ -69,44 +69,50 @@
 
 ```
 ┌────────────────────────────────────────────────────────────────────────┐
-│                        CAPA DE PRESENTACIÓN                            │
-│                 React 19 + TypeScript / Vite / NextJS                  │
-│   ├── Portal de Consulta y Préstamos (Alumnos / Docentes)              │
-│   ├── Panel de Administración y Control de Inventario                  │
-│   └── Dashboard de Estadísticas y Reportes                             │
-└───────────────────────────────────┬────────────────────────────────────┘
-                                    │ HTTPS (JSON / REST API)
-┌───────────────────────────────────▼────────────────────────────────────┐
-│                        CAPA DE SERVICIOS (BACKEND)                     │
-│                           Python 3.12 + FastAPI                        │
-│   ├── API Gateway & Routers (/auth, /books, /loans, /users, /ai)       │
-│   ├── Middlewares: CORS, Rate Limiting, Logging, Manejo de Errores     │
-│   ├── Seguridad: Validación de Tokens JWT y Control de Roles           │
-│   └── Módulos de Lógica de Negocio y Auditoría Automática             │
-└──────────────────┬─────────────────────────────────┬───────────────────┘
-                   │                                 │
-   PostgreSQL Driver / PostgREST                     │ SDK / Async Client
-                   │                                 │
-┌──────────────────▼───────────────────┐ ┌───────────▼───────────────────┐
-│       BASE DE DATOS & STORAGE        │ │    SERVICIOS DE INTELIGENCIA  │
-│              Supabase                │ │        ARTIFICIAL LOCAL       │
-│   ├── PostgreSQL Relacional          │ │  Ollama / Local LLM Server    │
-│   ├── Row Level Security (RLS)       │ │  ├── Modelo: Llama 3.2 / Qwen │
-│   ├── Supabase Auth (Manejo usuarios)│ │  ├── Búsqueda Conceptual Local│
-│   └── Supabase Storage (Portadas/PDF)│ │  └── Resúmenes de Libros      │
+│             NÚCLEO FULLSTACK: NEXT.JS 14+ CON TYPESCRIPT               │
+│                                                                        │
+│   ┌────────────────────────────────────────────────────────────────┐   │
+│   │               CAPA DE PRESENTACIÓN (CLIENTE UI)                │   │
+│   │  ├── Catálogo y Búsqueda Inteligente de Libros                 │   │
+│   │  ├── Panel de Préstamos y Devoluciones                         │   │
+│   │  ├── Panel de Control de Inventario y Ejemplares Físicos       │   │
+│   │  └── Dashboard de Métricas y Estadísticas                      │   │
+│   └───────────────────────────────┬────────────────────────────────┘   │
+│                                   │ Fetch / Server Actions             │
+│   ┌───────────────────────────────▼────────────────────────────────┐   │
+│   │           CAPA DE SERVICIOS Y API (ROUTE HANDLERS)             │   │
+│   │  ├── /api/auth    -> Login, validación de sesiones y roles     │   │
+│   │  ├── /api/books   -> CRUD completo de libros y ejemplares      │   │
+│   │  ├── /api/loans   -> Transacciones de préstamo y devolución    │   │
+│   │  ├── /api/users   -> Gestión de usuarios (alumno, personal)    │   │
+│   │  ├── /api/audit   -> Consulta de bitácora y auditoría          │   │
+│   │  ├── /api/storage -> Subida de portadas (Supabase Storage)     │   │
+│   │  └── /api/ai      -> Orquestación y consumo de servicios IA    │   │
+│   └──────────────────────┬─────────────────────────┬───────────────┘   │
+└──────────────────────────┼─────────────────────────┼───────────────────┘
+                           │                         │
+     PostgreSQL / RLS / SDK│                         │ HTTP REST (JSON)
+                           │                         │
+┌──────────────────────────▼───────────┐ ┌───────────▼───────────────────┐
+│       BASE DE DATOS & STORAGE        │ │    MICROSERVICIO DEDICADO DE  │
+│              Supabase                │ │        IA LOCAL (PYTHON)      │
+│  ├── PostgreSQL 15+ (Relacional)     │ │  FastAPI + Ollama Engine      │
+│  ├── Row Level Security (RLS)        │ │  ├── Modelo: Llama 3.2 (3B)   │
+│  ├── Supabase Storage (Portadas)     │ │  ├── Resúmenes Analíticos     │
+│  └── Tablas: Libros, Usuarios,       │ │  ├── Sugerencias Temáticas    │
+│      Ejemplares, Préstamos, Logs     │ │  └── Embeddings Vectoriales   │
 └──────────────────────────────────────┘ └───────────────────────────────┘
 ```
 
 ### 3.2 Justificación del Stack Tecnológico
 
-1. **Python 3.12 + FastAPI:** 
-   * Rendimiento asíncrono superior (`asyncio`), documentación OpenAPI/Swagger automática y tipado riguroso con `Pydantic v2`.
+1. **Next.js 14+ con TypeScript (Núcleo Fullstack):**
+   * Unifica Frontend y Backend en una sola solución con App Router y Route Handlers (`/api/...`). Provee tipado estático riguroso de extremo a extremo, manejo seguro de sesiones, validaciones y conexión directa con Supabase.
 2. **Supabase / PostgreSQL:**
-   * Motor relacional ACID de alto estándar, seguridad granular mediante políticas *Row Level Security* (RLS) y almacenamiento integrado para portadas.
-3. **React 19 + TypeScript:**
-   * Reactividad, componentes reutilizables, tipado en tiempo de compilación y excelente rendimiento para interfaces de usuario complejas.
-4. **Modelos de Lenguaje Locales (Ollama / Llama 3.2 / Qwen 2.5):**
-   * Procesamiento de lenguaje natural (NLP) e inferencia ejecutada localmente en la infraestructura universitaria: **sin costos recurrentes por API**, sin latencia de red externa, privacidad absoluta de la información institucional y soporte para embeddings locales.
+   * Motor relacional ACID de alto estándar, seguridad granular mediante políticas *Row Level Security* (RLS) y almacenamiento integrado (`portadas`) en Supabase Storage.
+3. **Microservicio de Inteligencia Artificial (Python 3.12 + FastAPI + Ollama):**
+   * Encapsula exclusivamente las tareas de inferencia local de modelos LLM (`llama3.2:3b` y `nomic-embed-text`): **sin costos recurrentes por API**, sin latencia de red externa, total privacidad institucional y fallback heurístico integrado.
+
 
 ---
 
@@ -208,55 +214,49 @@ erDiagram
 sistema-acervo/
 ├── docs/                             # Documentación de arquitectura, guías y entregables
 │   ├── GUIA_SETUP_Y_REPOSITORIO.md
-│   └── ARQUITECTURA_Y_MODELO_DATOS.md
+│   └── DOCUMENTO_ARQUITECTURA_Y_ER.md
 │
 ├── database/                         # Scripts de base de datos PostgreSQL / Supabase
 │   ├── schema.sql                    # Definición de tablas, relaciones, índices y políticas RLS
 │   └── seed.sql                      # Datos iniciales (roles, usuarios admin, catálogo base)
 │
-├── backend/                          # API REST con FastAPI, Python 3.12 y Servicios de IA
-│   ├── .env.example                  # Plantilla de variables de entorno del backend
-│   ├── .gitignore                    # Reglas de exclusión para Git en Python
-│   ├── README.md                     # Documentación técnica del backend
-│   ├── requirements.txt              # Dependencias de Python (FastAPI, Supabase, PyJWT, OpenAI/Gemini)
-│   ├── app/
-│   │   ├── __init__.py
-│   │   ├── main.py                   # Aplicación FastAPI principal, CORS y middlewares
-│   │   ├── core/
-│   │   │   ├── __init__.py
-│   │   │   ├── config.py             # Configuración con Pydantic Settings (.env)
-│   │   │   ├── security.py           # JWT, hashing de contraseñas y permisos
-│   │   │   ├── deps.py               # Inyección de dependencias y control de rol (RBAC)
-│   │   │   └── database.py           # Cliente Supabase y sesiones
-│   │   ├── api/
-│   │   │   └── v1/
-│   │   │       ├── api_router.py     # Router principal v1
-│   │   │       ├── auth.py           # Endpoints de sesión y perfil (/me)
-│   │   │       ├── books.py          # Endpoints de libros y ejemplares
-│   │   │       ├── loans.py          # Endpoints de préstamos y devoluciones
-│   │   │       ├── users.py          # Endpoints de usuarios y roles
-│   │   │       ├── stats.py          # Métricas e indicadores para el dashboard
-│   │   │       └── ai.py             # 🤖 Endpoints de IA (búsqueda semántica y resúmenes)
-│   │   ├── schemas/                  # Validación de datos (Pydantic DTOs)
-│   │   │   ├── auth_schema.py
-│   │   │   ├── user_schema.py
-│   │   │   ├── book_schema.py
-│   │   │   ├── loan_schema.py
-│   │   │   └── ai_schema.py          # 🤖 Schemas de prompts, resúmenes y sugerencias IA
-│   │   └── services/                 # Lógica de negocio e integraciones externas
-│   │       ├── audit_service.py      # Registro de bitácora y auditoría
-│   │       ├── storage_service.py    # Gestión de portadas en Supabase Storage
-│   │       └── ai_service.py         # 🤖 Conexión con APIs de IA (Gemini / OpenAI)
-│   └── tests/                        # Pruebas automatizadas con pytest
-│       ├── __init__.py
-│       ├── test_auth.py
-│       ├── test_books.py
-│       └── test_loans.py
+├── backend/                          # 🤖 Microservicio de IA (Python 3.12 + FastAPI + Ollama)
+│   ├── .env.example                  # Plantilla de variables del servicio IA
+│   ├── requirements.txt              # Dependencias (FastAPI, httpx, pydantic, uvicorn)
+│   ├── README.md                     # Documentación técnica del microservicio de IA
+│   └── app/
+│       ├── main.py                   # Servidor FastAPI, CORS y endpoints de salud
+│       ├── api/v1/ai.py              # Endpoints: /resumen, /sugerencias, /embeddings
+│       ├── core/config.py            # Configuración de Ollama y variables
+│       ├── schemas/ai_schema.py      # DTOs de IA
+│       └── services/ai_service.py    # Inferencia con Ollama y fallback heurístico
 │
-└── frontend/                         # Interfaz Web (React 19 + TypeScript + Vite)
-    ├── .env.example                  # Variables de entorno del frontend (URL de API)
-    ├── .gitignore                    # Reglas de exclusión para Node.js
-    ├── index.html                    # HTML principal
+└── frontend/                         # 🌐 Aplicación Fullstack (Next.js 14+ con TypeScript)
+    ├── .env.example                  # Variables de entorno (Supabase y microservicio de IA)
+    ├── package.json                  # Dependencias de Next.js, React y Supabase
+    ├── tsconfig.json                 # Configuración de TypeScript y paths (@/*)
+    ├── next.config.mjs               # Configuración de Next.js
+    └── src/
+        ├── app/                      # Next.js App Router
+        │   ├── api/                  # 🚀 ROUTE HANDLERS (API Backend de Next.js)
+        │   │   ├── auth/login/       # Inicio de sesión y verificación
+        │   │   ├── books/            # CRUD completo de libros
+        │   │   │   ├── [id]/cover/   # Subida de portadas a Supabase Storage
+        │   │   │   └── [id]/ejemplares/ # Alta de copias físicas
+        │   │   ├── loans/            # Préstamos y devoluciones
+        │   │   ├── users/            # Gestión de usuarios con roles y RLS
+        │   │   ├── audit/            # Consulta de bitácora
+        │   │   └── ai/               # Consumo del microservicio de IA
+        │   ├── layout.tsx            # RootLayout con HTML y estilos
+        │   └── page.tsx              # Página principal
+        ├── lib/                      # Servicios de Servidor en Next.js
+        │   ├── supabase.ts           # Cliente Supabase (client y admin)
+        │   ├── audit.ts              # Servicio de bitácora y auditoría
+        │   ├── storage.ts            # Servicio de subida de portadas
+        │   ├── errors.ts             # Manejo centralizado de errores
+        │   └── ai-client.ts          # Comunicación con microservicio de Python
+        ├── components/               # Componentes UI reutilizables
+        └── services/                 # Clientes para la interfaz de usuario
     ├── package.json                  # Dependencias y scripts
     ├── tsconfig.json                 # Configuración de TypeScript
     ├── vite.config.ts                # Configuración de Vite

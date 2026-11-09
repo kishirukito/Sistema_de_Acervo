@@ -1,45 +1,39 @@
-# 🚀 Backend - Sistema de Gestión Bibliotecaria (Sistema de Acervo CIU)
+# 🤖 Microservicio de Inteligencia Artificial (FastAPI + Ollama)
+## Sistema de Gestión Bibliotecaria (Sistema de Acervo CIU)
 
-Backend desarrollado en **Python 3.12** utilizando **FastAPI** y **Supabase** (PostgreSQL) para la gestión del inventario de libros, ejemplares físicos, préstamos y usuarios, con integración de Inteligencia Artificial.
+Este componente es el **Microservicio especializado en Inteligencia Artificial** del sistema de acervo. Se encarga exclusivamente de las tareas de procesamiento del lenguaje natural (NLP), síntesis de información y generación de representaciones vectoriales (embeddings).
 
----
-
-## 📋 Requisitos Previos
-* Python 3.12 o superior.
-* Acceso a una instancia de Supabase o PostgreSQL 15+.
+> ℹ️ **Nota de Arquitectura:** La lógica de negocio, autenticación, gestión de base de datos relacional y frontend son gestionadas por la aplicación Fullstack en **Next.js + TypeScript** conectada a **Supabase**.
 
 ---
 
-## 🛠️ Instalación Rápida
+## 🚀 Capacidades de la IA
+* **Resúmenes automáticos:** Genera síntesis académicas concisas y extrae palabras clave para el catálogo bibliográfico.
+* **Sugerencias temáticas:** Propone conceptos afines y temas de investigación para el motor de búsqueda.
+* **Embeddings locales:** Genera vectores densos con `nomic-embed-text` para búsquedas vectoriales.
+* **Resiliencia y Fallback:** Si el servidor local de Ollama está inactivo o en arranque, cuenta con un generador heurístico inteligente para evitar interrupciones en la experiencia de usuario.
 
-1. **Crear entorno virtual:**
+---
+
+## 🛠️ Requisitos Previos y Ejecución
+
+1. **Entorno Virtual de Python 3.12:**
    ```powershell
    python -m venv venv
    .\venv\Scripts\Activate.ps1
-   ```
-
-2. **Instalar librerías:**
-   ```bash
    pip install -r requirements.txt
    ```
 
-3. **Variables de entorno:**
+2. **Servidor Ollama Local (Opcional pero recomendado para inferencia):**
    ```bash
-   cp .env.example .env
+   ollama pull llama3.2:3b
+   ollama pull nomic-embed-text
    ```
 
-4. **Levantar el servidor:**
+3. **Iniciar el Microservicio:**
    ```bash
    uvicorn app.main:app --reload --host 127.0.0.1 --port 8000
    ```
 
-5. **Documentación Swagger:**
-   * Abrir [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)
-
----
-
-## 🧪 Pruebas Automatizadas
-Ejecutar la suite de pruebas unitarias:
-```bash
-pytest
-```
+4. **Documentación interactiva de la API de IA:**
+   * Swagger UI: [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs)

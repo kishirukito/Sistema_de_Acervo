@@ -1,0 +1,206 @@
+/* ==========================================================================
+   UI Modal Component Styles (Base Accessible Dialog)
+   Sistema de Acervo
+   ========================================================================== */
+
+/* Dialog reset & base styling */
+dialog.ui-modal-dialog {
+  position: fixed;
+  inset: 0;
+  margin: auto;
+  padding: 0;
+  border: none;
+  outline: none;
+  background-color: var(--color-surface, #FFFFFF);
+  color: var(--color-text, #1F2937);
+  border-radius: var(--radius-lg, 16px);
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04), var(--shadow-lg, 0 12px 24px -4px rgba(16, 24, 40, 0.12));
+  width: calc(100% - 2rem);
+  max-height: calc(100vh - 3.5rem);
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  z-index: 1000;
+  animation: uiModalScaleUp 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+/* Modal sizes */
+dialog.ui-modal-dialog--small {
+  max-width: 440px;
+}
+
+dialog.ui-modal-dialog--medium {
+  max-width: 560px;
+}
+
+dialog.ui-modal-dialog--large {
+  max-width: 720px;
+}
+
+/* Native backdrop styling */
+dialog.ui-modal-dialog::backdrop {
+  background-color: rgba(15, 23, 42, 0.45);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  animation: uiModalFadeIn 0.2s ease;
+}
+
+/* Modal layout container */
+.ui-modal-container {
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  height: 100%;
+  max-height: inherit;
+  overflow: hidden;
+}
+
+/* Modal Header */
+.ui-modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid var(--color-border, #E5E7EB);
+  background-color: var(--color-surface, #FFFFFF);
+  flex-shrink: 0;
+}
+
+.ui-modal-header-info {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  min-width: 0;
+}
+
+.ui-modal-header-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-sm, 8px);
+  background-color: var(--color-info-bg, #EFF6FF);
+  color: var(--color-primary, #2F80ED);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.ui-modal-header-titles {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.ui-modal-title {
+  margin: 0;
+  font-family: var(--font-family-heading, 'Poppins', sans-serif);
+  font-size: 1.125rem;
+  font-weight: 700;
+  color: var(--color-primary-dark, #1E3A5F);
+  line-height: 1.35;
+}
+
+.ui-modal-description {
+  margin: 0;
+  font-family: var(--font-family-base, 'Inter', sans-serif);
+  font-size: 0.8125rem;
+  color: var(--color-text-muted, #6B7280);
+  line-height: 1.4;
+}
+
+/* Accessible close button */
+.ui-modal-close-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--radius-sm, 8px);
+  border: none;
+  background: transparent;
+  color: #9CA3AF;
+  cursor: pointer;
+  padding: 0;
+  margin-left: 0.75rem;
+  flex-shrink: 0;
+  transition: background-color var(--transition-fast, 150ms ease), color var(--transition-fast, 150ms ease);
+}
+
+.ui-modal-close-btn:hover {
+  background-color: #F3F4F6;
+  color: var(--color-text, #1F2937);
+}
+
+.ui-modal-close-btn:focus-visible {
+  outline: 2px solid var(--color-primary, #2F80ED);
+  outline-offset: 2px;
+}
+
+/* Modal Body */
+.ui-modal-body {
+  padding: 1.5rem;
+  overflow-y: auto;
+  flex: 1 1 auto;
+  font-family: var(--font-family-base, 'Inter', sans-serif);
+  color: var(--color-text, #1F2937);
+}
+
+.ui-modal-body::-webkit-scrollbar {
+  width: 6px;
+}
+
+.ui-modal-body::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.ui-modal-body::-webkit-scrollbar-thumb {
+  background-color: #D1D5DB;
+  border-radius: 9999px;
+}
+
+.ui-modal-body::-webkit-scrollbar-thumb:hover {
+  background-color: #9CA3AF;
+}
+
+/* Modal Footer */
+.ui-modal-footer {
+  padding: 1rem 1.5rem;
+  border-top: 1px solid var(--color-border, #E5E7EB);
+  background-color: #F9FAFB;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  flex-shrink: 0;
+}
+
+/* Animations */
+@keyframes uiModalFadeIn {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@keyframes uiModalScaleUp {
+  from {
+    opacity: 0;
+    transform: scale(0.96) translateY(4px);
+  }
+  to {
+    opacity: 1;
+    transform: scale(1) translateY(0);
+  }
+}
+
+/* Respect prefers-reduced-motion */
+@media (prefers-reduced-motion: reduce) {
+  dialog.ui-modal-dialog,
+  dialog.ui-modal-dialog::backdrop {
+    animation: none !important;
+    transition: none !important;
+  }
+}

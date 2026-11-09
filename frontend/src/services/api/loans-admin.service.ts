@@ -1,0 +1,144 @@
+/**
+ * Loans Admin Service — Fetches prestamos using Python backend proxy or Supabase directly.
+ */
+
+import { supabase } from './supabase';
+import type { Loan, LoansSummaryData, LoanStatus } from '../../features/loans/loans.types';
+
+const AVATAR_COLORS = ['#2F80ED', '#27AE60', '#D97706', '#8B5CF6', '#06B6D4', '#EC4899'];
+
+function getInitials(name: string): string {
+  const parts = name.trim().split(/\s+/);
+  if (parts.length >= 2) return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+  return (name.slice(0, 2) || 'US').toUpperCase();
+}
+
+function formatDate(iso: string): string {
+  if (!iso) return '—';
+  const d = new Date(iso);
+  const day = String(d.getDate()).padStart(2, '0');
+  const months = ['ene.', 'feb.', 'mar.', 'abr.', 'may.', 'jun.', 'jul.', 'ago.', 'sep.', 'oct.', 'nov.', 'dic.'];
+  return `${day} ${months[d.getMonth()]} ${d.getFullYear()}`;
+}
+
+function mapEstadoToStatus(estado: string, dueDateIso?: string, returnDateIso?: string): LoanStatus {
+  if (estado === 'devuelto' || returnDateIso) return 'RETURNED';
+  if (estado === 'vencido') return 'OVERDUE';
+  if (dueDateIso) {
+    const due = new Date(dueDateIso);
+    if (new Date() >= due) return 'OVERDUE';
+  }
+  if (estado === 'renovado') return 'ACTIVE';
+  return 'ACTIVE';
+}
+
+function mapPrestamoToLoan(row: any, index: number): Loan {
+  const usuario = row.usuarios || {};
+  const ejemplar = row.ejemplares || {};
+  const libro = ejemplar.libros || {};
+
+  let authorName = 'Autor desconocido';
+  if (Array.isArray(libro.libro_autores) && libro.libro_autores.length > 0) {
+    const firstAuthor = libro.libro_autores[0];
+    if (firstAuthor.autores?.nombre) authorName = firstAuthor.autores.nombre;
+  }
+
+  const userName = usuario.nombre_completo || 'Usuario desconocido';
+  const status = mapEstadoToStatus(row.estado, row.fecha_limite_devolucion, row.fecha_devolucion_real);
+
+  let dueDateNote: string | undefined;
+  if (status !== 'RETURNED' && row.fecha_limite_devolucion) {
+    const now = new Date();
+    const due = new Date(row.fecha_limite_devolucion);
+    const diffMs = due.getTime() - now.getTime();
+    const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24));
+    if (diffDays < 0) {
+      dueDateNote = `${Math.abs(diffDays)}d vencido`;
+    } else if (diffDays <= 3) {
+      dueDateNote = `Vence en ${diffDays}d`;
+    } else {
+      dueDateNote = `${diffDays}d restantes`;
+    }
+  }
+
+  return {
+    id: row.id,
+    folio: `PR-${String(index + 1).padStart(3, '0')}`,
+    userId: row.usuario_id || '',
+    userName,
+    userKind: 'NORMAL',
+    userCategory: 'STUDENT',
+    userInitials: getInitials(userName),
+    userAvatarColor: AVATAR_COLORS[index % AVATAR_COLORS.length],
+    resourceId: ejemplar.codigo_inventario || row.ejemplar_id || '',
+    resourceTitle: libro.titulo || 'Sin título',
+    resourceAuthor: authorName,
+    checkoutDate: formatDate(row.fecha_prestamo),
+    dueDate: formatDate(row.fecha_limite_devolucion),
+    dueDateNote,
+    returnDate: row.fecha_devolucion_real ? formatDate(row.fecha_devolucion_real) : undefined,
+    status,
+    renewalCount: 0,
+    renewalLimit: 2,
+    notes: row.notas || undefined,
+  };
+}
+
+/**
+ * Fetches all loans from backend or Supabase directly.
+ */
+export async function fetchAdminLoans(): Promise<Loan[]> {
+  try {
+    // 1. Try Python backend proxy first
+    const res = await fetch('/api/v1/data/prestamos');
+    if (res.ok) {
+      const data = await res.json();
+      if (Array.isArray(data) && data.length > 0) {
+        return data.map((row, i) => mapPrestamoToLoan(row, i));
+      }
+    }
+  } catch (err) {
+    console.warn('[LoansAdminService] Backend fetch failed:', err);
+  }
+
+  // 2. Direct query fallback
+  try {
+    const { data } = await supabase
+      .from('prestamos')
+      .select('id, usuario_id, ejemplar_id, tipo_prestamo, fecha_prestamo, fecha_limite_devolucion, fecha_devolucion_real, estado, notas, usuarios ( nombre_completo, email, rol ), ejemplares ( codigo_inventario, libros ( titulo, libro_autores ( autores ( nombre ) ) ) )')
+      .order('fecha_prestamo', { ascending: false });
+
+    if (!data) return [];
+    return data.map((row, i) => mapPrestamoToLoan(row, i));
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * Fetches loans summary metrics.
+ */
+export async function fetchLoansSummary(): Promise<LoansSummaryData> {
+  const loans = await fetchAdminLoans();
+  let active = 0, dueSoon = 0, overdue = 0, returned = 0;
+
+  for (const l of loans) {
+    if (l.status === 'RETURNED') returned++;
+    else {
+      active++;
+      if (l.status === 'OVERDUE') overdue++;
+      else if (l.dueDateNote?.includes('Vence')) dueSoon++;
+    }
+  }
+
+  return {
+    activeLoansCount: active,
+    activeTrend: `${active} préstamos vigentes`,
+    dueSoonCount: dueSoon,
+    dueSoonSubtitle: `${dueSoon} próximos a vencer`,
+    overdueCount: overdue,
+    overdueSubtitle: `${overdue} con retraso`,
+    returnedThisMonthCount: returned,
+    returnedTrend: `${returned} devueltos`,
+  };
+}

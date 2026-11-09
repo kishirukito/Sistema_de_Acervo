@@ -1,0 +1,423 @@
+/* ==========================================================================
+   Loan Detail Modal Styles (Ficha de Consulta de Préstamo)
+   Sistema de Acervo
+   ========================================================================== */
+
+.loan-detail-modal-body {
+  display: flex;
+  flex-direction: column;
+  gap: 1.15rem;
+  font-size: 0.875rem;
+  color: #374151;
+  line-height: 1.5;
+}
+
+/* --------------------------------------------------------------------------
+   Header Summary Card (Folio + Badges)
+   -------------------------------------------------------------------------- */
+.loan-detail-header-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  padding: 0.85rem 1.15rem;
+  background: linear-gradient(135deg, #F8FAFC 0%, #F1F5F9 100%);
+  border: 1px solid #E2E8F0;
+  border-radius: var(--radius-md, 10px);
+}
+
+.loan-detail-folio-wrap {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.loan-detail-folio-label {
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  color: var(--color-text-muted, #6B7280);
+  letter-spacing: 0.04em;
+}
+
+.loan-detail-folio-badge {
+  font-family: var(--font-family-mono, monospace);
+  font-weight: 700;
+  font-size: 0.95rem;
+  background-color: #E2E8F0;
+  color: #1E293B;
+  padding: 2px 8px;
+  border-radius: 6px;
+  letter-spacing: 0.02em;
+}
+
+.loan-detail-header-status {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.loan-detail-returned-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.71875rem;
+  font-weight: 600;
+  background-color: #ECFDF5;
+  color: #065F46;
+  border: 1px solid #A7F3D0;
+  padding: 2px 8px;
+  border-radius: 9999px;
+}
+
+/* --------------------------------------------------------------------------
+   Section General Structure
+   -------------------------------------------------------------------------- */
+.loan-detail-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.45rem;
+}
+
+.loan-detail-section-title {
+  margin: 0;
+  font-size: 0.84375rem;
+  font-weight: 700;
+  color: var(--color-primary-dark, #1E3A5F);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  letter-spacing: -0.01em;
+}
+
+.loan-detail-card {
+  background: #FFFFFF;
+  border: 1px solid #E5E7EB;
+  border-radius: var(--radius-md, 10px);
+  padding: 0.95rem 1.05rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+}
+
+/* --------------------------------------------------------------------------
+   Section: Recurso Bibliográfico
+   -------------------------------------------------------------------------- */
+.loan-detail-resource-layout {
+  display: flex;
+  gap: 14px;
+  align-items: flex-start;
+}
+
+.loan-detail-book-cover {
+  width: 64px;
+  height: 88px;
+  border-radius: 8px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  flex-shrink: 0;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.14);
+  color: #FFFFFF;
+}
+
+.loan-detail-book-initials {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  color: #FFFFFF;
+  letter-spacing: 0.05em;
+}
+
+.loan-detail-resource-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.loan-detail-resource-title {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--color-primary-dark, #1E3A5F);
+  line-height: 1.3;
+}
+
+.loan-detail-resource-author {
+  margin: 0;
+  font-size: 0.84375rem;
+  color: #4B5563;
+}
+
+.loan-detail-meta-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 0.5rem 1rem;
+  margin-top: 0.6rem;
+  padding-top: 0.6rem;
+  border-top: 1px solid #F1F5F9;
+}
+
+.loan-detail-meta-item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.loan-detail-meta-label {
+  font-size: 0.71875rem;
+  font-weight: 600;
+  color: var(--color-text-muted, #6B7280);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.loan-detail-meta-value {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #1F2937;
+}
+
+.loan-detail-category-pill {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.71875rem;
+  font-weight: 600;
+  background-color: #EFF6FF;
+  color: #1D4ED8;
+  border: 1px solid #DBEAFE;
+  padding: 1px 7px;
+  border-radius: 4px;
+  width: fit-content;
+}
+
+/* --------------------------------------------------------------------------
+   Section: Prestatario
+   -------------------------------------------------------------------------- */
+.loan-detail-user-layout {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+}
+
+.loan-detail-user-avatar {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  color: #FFFFFF;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1rem;
+  font-weight: 700;
+  flex-shrink: 0;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12);
+}
+
+.loan-detail-user-info {
+  flex: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.loan-detail-user-name {
+  margin: 0;
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: var(--color-primary-dark, #1E3A5F);
+}
+
+.loan-detail-user-badges {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+/* --------------------------------------------------------------------------
+   Section: Fechas y Plazos
+   -------------------------------------------------------------------------- */
+.loan-detail-dates-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.65rem;
+}
+
+.loan-detail-date-box {
+  background: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  border-radius: var(--radius-sm, 8px);
+  padding: 0.65rem 0.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.loan-detail-date-box--due {
+  background: #FFFBEB;
+  border-color: #FDE68A;
+}
+
+.loan-detail-date-box--overdue {
+  background: #FEF2F2;
+  border-color: #FECACA;
+}
+
+.loan-detail-date-box--returned {
+  background: #F0FDF4;
+  border-color: #BBF7D0;
+}
+
+.loan-detail-date-label {
+  font-size: 0.71875rem;
+  font-weight: 600;
+  color: var(--color-text-muted, #6B7280);
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.loan-detail-date-value {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #1F2937;
+}
+
+.loan-detail-date-note {
+  font-size: 0.71875rem;
+  font-weight: 600;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+}
+
+.loan-detail-date-note--normal {
+  color: #2563EB;
+}
+
+.loan-detail-date-note--warning {
+  color: #D97706;
+}
+
+.loan-detail-date-note--overdue {
+  color: #DC2626;
+}
+
+.loan-detail-date-note--returned {
+  color: #059669;
+}
+
+/* --------------------------------------------------------------------------
+   Section: Renovaciones
+   -------------------------------------------------------------------------- */
+.loan-detail-renewals-card {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 10px;
+  padding: 0.75rem 1rem;
+  background: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  border-radius: var(--radius-sm, 8px);
+}
+
+.loan-detail-renewals-info {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.loan-detail-renewals-label {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #6B7280;
+}
+
+.loan-detail-renewals-val {
+  font-size: 0.875rem;
+  font-weight: 700;
+  color: #1E3A5F;
+}
+
+.loan-detail-renewals-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 0.71875rem;
+  font-weight: 600;
+  padding: 3px 8px;
+  border-radius: 4px;
+}
+
+.loan-detail-renewals-tag--ok {
+  background-color: #EFF6FF;
+  color: #1D4ED8;
+  border: 1px solid #BFDBFE;
+}
+
+.loan-detail-renewals-tag--limit {
+  background-color: #FEF3C7;
+  color: #92400E;
+  border: 1px solid #FDE68A;
+}
+
+/* --------------------------------------------------------------------------
+   Section: Observaciones (Opcional)
+   -------------------------------------------------------------------------- */
+.loan-detail-notes-card {
+  background-color: #FFFDF5;
+  border: 1px solid #FDE68A;
+  border-radius: var(--radius-sm, 8px);
+  padding: 0.75rem 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.loan-detail-notes-text {
+  margin: 0;
+  font-size: 0.8125rem;
+  color: #78350F;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* --------------------------------------------------------------------------
+   Footer Actions
+   -------------------------------------------------------------------------- */
+.loan-detail-footer-actions {
+  display: flex;
+  justify-content: flex-end;
+  width: 100%;
+}
+
+/* --------------------------------------------------------------------------
+   Responsive Design
+   -------------------------------------------------------------------------- */
+@media (max-width: 640px) {
+  .loan-detail-meta-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .loan-detail-dates-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .loan-detail-resource-layout {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+
+  .loan-detail-meta-item {
+    align-items: center;
+  }
+}

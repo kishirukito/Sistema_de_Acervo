@@ -1,0 +1,279 @@
+/* LoanSuccessPage.css - Estilos para la pantalla de Préstamo Registrado Correctamente */
+
+.loan-success-page {
+  width: 100%;
+  min-height: calc(100vh - 64px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3rem 1.5rem;
+  box-sizing: border-box;
+  background-color: #F8FAFC;
+}
+
+.loan-success-card {
+  width: 100%;
+  max-width: 540px;
+  background: #FFFFFF;
+  border-radius: 20px;
+  border: 1px solid #E2E8F0;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.03);
+  padding: 40px 36px 36px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  box-sizing: border-box;
+  animation: loanSuccessFadeIn 0.3s ease-out;
+}
+
+@keyframes loanSuccessFadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px) scale(0.99);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+/* Double circular checkmark badge matching system visual identity */
+.loan-success-icon-outer {
+  width: 72px;
+  height: 72px;
+  border-radius: 50%;
+  background-color: #D1FAE5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 22px;
+  box-shadow: 0 0 0 6px #ECFDF5;
+  flex-shrink: 0;
+}
+
+.loan-success-icon-inner {
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background-color: #22C55E;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.loan-success-icon-svg {
+  color: #0F172A;
+}
+
+/* Main Heading */
+.loan-success-title {
+  font-family: var(--font-family-heading, 'Inter', -apple-system, BlinkMacSystemFont, sans-serif);
+  font-size: 1.625rem;
+  font-weight: 800;
+  color: #1E293B;
+  margin: 0 0 12px 0;
+  letter-spacing: -0.02em;
+  outline: none;
+}
+
+/* Supporting explanation */
+.loan-success-desc {
+  font-family: var(--font-family-body, 'Inter', -apple-system, BlinkMacSystemFont, sans-serif);
+  font-size: 0.9375rem;
+  line-height: 1.55;
+  color: #64748B;
+  margin: 0 0 24px 0;
+  max-width: 440px;
+}
+
+.loan-success-desc strong {
+  color: #1E293B;
+  font-weight: 700;
+}
+
+/* Mint green summary box */
+.loan-success-summary-box {
+  width: 100%;
+  background-color: #F0FDF4;
+  border: 1px solid #BBF7D0;
+  border-radius: 14px;
+  padding: 18px 22px;
+  margin-bottom: 28px;
+  box-sizing: border-box;
+  text-align: left;
+}
+
+.loan-success-summary-list {
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.loan-success-summary-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 0;
+}
+
+.loan-success-summary-label {
+  font-size: 0.875rem;
+  color: #64748B;
+  font-weight: 500;
+  margin: 0;
+}
+
+.loan-success-summary-value {
+  font-size: 0.875rem;
+  color: #0F172A;
+  font-weight: 700;
+  margin: 0;
+  text-align: right;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  word-break: break-word;
+}
+
+.loan-success-badge-active {
+  background-color: #DCFCE7;
+  color: #15803D;
+  border: 1px solid #86EFAC;
+  padding: 2px 8px;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+}
+
+/* Action Buttons Container */
+.loan-success-actions {
+  width: 100%;
+  display: flex;
+  gap: 14px;
+  align-items: center;
+}
+
+/* Secondary Action: Ver préstamos (Outline blue) */
+.loan-success-btn-secondary {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #FFFFFF;
+  border: 1.5px solid #3B82F6;
+  color: #2563EB;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  padding: 10px 18px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.15s ease-in-out;
+  height: 44px;
+  box-sizing: border-box;
+  font-family: inherit;
+  text-decoration: none;
+}
+
+.loan-success-btn-secondary:hover {
+  background-color: #EFF6FF;
+  border-color: #2563EB;
+}
+
+.loan-success-btn-secondary:focus-visible {
+  outline: 2px solid #2563EB;
+  outline-offset: 2px;
+}
+
+/* Primary Action: Registrar otro préstamo (Solid Emerald Green) */
+.loan-success-btn-primary {
+  flex: 1;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background-color: #16A34A;
+  border: 1px solid #16A34A;
+  color: #FFFFFF;
+  font-size: 0.9375rem;
+  font-weight: 600;
+  padding: 10px 18px;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.15s ease-in-out;
+  height: 44px;
+  box-sizing: border-box;
+  font-family: inherit;
+  text-decoration: none;
+}
+
+.loan-success-btn-primary:hover {
+  background-color: #15803D;
+  border-color: #15803D;
+}
+
+.loan-success-btn-primary:focus-visible {
+  outline: 2px solid #16A34A;
+  outline-offset: 2px;
+}
+
+/* Alternate States (Not Found & Not Active) */
+.loan-success-state-card {
+  width: 100%;
+  max-width: 520px;
+  background: #FFFFFF;
+  border-radius: 20px;
+  border: 1px solid #E2E8F0;
+  padding: 40px 36px;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.04);
+  box-sizing: border-box;
+}
+
+.loan-success-state-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 20px;
+}
+
+.loan-success-state-icon--warning {
+  background-color: #FEF3C7;
+  color: #D97706;
+}
+
+.loan-success-state-icon--error {
+  background-color: #FEE2E2;
+  color: #DC2626;
+}
+
+.loan-success-state-title {
+  font-family: var(--font-family-heading, 'Inter', sans-serif);
+  font-size: 1.35rem;
+  font-weight: 700;
+  color: #1E293B;
+  margin: 0 0 10px 0;
+  outline: none;
+}
+
+.loan-success-state-desc {
+  font-size: 0.9375rem;
+  color: #64748B;
+  margin: 0 0 24px 0;
+  max-width: 400px;
+  line-height: 1.5;
+}
+
+.loan-success-state-actions {
+  display: flex;
+  gap: 12px;
+  width: 100%;
+}

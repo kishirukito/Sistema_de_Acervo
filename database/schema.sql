@@ -1,6 +1,8 @@
 -- ==============================================================================
 -- SISTEMA DE GESTIÓN BIBLIOTECARIA (SISTEMA DE ACERVO - CIU)
--- Script DDL de Base de Datos para PostgreSQL 15+ / Supabase
+-- Script DDL Normalizado para PostgreSQL 15+ / Supabase
+-- Incluye: Clasificación de Usuarios (Alumnos, Docentes, Tesistas, Externos)
+-- y Modalidades de Préstamo (Salas vs Domicilio)
 -- ==============================================================================
 
 -- 1. EXTENSIONES
@@ -10,7 +12,7 @@ CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 -- 2. TIPOS ENUM PERSONALIZADOS
 DO $$ BEGIN
     IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'enum_user_rol') THEN
-        CREATE TYPE enum_user_rol AS ENUM ('admin', 'personal', 'alumno');
+        CREATE TYPE enum_user_rol AS ENUM ('admin', 'personal', 'lector');
     END IF;
     IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'enum_user_estado') THEN
         CREATE TYPE enum_user_estado AS ENUM ('activo', 'suspendido', 'inactivo');
@@ -21,29 +23,47 @@ DO $$ BEGIN
     IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'enum_prestamo_estado') THEN
         CREATE TYPE enum_prestamo_estado AS ENUM ('activo', 'devuelto', 'vencido', 'renovado');
     END IF;
+    IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'enum_prestamo_tipo') THEN
+        CREATE TYPE enum_prestamo_tipo AS ENUM ('domicilio', 'sala');
+    END IF;
 END $$;
 
--- 3. TABLA: USUARIOS
+-- 3. TABLA: TIPOS_USUARIO (Normalización de políticas de biblioteca)
+CREATE TABLE IF NOT EXISTS tipos_usuario (
+    id SERIAL PRIMARY KEY,
+    codigo VARCHAR(30) UNIQUE NOT NULL, -- 'administrativo', 'docente', 'alumno', 'egresado_tesista', 'externo'
+    nombre VARCHAR(60) NOT NULL,
+    max_libros_simultaneos INT NOT NULL DEFAULT 3,
+    dias_prestamo_domicilio INT NOT NULL DEFAULT 7,
+    permite_prestamo_domicilio BOOLEAN NOT NULL DEFAULT true,
+    descripcion TEXT,
+    created_at TIMESTAMPTZ DEFAULT NOW()
+);
+
+-- 4. TABLA: USUARIOS
 CREATE TABLE IF NOT EXISTS usuarios (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    tipo_usuario_id INT NOT NULL REFERENCES tipos_usuario(id) ON DELETE RESTRICT,
+    rol enum_user_rol NOT NULL DEFAULT 'lector',
     email VARCHAR(150) UNIQUE NOT NULL,
     password_hash VARCHAR(255) NOT NULL,
     nombre_completo VARCHAR(150) NOT NULL,
-    matricula_o_nomina VARCHAR(30) UNIQUE NOT NULL,
-    rol enum_user_rol NOT NULL DEFAULT 'alumno',
+    matricula_o_nomina VARCHAR(50) UNIQUE NOT NULL, -- Matrícula / Nómina / INE o Cédula
+    carrera_o_dependencia VARCHAR(150),             -- Carrera, Departamento o Institución externa
+    vigencia_hasta DATE,                            -- Periodo de validez de credencial (ej. 2025, 2026, 2027)
     estado enum_user_estado NOT NULL DEFAULT 'activo',
     created_at TIMESTAMPTZ DEFAULT NOW(),
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 4. TABLA: TEMAS
+-- 5. TABLA: TEMAS
 CREATE TABLE IF NOT EXISTS temas (
     id SERIAL PRIMARY KEY,
     nombre VARCHAR(100) UNIQUE NOT NULL,
     descripcion TEXT
 );
 
--- 5. TABLA: LIBROS
+-- 6. TABLA: LIBROS
 CREATE TABLE IF NOT EXISTS libros (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     isbn VARCHAR(20) UNIQUE NOT NULL,
@@ -57,14 +77,14 @@ CREATE TABLE IF NOT EXISTS libros (
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 6. TABLA PIVOTE: LIBRO_TEMAS
+-- 7. TABLA PIVOTE: LIBRO_TEMAS
 CREATE TABLE IF NOT EXISTS libro_temas (
     libro_id UUID NOT NULL REFERENCES libros(id) ON DELETE CASCADE,
     tema_id INT NOT NULL REFERENCES temas(id) ON DELETE CASCADE,
     PRIMARY KEY (libro_id, tema_id)
 );
 
--- 7. TABLA: EJEMPLARES
+-- 8. TABLA: EJEMPLARES
 CREATE TABLE IF NOT EXISTS ejemplares (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     libro_id UUID NOT NULL REFERENCES libros(id) ON DELETE CASCADE,
@@ -76,11 +96,12 @@ CREATE TABLE IF NOT EXISTS ejemplares (
     updated_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 8. TABLA: PRESTAMOS
+-- 9. TABLA: PRESTAMOS
 CREATE TABLE IF NOT EXISTS prestamos (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     usuario_id UUID NOT NULL REFERENCES usuarios(id) ON DELETE RESTRICT,
     ejemplar_id UUID NOT NULL REFERENCES ejemplares(id) ON DELETE RESTRICT,
+    tipo_prestamo enum_prestamo_tipo NOT NULL DEFAULT 'domicilio', -- 'domicilio' o 'sala' (Salas - Bibliote)
     fecha_prestamo TIMESTAMPTZ DEFAULT NOW() NOT NULL,
     fecha_limite_devolucion TIMESTAMPTZ NOT NULL,
     fecha_devolucion_real TIMESTAMPTZ,
@@ -89,17 +110,17 @@ CREATE TABLE IF NOT EXISTS prestamos (
     created_at TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 9. TABLA: RESUMENES_IA
+-- 10. TABLA: RESUMENES_IA
 CREATE TABLE IF NOT EXISTS resumenes_ia (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     libro_id UUID NOT NULL REFERENCES libros(id) ON DELETE CASCADE,
     resumen_texto TEXT NOT NULL,
     palabras_clave VARCHAR(300),
-    modelo_usado VARCHAR(50) DEFAULT 'gpt-4o-mini',
+    modelo_usado VARCHAR(50) DEFAULT 'llama3.2:3b',
     generado_en TIMESTAMPTZ DEFAULT NOW()
 );
 
--- 10. TABLA: AUDITORIA_LOGS
+-- 11. TABLA: AUDITORIA_LOGS
 CREATE TABLE IF NOT EXISTS auditoria_logs (
     id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
     usuario_id UUID REFERENCES usuarios(id) ON DELETE SET NULL,
@@ -116,8 +137,11 @@ CREATE TABLE IF NOT EXISTS auditoria_logs (
 CREATE INDEX IF NOT EXISTS idx_libros_isbn ON libros(isbn);
 CREATE INDEX IF NOT EXISTS idx_libros_titulo ON libros(titulo);
 CREATE INDEX IF NOT EXISTS idx_ejemplares_codigo ON ejemplares(codigo_inventario);
+CREATE INDEX IF NOT EXISTS idx_usuarios_tipo ON usuarios(tipo_usuario_id);
+CREATE INDEX IF NOT EXISTS idx_usuarios_matricula ON usuarios(matricula_o_nomina);
 CREATE INDEX IF NOT EXISTS idx_prestamos_usuario ON prestamos(usuario_id);
 CREATE INDEX IF NOT EXISTS idx_prestamos_estado ON prestamos(estado);
+CREATE INDEX IF NOT EXISTS idx_prestamos_tipo ON prestamos(tipo_prestamo);
 CREATE INDEX IF NOT EXISTS idx_auditoria_tabla ON auditoria_logs(tabla_afectada);
 
 -- ==============================================================================
@@ -149,20 +173,31 @@ FOR EACH ROW EXECUTE FUNCTION trigger_set_timestamp();
 -- ==============================================================================
 -- ROW LEVEL SECURITY (RLS) PARA SUPABASE
 -- ==============================================================================
+ALTER TABLE tipos_usuario ENABLE ROW LEVEL SECURITY;
 ALTER TABLE usuarios ENABLE ROW LEVEL SECURITY;
 ALTER TABLE libros ENABLE ROW LEVEL SECURITY;
 ALTER TABLE ejemplares ENABLE ROW LEVEL SECURITY;
 ALTER TABLE prestamos ENABLE ROW LEVEL SECURITY;
 ALTER TABLE temas ENABLE ROW LEVEL SECURITY;
+ALTER TABLE libro_temas ENABLE ROW LEVEL SECURITY;
 ALTER TABLE resumenes_ia ENABLE ROW LEVEL SECURITY;
 ALTER TABLE auditoria_logs ENABLE ROW LEVEL SECURITY;
 
--- Políticas de lectura pública
+-- Políticas de lectura pública (permiten consultar catálogo y categorías a anon/auth)
+DROP POLICY IF EXISTS "Lectura pública de tipos_usuario" ON tipos_usuario;
+CREATE POLICY "Lectura pública de tipos_usuario" ON tipos_usuario FOR SELECT USING (true);
+
 DROP POLICY IF EXISTS "Lectura pública de libros" ON libros;
 CREATE POLICY "Lectura pública de libros" ON libros FOR SELECT USING (true);
 
 DROP POLICY IF EXISTS "Lectura pública de temas" ON temas;
 CREATE POLICY "Lectura pública de temas" ON temas FOR SELECT USING (true);
 
+DROP POLICY IF EXISTS "Lectura pública de libro_temas" ON libro_temas;
+CREATE POLICY "Lectura pública de libro_temas" ON libro_temas FOR SELECT USING (true);
+
 DROP POLICY IF EXISTS "Lectura pública de ejemplares" ON ejemplares;
 CREATE POLICY "Lectura pública de ejemplares" ON ejemplares FOR SELECT USING (true);
+
+DROP POLICY IF EXISTS "Lectura pública de resumenes_ia" ON resumenes_ia;
+CREATE POLICY "Lectura pública de resumenes_ia" ON resumenes_ia FOR SELECT USING (true);

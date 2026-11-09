@@ -27,3 +27,13 @@ class AISearchResponse(BaseModel):
     query: str
     sugerencias: List[Dict[str, Any]]
     total: int
+
+class AIEmbeddingRequest(BaseModel):
+    texto: str = Field(..., description="Texto para generar vector de embedding")
+
+class AIEmbeddingResponse(BaseModel):
+    texto: str
+    embedding: List[float]
+    dimension: int
+    modelo: str
+
