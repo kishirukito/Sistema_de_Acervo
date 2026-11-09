@@ -7,6 +7,7 @@ import {
   Save,
   AlertTriangle,
   RotateCcw,
+  Sparkles,
 } from 'lucide-react';
 import { Modal } from '../../../components/ui/Modal';
 import { Input } from '../../../components/ui/Input';
@@ -56,16 +57,52 @@ export const EditResourceModal: React.FC<EditResourceModalProps> = ({
   onSave,
 }) => {
   const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
+  const [isGeneratingAI, setIsGeneratingAI] = useState(false);
+  const [aiNotice, setAiNotice] = useState<string | null>(null);
   const titleInputRef = useRef<HTMLInputElement>(null);
 
   const {
     register,
     handleSubmit,
     reset,
+    setValue,
     formState: { errors, isDirty, isSubmitting },
   } = useForm<EditResourceFormData>({
     resolver: zodResolver(editResourceSchema) as any,
   });
+
+  const handleGenerateAISummary = async () => {
+    if (!resource) return;
+    setIsGeneratingAI(true);
+    setAiNotice(null);
+    try {
+      const res = await fetch('/api/v1/ai/resumen', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          titulo: resource.title,
+          autor: resource.author,
+          sinopsis_o_tema: resource.categoryLabel || resource.category || '',
+          libro_id: resource.id,
+        }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data.resumen) {
+          setValue('description', data.resumen, { shouldDirty: true });
+          setAiNotice('¡Resumen generado y guardado en la base de datos!');
+        }
+      } else {
+        setAiNotice('No se pudo conectar con el servicio de IA local.');
+      }
+    } catch (err) {
+      console.error(err);
+      setAiNotice('Error al generar resumen.');
+    } finally {
+      setIsGeneratingAI(false);
+    }
+  };
 
   // Populate form with current resource values when opened
   useEffect(() => {
@@ -272,16 +309,41 @@ export const EditResourceModal: React.FC<EditResourceModalProps> = ({
 
             {/* Description / Synopsis */}
             <div className="edit-modal-col-span-2 edit-modal-textarea-group">
-              <label htmlFor="edit-book-desc" className="edit-modal-textarea-label">
-                Descripción o sinopsis
-              </label>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
+                <label htmlFor="edit-book-desc" className="edit-modal-textarea-label" style={{ margin: 0 }}>
+                  Descripción o sinopsis
+                </label>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleGenerateAISummary}
+                  isLoading={isGeneratingAI}
+                  leftIcon={<Sparkles size={14} color="#2F80ED" />}
+                  style={{
+                    fontSize: '0.75rem',
+                    color: '#2F80ED',
+                    borderColor: '#BFDBFE',
+                    backgroundColor: '#EFF6FF',
+                    padding: '3px 8px',
+                    height: '26px',
+                  }}
+                >
+                  {isGeneratingAI ? 'Generando...' : 'Generar resumen con IA'}
+                </Button>
+              </div>
               <textarea
                 id="edit-book-desc"
                 rows={3}
-                placeholder="Breve reseña del libro y contenido temático..."
+                placeholder="Breve reseña del libro o pulsa 'Generar resumen con IA'..."
                 className="edit-modal-textarea"
                 {...register('description')}
               />
+              {aiNotice && (
+                <span style={{ fontSize: '0.75rem', color: aiNotice.includes('éxito') || aiNotice.includes('guardado') ? '#10B981' : '#F59E0B' }}>
+                  {aiNotice}
+                </span>
+              )}
               {errors.description && (
                 <span className="ui-input-error" role="alert">
                   {errors.description.message}

@@ -5,6 +5,7 @@ class AISummaryRequest(BaseModel):
     titulo: str = Field(..., description="Título del libro a resumir")
     autor: str = Field(..., description="Autor del libro")
     sinopsis_o_tema: Optional[str] = Field(default="", description="Tema o sinopsis previa")
+    libro_id: Optional[str] = Field(default=None, description="UUID del libro en base de datos para guardar automáticamente")
 
 class AISummaryResponse(BaseModel):
     resumen: str

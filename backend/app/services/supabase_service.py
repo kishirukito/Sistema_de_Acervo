@@ -77,4 +77,30 @@ class SupabaseService:
 
             return created
 
+    async def save_summary(self, libro_id: str, resumen_texto: str, palabras_clave: str, modelo_usado: str = "llama3.2:3b") -> Dict[str, Any]:
+        """Inserta o actualiza el resumen con IA de un libro en Supabase."""
+        check_url = f"{self.base_url}/resumenes_ia?libro_id=eq.{libro_id}"
+        async with httpx.AsyncClient() as client:
+            check_resp = await client.get(check_url, headers=self.headers, timeout=5.0)
+            existing = check_resp.json() if check_resp.is_success else []
+            if isinstance(existing, list) and len(existing) > 0:
+                update_url = f"{self.base_url}/resumenes_ia?libro_id=eq.{libro_id}"
+                resp = await client.patch(update_url, headers=self.headers, json={
+                    "resumen_texto": resumen_texto,
+                    "palabras_clave": palabras_clave,
+                    "modelo_usado": modelo_usado
+                }, timeout=5.0)
+                resp.raise_for_status()
+                return {"updated": True}
+            else:
+                insert_url = f"{self.base_url}/resumenes_ia"
+                resp = await client.post(insert_url, headers=self.headers, json={
+                    "libro_id": libro_id,
+                    "resumen_texto": resumen_texto,
+                    "palabras_clave": palabras_clave,
+                    "modelo_usado": modelo_usado
+                }, timeout=5.0)
+                resp.raise_for_status()
+                return {"inserted": True}
+
 supabase_service = SupabaseService()

@@ -6,6 +6,7 @@ from app.schemas.ai_schema import (
     AIEmbeddingResponse
 )
 from app.services.ai_service import AIService
+from app.services.supabase_service import supabase_service
 from app.core.config import settings
 from typing import Optional
 
@@ -22,7 +23,7 @@ async def verify_ai_access(x_ai_key: Optional[str] = Header(None)):
 async def generate_summary(payload: AISummaryRequest):
     """
     Genera un resumen analítico y palabras clave de un libro mediante el modelo LLM local.
-    Consumido por el backend de Next.js al crear o consultar libros.
+    Si se proporciona libro_id, lo guarda o actualiza directamente en la base de datos Supabase.
     """
     try:
         result = await AIService.generate_book_summary(
@@ -30,6 +31,20 @@ async def generate_summary(payload: AISummaryRequest):
             autor=payload.autor,
             sinopsis_o_tema=payload.sinopsis_o_tema or ""
         )
+
+        if payload.libro_id:
+            try:
+                await supabase_service.save_summary(
+                    libro_id=payload.libro_id,
+                    resumen_texto=result["resumen"],
+                    palabras_clave=result.get("palabras_clave", ""),
+                    modelo_usado=result.get("modelo", "llama3.2:3b")
+                )
+                result["guardado_en_db"] = True
+            except Exception as db_err:
+                print(f"[AI RESUMEN DB ERROR] {db_err}")
+                result["guardado_en_db"] = False
+
         return result
     except Exception as e:
         raise HTTPException(

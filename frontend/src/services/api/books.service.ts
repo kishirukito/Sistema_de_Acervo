@@ -86,6 +86,19 @@ export const booksService = {
         throw error;
       }
 
+      if (data.description) {
+        try {
+          await supabase.from('resumenes_ia').insert({
+            libro_id: newBook.id,
+            resumen_texto: data.description,
+            palabras_clave: Array.isArray(data.topics) ? data.topics.join(', ') : 'Referencia Académica, CIU',
+            modelo_usado: 'llama3.2:3b',
+          });
+        } catch (iaErr) {
+          console.warn('[booksService] Could not insert resumen_ia:', iaErr);
+        }
+      }
+
       return {
         ...data,
         id: newBook.id,

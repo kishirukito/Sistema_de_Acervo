@@ -1,9 +1,9 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
-import { ArrowLeft, BookPlus } from 'lucide-react';
+import { ArrowLeft, BookPlus, Sparkles } from 'lucide-react';
 import { Card, CardHeader, CardBody } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Input } from '../../components/ui/Input';
@@ -27,10 +27,14 @@ type BookFormData = z.infer<typeof bookSchema>;
 
 export const AdminNewBookPage: React.FC = () => {
   const navigate = useNavigate();
+  const [isGeneratingAI, setIsGeneratingAI] = useState(false);
+  const [aiNotice, setAiNotice] = useState<string | null>(null);
 
   const {
     register,
     handleSubmit,
+    watch,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<BookFormData>({
     resolver: zodResolver(bookSchema) as any,
@@ -46,6 +50,45 @@ export const AdminNewBookPage: React.FC = () => {
       description: '',
     },
   });
+
+  const currentTitle = watch('title');
+  const currentAuthor = watch('author');
+  const currentCategory = watch('category');
+
+  const handleGenerateAISummary = async () => {
+    if (!currentTitle || currentTitle.trim().length < 2) {
+      setAiNotice('Escribe primero el título del libro para generar el resumen.');
+      return;
+    }
+    setAiNotice(null);
+    setIsGeneratingAI(true);
+    try {
+      const res = await fetch('/api/v1/ai/resumen', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          titulo: currentTitle.trim(),
+          autor: currentAuthor ? currentAuthor.trim() : 'Autor especializado',
+          sinopsis_o_tema: currentCategory || 'Ciencias e Ingeniería',
+        }),
+      });
+
+      if (res.ok) {
+        const data = await res.json();
+        if (data.resumen) {
+          setValue('description', data.resumen, { shouldDirty: true });
+          setAiNotice('¡Resumen generado con éxito mediante IA!');
+        }
+      } else {
+        setAiNotice('No se pudo conectar con el servicio de IA local.');
+      }
+    } catch (err) {
+      console.error(err);
+      setAiNotice('Error al invocar el microservicio de IA.');
+    } finally {
+      setIsGeneratingAI(false);
+    }
+  };
 
   const onSubmit = async (data: BookFormData) => {
     const resolvedCat = resolveCategory(data.category) || BIBLIOGRAPHIC_CATEGORIES[0];
@@ -153,12 +196,32 @@ export const AdminNewBookPage: React.FC = () => {
             </div>
 
             <div style={{ display: 'flex', flexDirection: 'column', gap: 6, width: '100%' }}>
-              <label style={{ fontSize: '0.8125rem', fontWeight: 500, color: 'var(--color-text)' }}>
-                Descripción o Reseña
-              </label>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                <label style={{ fontSize: '0.8125rem', fontWeight: 500, color: 'var(--color-text)' }}>
+                  Descripción o Reseña
+                </label>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleGenerateAISummary}
+                  isLoading={isGeneratingAI}
+                  leftIcon={<Sparkles size={14} color="#2F80ED" />}
+                  style={{
+                    fontSize: '0.75rem',
+                    color: '#2F80ED',
+                    borderColor: '#BFDBFE',
+                    backgroundColor: '#EFF6FF',
+                    padding: '4px 10px',
+                    height: '28px',
+                  }}
+                >
+                  {isGeneratingAI ? 'Generando...' : 'Generar resumen con IA'}
+                </Button>
+              </div>
               <textarea
                 rows={3}
-                placeholder="Breve sinopsis del contenido y temas principales..."
+                placeholder="Breve sinopsis del contenido o pulsa 'Generar resumen con IA'..."
                 style={{
                   width: '100%',
                   padding: '10px 12px',
@@ -171,6 +234,11 @@ export const AdminNewBookPage: React.FC = () => {
                 }}
                 {...register('description')}
               />
+              {aiNotice && (
+                <span style={{ fontSize: '0.75rem', color: aiNotice.includes('éxito') ? '#10B981' : '#F59E0B' }}>
+                  {aiNotice}
+                </span>
+              )}
             </div>
 
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 12, marginTop: 12 }}>

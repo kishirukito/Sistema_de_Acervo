@@ -27,8 +27,8 @@ class AIService:
         )
 
         try:
-            # Conexión al servidor local de Ollama
-            async with httpx.AsyncClient(timeout=30.0) as client:
+            # Conexión al servidor local de Ollama (timeout de conexión rápido de 2s para fallback inmediato si no está activo)
+            async with httpx.AsyncClient(timeout=httpx.Timeout(30.0, connect=2.0)) as client:
                 response = await client.post(
                     f"{settings.OLLAMA_BASE_URL}/api/generate",
                     json={
