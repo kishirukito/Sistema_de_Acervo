@@ -76,6 +76,17 @@ export const DEFAULT_SIABUC_DATA: SiabucReportData = {
   },
 };
 
+function getAuthHeaders(): Record<string, string> {
+  const token = localStorage.getItem('acervo_token');
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+  };
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+  return headers;
+}
+
 export async function fetchSiabucReports(): Promise<SiabucReportData> {
   try {
     const res = await apiClient.get<SiabucReportData>('/v1/reports/siabuc');
@@ -83,9 +94,10 @@ export async function fetchSiabucReports(): Promise<SiabucReportData> {
       return res.data;
     }
   } catch (error) {
-    console.warn('apiClient get failed, trying fallback /api/v1/reports/siabuc...', error);
     try {
-      const fallbackRes = await fetch('/api/v1/reports/siabuc');
+      const fallbackRes = await fetch('/api/v1/reports/siabuc', {
+        headers: getAuthHeaders(),
+      });
       if (fallbackRes.ok) {
         const json = await fallbackRes.json();
         if (json && json.circulacion) {
@@ -109,7 +121,7 @@ export async function createSancion(data: {
 }) {
   const res = await fetch('/api/v1/reports/sancion', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: getAuthHeaders(),
     body: JSON.stringify(data),
   });
   if (!res.ok) throw new Error(await res.text());
@@ -125,7 +137,7 @@ export async function createReservaEspacio(data: {
 }) {
   const res = await fetch('/api/v1/reports/reserva-espacio', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: getAuthHeaders(),
     body: JSON.stringify(data),
   });
   if (!res.ok) throw new Error(await res.text());
@@ -139,7 +151,7 @@ export async function createSesionComputo(data: {
 }) {
   const res = await fetch('/api/v1/reports/sesion-computo', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: getAuthHeaders(),
     body: JSON.stringify(data),
   });
   if (!res.ok) throw new Error(await res.text());
@@ -153,7 +165,7 @@ export async function updateEjemplarEstado(data: {
 }) {
   const res = await fetch('/api/v1/reports/ejemplar-estado', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers: getAuthHeaders(),
     body: JSON.stringify(data),
   });
   if (!res.ok) throw new Error(await res.text());

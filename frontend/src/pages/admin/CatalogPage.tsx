@@ -8,7 +8,7 @@ import { BookDetailModal } from '../../features/search/components/BookDetailModa
 import { EditResourceModal } from '../../features/catalog/components/EditResourceModal';
 import { DeleteBookModal } from '../../features/catalog/components/DeleteBookModal';
 import { MOCK_RESOURCES } from '../../features/catalog/catalog.mock';
-import { fetchCatalogResources } from '../../services/api/catalog.service';
+import { fetchCatalogResources, deleteResource } from '../../services/api/catalog.service';
 import type { CatalogFilterState, Resource } from '../../features/catalog/catalog.types';
 import { resolveCategory } from '../../constants';
 import '../../features/catalog/catalog.css';
@@ -122,28 +122,51 @@ export const CatalogPage: React.FC = () => {
     }, 4500);
   };
 
-  const handleDeleteResource = (target: Resource) => {
-    setResourcesList((prev) => prev.filter((item) => item.id !== target.id));
+  const handleDeleteResource = async (target: Resource): Promise<boolean> => {
+    try {
+      const result = await deleteResource(target.id);
+      if (!result.success) {
+        setFeedbackToast(`No se pudo eliminar el libro: ${result.error}`);
+        setTimeout(() => setFeedbackToast(null), 5000);
+        return false;
+      }
 
-    // Keep in-memory mock synchronized
-    const mockIdx = MOCK_RESOURCES.findIndex((item) => item.id === target.id);
-    if (mockIdx !== -1) {
-      MOCK_RESOURCES.splice(mockIdx, 1);
+      // 1. Update UI state only after backend confirmation
+      setResourcesList((prev) => prev.filter((item) => item.id !== target.id));
+
+      // 2. Synchronize real list by refetching from Supabase
+      fetchCatalogResources().then((freshData) => {
+        if (freshData) {
+          setResourcesList(freshData);
+        }
+      });
+
+      // 3. Keep in-memory mock synchronized if it existed
+      const mockIdx = MOCK_RESOURCES.findIndex((item) => item.id === target.id);
+      if (mockIdx !== -1) {
+        MOCK_RESOURCES.splice(mockIdx, 1);
+      }
+
+      // 4. Ensure pagination stays valid
+      const remainingCount = filteredResources.length - 1;
+      const newTotalPages = Math.ceil(remainingCount / itemsPerPage) || 1;
+      if (currentPage > newTotalPages) {
+        setCurrentPage(newTotalPages);
+      }
+
+      setFeedbackToast(result.message || `El libro "${target.title}" fue retirado exitosamente del acervo.`);
+      setTimeout(() => {
+        setFeedbackToast((current) =>
+          current?.includes(target.title) ? null : current
+        );
+      }, 4500);
+
+      return true;
+    } catch (err: any) {
+      setFeedbackToast(`Error al eliminar: ${err?.message || 'Error de comunicación'}`);
+      setTimeout(() => setFeedbackToast(null), 5000);
+      return false;
     }
-
-    // Ensure pagination stays valid
-    const remainingCount = filteredResources.length - 1;
-    const newTotalPages = Math.ceil(remainingCount / itemsPerPage) || 1;
-    if (currentPage > newTotalPages) {
-      setCurrentPage(newTotalPages);
-    }
-
-    setFeedbackToast(`El libro "${target.title}" fue retirado del catálogo.`);
-    setTimeout(() => {
-      setFeedbackToast((current) =>
-        current?.includes(target.title) ? null : current
-      );
-    }, 4500);
   };
 
   const hasResults = filteredResources.length > 0;

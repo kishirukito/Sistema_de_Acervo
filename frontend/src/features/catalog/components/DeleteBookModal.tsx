@@ -11,7 +11,7 @@ export interface DeleteBookModalProps {
   /** Request closing modal without performing deletion */
   onClose: () => void;
   /** Confirm and execute deletion */
-  onConfirm: (resource: Resource) => void;
+  onConfirm: (resource: Resource) => Promise<boolean | void> | void;
 }
 
 export const DeleteBookModal: React.FC<DeleteBookModalProps> = ({
@@ -20,6 +20,13 @@ export const DeleteBookModal: React.FC<DeleteBookModalProps> = ({
   onConfirm,
 }) => {
   const cancelBtnRef = useRef<HTMLButtonElement>(null);
+  const [isDeleting, setIsDeleting] = React.useState(false);
+  const [errorMessage, setErrorMessage] = React.useState<string | null>(null);
+
+  React.useEffect(() => {
+    setErrorMessage(null);
+    setIsDeleting(false);
+  }, [resource]);
 
   if (!resource) return null;
 
@@ -30,9 +37,19 @@ export const DeleteBookModal: React.FC<DeleteBookModalProps> = ({
   );
   const hasActiveLoans = activeLoansCount > 0;
 
-  const handleConfirmDelete = () => {
-    onConfirm(resource);
-    onClose();
+  const handleConfirmDelete = async () => {
+    setIsDeleting(true);
+    setErrorMessage(null);
+    try {
+      const result = await onConfirm(resource);
+      if (result !== false) {
+        onClose();
+      }
+    } catch (err: any) {
+      setErrorMessage(err?.message || 'Error al procesar la eliminación del libro.');
+    } finally {
+      setIsDeleting(false);
+    }
   };
 
   return (
@@ -75,6 +92,7 @@ export const DeleteBookModal: React.FC<DeleteBookModalProps> = ({
                 variant="outline"
                 ref={cancelBtnRef}
                 onClick={onClose}
+                disabled={isDeleting}
               >
                 Cancelar
               </Button>
@@ -83,8 +101,9 @@ export const DeleteBookModal: React.FC<DeleteBookModalProps> = ({
                 variant="danger"
                 leftIcon={<Trash2 size={16} />}
                 onClick={handleConfirmDelete}
+                disabled={isDeleting}
               >
-                Eliminar
+                {isDeleting ? 'Eliminando...' : 'Eliminar'}
               </Button>
             </>
           )}
@@ -125,6 +144,27 @@ export const DeleteBookModal: React.FC<DeleteBookModalProps> = ({
           <p className="delete-modal-warning-text">
             El libro dejará de aparecer en el catálogo y no estará disponible para nuevas búsquedas ni préstamos.
           </p>
+        )}
+
+        {errorMessage && (
+          <div
+            role="alert"
+            style={{
+              marginTop: '12px',
+              padding: '10px 14px',
+              backgroundColor: '#FEF2F2',
+              border: '1px solid #F87171',
+              borderRadius: '8px',
+              color: '#991B1B',
+              fontSize: '0.85rem',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+            }}
+          >
+            <AlertCircle size={16} style={{ flexShrink: 0 }} />
+            <span>{errorMessage}</span>
+          </div>
         )}
       </div>
     </Modal>

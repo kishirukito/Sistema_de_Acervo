@@ -28,7 +28,7 @@ export interface ReturnLoanModalProps {
   onConfirm: (
     loan: Loan,
     details: { returnDate: string; notes?: string }
-  ) => void;
+  ) => void | Promise<void>;
 }
 
 function getTodayIsoString(): string {
@@ -39,24 +39,17 @@ function getTodayIsoString(): string {
   return `${year}-${month}-${day}`;
 }
 
-function formatDisplayDate(isoDateStr: string): string {
-  if (!isoDateStr) return '';
-  const [year, month, day] = isoDateStr.split('-').map(Number);
-  const date = new Date(year, month - 1, day);
-  const dayStr = String(day).padStart(2, '0');
-  const monthNames = [
-    'ene.', 'feb.', 'mar.', 'abr.', 'may.', 'jun.',
-    'jul.', 'ago.', 'sep.', 'oct.', 'nov.', 'dic.',
-  ];
-  return `${dayStr} ${monthNames[date.getMonth()]} ${year}`;
-}
-
 function parseDisplayOrIsoDate(dateStr: string): number | null {
   if (!dateStr) return null;
-  // Case 1: ISO YYYY-MM-DD
-  if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr.trim())) {
-    const [y, m, d] = dateStr.trim().split('-').map(Number);
-    return new Date(y, m - 1, d).getTime();
+  const trimmed = dateStr.trim();
+  // Case 1: ISO YYYY-MM-DD or ISO timestamp (e.g. 2026-11-18T00:00:00Z)
+  if (/^\d{4}-\d{2}-\d{2}/.test(trimmed)) {
+    const parsed = Date.parse(trimmed);
+    if (!isNaN(parsed)) return parsed;
+    const parts = trimmed.split('T')[0].split('-').map(Number);
+    if (parts.length === 3 && !isNaN(parts[0]) && !isNaN(parts[1]) && !isNaN(parts[2])) {
+      return new Date(parts[0], parts[1] - 1, parts[2]).getTime();
+    }
   }
   // Case 2: Display format like "25 sep. 2026"
   const monthMap: Record<string, number> = {
@@ -65,7 +58,7 @@ function parseDisplayOrIsoDate(dateStr: string): number | null {
     'ene': 0, 'feb': 1, 'mar': 2, 'abr': 3, 'may': 4, 'jun': 5,
     'jul': 6, 'ago': 7, 'sep': 8, 'oct': 9, 'nov': 10, 'dic': 11,
   };
-  const parts = dateStr.trim().split(' ');
+  const parts = trimmed.split(' ');
   if (parts.length === 3) {
     const day = parseInt(parts[0], 10);
     const monthKey = parts[1].toLowerCase();
@@ -87,6 +80,8 @@ export const ReturnLoanModal: React.FC<ReturnLoanModalProps> = ({
   const [returnDate, setReturnDate] = useState(getTodayIsoString());
   const [notes, setNotes] = useState('');
   const [dateError, setDateError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
 
   // Cross-reference user data from MOCK_MANAGED_USERS
   const matchedUser = useMemo(() => {
@@ -122,6 +117,8 @@ export const ReturnLoanModal: React.FC<ReturnLoanModalProps> = ({
       setReturnDate(getTodayIsoString());
       setNotes('');
       setDateError(null);
+      setIsSubmitting(false);
+      setSubmitError(null);
     }
   }, [loan]);
 
@@ -164,13 +161,26 @@ export const ReturnLoanModal: React.FC<ReturnLoanModalProps> = ({
   const coverInitials =
     matchedResource?.coverInitials || loan.resourceTitle.slice(0, 2).toUpperCase();
 
-  const handleConfirm = () => {
-    if (isAlreadyReturned || dateError || !returnDate) return;
-    onConfirm(loan, {
-      returnDate: formatDisplayDate(returnDate),
-      notes: notes.trim() || undefined,
-    });
-    onClose();
+  const handleConfirm = async () => {
+    if (isAlreadyReturned || dateError || !returnDate || isSubmitting) return;
+
+    // Normalizar a formato ISO 8601 UTC timestamptz (YYYY-MM-DDTHH:MM:SSZ)
+    const isoReturnDate = `${returnDate}T00:00:00Z`;
+
+    setIsSubmitting(true);
+    setSubmitError(null);
+
+    try {
+      await onConfirm(loan, {
+        returnDate: isoReturnDate,
+        notes: notes.trim() || undefined,
+      });
+      onClose();
+    } catch (err: any) {
+      setSubmitError(err?.message || 'Error al registrar la devolución. Intente nuevamente.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -193,6 +203,7 @@ export const ReturnLoanModal: React.FC<ReturnLoanModalProps> = ({
             variant="outline"
             ref={cancelBtnRef}
             onClick={onClose}
+            disabled={isSubmitting}
             aria-label="Cancelar registro de devolución"
           >
             Cancelar
@@ -202,15 +213,38 @@ export const ReturnLoanModal: React.FC<ReturnLoanModalProps> = ({
             variant="primary"
             leftIcon={<RotateCcw size={15} />}
             onClick={handleConfirm}
-            disabled={isAlreadyReturned || Boolean(dateError) || !returnDate}
+            disabled={isAlreadyReturned || Boolean(dateError) || !returnDate || isSubmitting}
+            isLoading={isSubmitting}
             aria-label="Confirmar entrega y registrar devolución"
           >
-            Confirmar devolución
+            {isSubmitting ? 'Registrando...' : 'Confirmar devolución'}
           </Button>
         </div>
       }
     >
       <div className="return-loan-modal-body">
+        {submitError && (
+          <div
+            className="return-loan-error-alert"
+            role="alert"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '10px 14px',
+              backgroundColor: '#FEE2E2',
+              color: '#991B1B',
+              borderRadius: '8px',
+              fontSize: '0.875rem',
+              fontWeight: 500,
+              marginBottom: '1rem',
+            }}
+          >
+            <AlertTriangle size={16} />
+            <span>{submitError}</span>
+          </div>
+        )}
+
         {/* 1. Identification Header Card */}
         <div
           className="return-loan-header-card"

@@ -28,7 +28,7 @@ export const authenticateMockUser = async (credentials: LoginCredentials): Promi
 
     const data = await res.json();
     if (data.success && data.user) {
-      saveMockSession(data.user, Boolean(credentials.rememberMe));
+      saveMockSession(data.user, Boolean(credentials.rememberMe), data.token);
       return {
         success: true,
         user: data.user,
@@ -52,17 +52,18 @@ export const authenticateMockUser = async (credentials: LoginCredentials): Promi
 /**
  * Local storage session helpers
  */
-export const saveMockSession = (user: User, rememberMe = false): void => {
+export const saveMockSession = (user: User, rememberMe = false, token?: string): void => {
   try {
+    const sessionToken = token || localStorage.getItem('acervo_token') || `secure_token_${user.id}_${Date.now()}`;
     const sessionData = {
       user,
-      token: `secure_token_${user.id}_${Date.now()}`,
+      token: sessionToken,
       rememberMe,
       loginAt: new Date().toISOString(),
     };
     localStorage.setItem(SESSION_STORAGE_KEY, JSON.stringify(sessionData));
     localStorage.setItem('acervo_current_user', JSON.stringify(user));
-    localStorage.setItem('acervo_token', sessionData.token);
+    localStorage.setItem('acervo_token', sessionToken);
   } catch (e) {
     console.error('Error saving session to localStorage:', e);
   }

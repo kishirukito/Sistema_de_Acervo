@@ -1,5 +1,5 @@
-import React, { useState, useMemo, useRef } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
+import { useParams, useNavigate, useLocation, Link } from 'react-router-dom';
 import {
   ArrowLeft,
   RotateCcw,
@@ -17,6 +17,7 @@ import { Card, CardHeader, CardBody } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { Modal } from '../../components/ui/Modal';
 import { EmptyState } from '../../components/ui/EmptyState';
+import { LoadingSpinner } from '../../components/ui/LoadingSpinner';
 import { ReturnStatusBadge } from '../../features/returns/components/ReturnStatusBadge';
 import { MOCK_RETURN_RECORDS } from '../../features/returns/returns.mock';
 import { MOCK_LOANS } from '../../features/loans/loans.mock';
@@ -29,19 +30,87 @@ import {
   parseDisplayOrIsoDate,
   executeLoanReturn,
 } from '../../features/returns/returns.service';
+import { fetchReturnRecordById } from '../../services/api/returns-admin.service';
+import { fetchAdminLoanById, updateAdminLoan } from '../../services/api/loans-admin.service';
+import type { ReturnRecord } from '../../features/returns/returns.types';
 import './AdminReturnConfirmationPage.css';
 
 export const AdminReturnConfirmationPlaceholderPage: React.FC = () => {
   const { loanId } = useParams<{ loanId: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
+
+  // Registro pasado por navegación si vino de la tabla
+  const passedRecord: ReturnRecord | undefined = (location.state as any)?.record;
+
+  const [apiRecord, setApiRecord] = useState<ReturnRecord | null>(passedRecord || null);
+  const [isLoading, setIsLoading] = useState<boolean>(!passedRecord);
+
+  useEffect(() => {
+    if (!loanId) return;
+
+    if (apiRecord && (apiRecord.loanId === loanId || apiRecord.id === loanId || apiRecord.folio.toLowerCase() === loanId.toLowerCase())) {
+      setIsLoading(false);
+      return;
+    }
+
+    let active = true;
+    setIsLoading(true);
+
+    fetchReturnRecordById(loanId)
+      .then((record) => {
+        if (!active) return;
+        if (record) {
+          setApiRecord(record);
+        } else {
+          return fetchAdminLoanById(loanId).then((loan) => {
+            if (active && loan) {
+              setApiRecord({
+                id: loan.id,
+                loanId: loan.id,
+                folio: loan.folio,
+                userId: loan.userId,
+                userName: loan.userName,
+                userEmail: '',
+                userCategory: loan.userCategory,
+                userInitials: loan.userInitials,
+                userAvatarColor: loan.userAvatarColor,
+                resourceId: loan.resourceId,
+                resourceTitle: loan.resourceTitle,
+                resourceAuthor: loan.resourceAuthor,
+                checkoutDate: loan.checkoutDate,
+                dueDate: loan.dueDate,
+                isOverdue: loan.status === 'OVERDUE',
+                daysDiffText: loan.dueDateNote || '',
+                daysDiffType: loan.status === 'OVERDUE' ? 'overdue' : 'remaining',
+                status: loan.status,
+                returnDate: loan.returnDate,
+                notes: loan.notes,
+              });
+            }
+          });
+        }
+      })
+      .catch((err) => {
+        console.warn('[AdminReturnConfirmation] Error fetching loan data:', err);
+      })
+      .finally(() => {
+        if (active) setIsLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
+  }, [loanId]);
 
   // Find corresponding return record and loan
   const returnRecord = useMemo(() => {
+    if (apiRecord) return apiRecord;
     if (!loanId) return undefined;
     return MOCK_RETURN_RECORDS.find(
       (r) => r.loanId === loanId || r.id === loanId || r.folio === loanId
     );
-  }, [loanId]);
+  }, [apiRecord, loanId]);
 
   const loanData = useMemo(() => {
     if (!loanId) return undefined;
@@ -113,6 +182,7 @@ export const AdminReturnConfirmationPlaceholderPage: React.FC = () => {
   const [notes, setNotes] = useState<string>('');
   const [dateError, setDateError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
   const [isDiscardModalOpen, setIsDiscardModalOpen] = useState<boolean>(false);
 
   const dateInputRef = useRef<HTMLInputElement>(null);
@@ -164,7 +234,7 @@ export const AdminReturnConfirmationPlaceholderPage: React.FC = () => {
     navigate('/admin/returns');
   };
 
-  const handleConfirmReturn = () => {
+  const handleConfirmReturn = async () => {
     if (isSubmitting || isAlreadyReturned) return;
 
     const isValid = validateDate(returnDate);
@@ -176,25 +246,62 @@ export const AdminReturnConfirmationPlaceholderPage: React.FC = () => {
     }
 
     setIsSubmitting(true);
+    setSubmitError(null);
 
-    const formattedReturnDate = formatDisplayDate(returnDate);
     const targetId = returnRecord?.loanId || loanData?.id || loanId || '';
+    // Formato ISO 8601 UTC timestamptz para Supabase / backend API
+    const isoReturnDate = `${returnDate}T00:00:00Z`;
 
-    executeLoanReturn(targetId, {
-      returnDate: formattedReturnDate,
-      notes: notes.trim() || undefined,
-    });
-
-    // Navigate to dedicated success screen
-    navigate(`/admin/returns/${targetId}/success`, {
-      state: {
-        loanId: targetId,
-        returnDate: formattedReturnDate,
+    try {
+      await updateAdminLoan(targetId, {
+        returnDate: isoReturnDate,
+        status: 'devuelto',
         notes: notes.trim() || undefined,
-      },
-      replace: true,
-    });
+      });
+
+      executeLoanReturn(targetId, {
+        returnDate: isoReturnDate,
+        notes: notes.trim() || undefined,
+      });
+
+      // Navigate to dedicated success screen
+      navigate(`/admin/returns/${targetId}/success`, {
+        state: {
+          loanId: targetId,
+          returnDate: formatDisplayDate(returnDate),
+          notes: notes.trim() || undefined,
+        },
+        replace: true,
+      });
+    } catch (err: any) {
+      console.error('[AdminReturnConfirmation] Error returning loan:', err);
+      setSubmitError(err?.message || 'Error al procesar la devolución en el servidor.');
+      setIsSubmitting(false);
+    }
   };
+
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className="return-confirm-page">
+        <nav aria-label="Miga de pan" className="return-confirm-breadcrumb">
+          <Link to="/admin/returns" className="return-confirm-breadcrumb-link">
+            Devoluciones
+          </Link>
+          <span className="return-confirm-breadcrumb-sep">/</span>
+          <span className="return-confirm-breadcrumb-current">Registrar devolución</span>
+        </nav>
+
+        <Card>
+          <CardBody>
+            <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', padding: '4rem 1rem' }}>
+              <LoadingSpinner text="Cargando información del préstamo..." />
+            </div>
+          </CardBody>
+        </Card>
+      </div>
+    );
+  }
 
   // STATE 1: Loan Not Found
   if (!returnRecord && !loanData) {
@@ -302,12 +409,19 @@ export const AdminReturnConfirmationPlaceholderPage: React.FC = () => {
   // STATE 3: Eligible Loan Confirmation Screen
   const borrowerCategoryLabel =
     CATEGORY_LABELS[userCategory] || userCategory;
-  const borrowerCode = matchedUser?.borrowerCode || '—';
+  const borrowerCode =
+    returnRecord?.borrowerCode ||
+    matchedUser?.borrowerCode ||
+    (userId ? `ID-${userId.slice(0, 8).toUpperCase()}` : '—');
+  const inventoryCode =
+    returnRecord?.inventoryCode ||
+    matchedResource?.code ||
+    returnRecord?.resourceId ||
+    '—';
   const coverColor = matchedResource?.coverColor || '#1E3A5F';
   const coverInitials =
     matchedResource?.coverInitials ||
-    resourceTitle.slice(0, 2).toUpperCase() ||
-    'AC';
+    (resourceTitle ? resourceTitle.slice(0, 2).toUpperCase() : 'AC');
 
   return (
     <div className="return-confirm-page">
@@ -418,10 +532,10 @@ export const AdminReturnConfirmationPlaceholderPage: React.FC = () => {
                     <p className="return-confirm-resource-author">{resourceAuthor}</p>
 
                     <div className="return-confirm-resource-badges">
-                      {matchedResource?.code && (
+                      {(matchedResource?.code || inventoryCode !== '—') && (
                         <span className="return-confirm-tag">
                           <Barcode size={13} />
-                          {matchedResource.code}
+                          {matchedResource?.code || inventoryCode}
                         </span>
                       )}
                       {matchedResource?.categoryLabel && (
@@ -443,12 +557,12 @@ export const AdminReturnConfirmationPlaceholderPage: React.FC = () => {
                     </div>
                   )}
 
-                  {matchedResource?.location && (
+                  {(matchedResource?.location || returnRecord?.location) && (
                     <div className="return-confirm-detail-row">
                       <span className="return-confirm-detail-label">Ubicación en estante</span>
                       <span className="return-confirm-detail-value">
                         <MapPin size={13} style={{ display: 'inline', marginRight: 4 }} />
-                        {matchedResource.location}
+                        {matchedResource?.location || returnRecord?.location}
                       </span>
                     </div>
                   )}
@@ -580,6 +694,29 @@ export const AdminReturnConfirmationPlaceholderPage: React.FC = () => {
                     reintegrará al acervo.
                   </span>
                 </div>
+
+                {/* Error Banner */}
+                {submitError && (
+                  <div
+                    className="return-confirm-error-alert"
+                    role="alert"
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '8px',
+                      padding: '10px 14px',
+                      backgroundColor: '#FEE2E2',
+                      color: '#991B1B',
+                      borderRadius: '8px',
+                      fontSize: '0.875rem',
+                      fontWeight: 500,
+                      marginBottom: '1rem',
+                    }}
+                  >
+                    <AlertTriangle size={16} />
+                    <span>{submitError}</span>
+                  </div>
+                )}
 
                 {/* Action Buttons */}
                 <div className="return-confirm-actions">

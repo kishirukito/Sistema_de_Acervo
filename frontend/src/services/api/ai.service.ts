@@ -1,6 +1,6 @@
 /**
- * AI Service Client — Connects to the FastAPI microservice for summaries,
- * with automatic fallback between the Vite proxy and direct backend URL.
+ * AI Service Client — Connects to the FastAPI microservice for summaries and smart search suggestions,
+ * with automatic fallback between the Vite proxy and direct backend URL, and JWT authorization.
  */
 
 export interface GenerateAISummaryParams {
@@ -18,6 +18,17 @@ export interface AISummaryResult {
   guardado_en_db?: boolean;
 }
 
+function getAuthHeaders(): Record<string, string> {
+  const token = localStorage.getItem('acervo_token');
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+  };
+  if (token) {
+    headers['Authorization'] = `Bearer ${token}`;
+  }
+  return headers;
+}
+
 export async function requestAISummary(params: GenerateAISummaryParams): Promise<AISummaryResult> {
   const payload = JSON.stringify({
     titulo: params.titulo.trim(),
@@ -26,11 +37,13 @@ export async function requestAISummary(params: GenerateAISummaryParams): Promise
     libro_id: params.libro_id || undefined,
   });
 
+  const headers = getAuthHeaders();
+
   // 1. Try local proxy first
   try {
     const res = await fetch('/api/v1/ai/resumen', {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers,
       body: payload,
     });
     if (res.ok) {
@@ -43,7 +56,7 @@ export async function requestAISummary(params: GenerateAISummaryParams): Promise
   // 2. Direct connection to FastAPI (CORS is enabled on backend)
   const directRes = await fetch('http://127.0.0.1:8000/api/v1/ai/resumen', {
     method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
+    headers,
     body: payload,
   });
 
@@ -55,3 +68,46 @@ export async function requestAISummary(params: GenerateAISummaryParams): Promise
   return await directRes.json();
 }
 
+/**
+ * CORRECCIÓN 4: Conexión de búsqueda inteligente con el endpoint /api/v1/ai/sugerencias.
+ * Genera tópicos, conceptos y términos relacionados mediante el modelo local de IA.
+ */
+export async function requestAISuggestions(query: string): Promise<string[]> {
+  if (!query || !query.trim()) return [];
+
+  const payload = JSON.stringify({ query: query.trim() });
+  const headers = getAuthHeaders();
+
+  // 1. Try local Vite proxy first
+  try {
+    const res = await fetch('/api/v1/ai/sugerencias', {
+      method: 'POST',
+      headers,
+      body: payload,
+    });
+    if (res.ok) {
+      const data = await res.json();
+      return Array.isArray(data.topicos_relacionados) ? data.topicos_relacionados : [];
+    }
+  } catch (proxyErr) {
+    console.warn('[AIService] Proxy sugerencias falló, intentando directo:', proxyErr);
+  }
+
+  // 2. Direct connection fallback
+  try {
+    const directRes = await fetch('http://127.0.0.1:8000/api/v1/ai/sugerencias', {
+      method: 'POST',
+      headers,
+      body: payload,
+    });
+
+    if (directRes.ok) {
+      const data = await directRes.json();
+      return Array.isArray(data.topicos_relacionados) ? data.topicos_relacionados : [];
+    }
+  } catch (directErr) {
+    console.warn('[AIService] Direct sugerencias falló:', directErr);
+  }
+
+  return [];
+}

@@ -9,6 +9,7 @@ import { AISummaryModal } from '../../features/search/components/AISummaryModal'
 import { BookDetailModal } from '../../features/search/components/BookDetailModal';
 import { MOCK_SEARCH_RESULTS } from '../../features/search/search.mock';
 import { searchBooks } from '../../services/api/search.service';
+import { requestAISuggestions } from '../../services/api/ai.service';
 import type {
   ResourceSearchResult,
   SearchFilterState,
@@ -41,6 +42,11 @@ export const SearchPage: React.FC = () => {
   const [selectedForDetail, setSelectedForDetail] = useState<ResourceSearchResult | null>(null);
   const [selectedForAI, setSelectedForAI] = useState<ResourceSearchResult | null>(null);
 
+  // AI Suggestions state from /api/v1/ai/sugerencias
+  const [aiSuggestions, setAiSuggestions] = useState<string[]>([]);
+  const [isLoadingSuggestions, setIsLoadingSuggestions] = useState<boolean>(false);
+  const [aiError, setAiError] = useState<string | null>(null);
+
   // Search results list from Supabase
   const [searchResultsList, setSearchResultsList] = useState<ResourceSearchResult[]>(() => [...MOCK_SEARCH_RESULTS]);
 
@@ -52,6 +58,34 @@ export const SearchPage: React.FC = () => {
       }
     });
     return () => { active = false; };
+  }, [activeSearchTerm]);
+
+  // CORRECCIÓN 4: Solicitar sugerencias a la IA mediante el microservicio
+  useEffect(() => {
+    let active = true;
+    if (!activeSearchTerm || activeSearchTerm.trim().length < 2) {
+      setAiSuggestions([]);
+      return;
+    }
+
+    setIsLoadingSuggestions(true);
+    setAiError(null);
+    requestAISuggestions(activeSearchTerm)
+      .then((topics) => {
+        if (!active) return;
+        setAiSuggestions(topics);
+      })
+      .catch(() => {
+        if (!active) return;
+        setAiError('Sugerencias de IA no disponibles temporalmente.');
+      })
+      .finally(() => {
+        if (active) setIsLoadingSuggestions(false);
+      });
+
+    return () => {
+      active = false;
+    };
   }, [activeSearchTerm]);
 
   // Distinct filter options extracted from mock data
@@ -208,6 +242,9 @@ export const SearchPage: React.FC = () => {
         onQueryChange={setQuery}
         onSearch={handleSearch}
         onClear={handleClearQuery}
+        aiSuggestions={aiSuggestions}
+        isLoadingSuggestions={isLoadingSuggestions}
+        aiError={aiError}
       />
 
       {/* 4 Dropdown Filters Bar */}

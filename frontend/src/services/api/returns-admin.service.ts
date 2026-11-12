@@ -81,12 +81,65 @@ function mapPrestamoToReturnRecord(row: any, index: number): ReturnRecord {
     daysDiffType,
     status,
     returnDate: row.fecha_devolucion_real ? formatDate(row.fecha_devolucion_real) : undefined,
+    borrowerCode: usuario.matricula_o_nomina || (row.usuario_id ? row.usuario_id.slice(0, 8).toUpperCase() : undefined),
+    borrowerCareer: usuario.carrera_o_dependencia || undefined,
+    borrowerPhone: usuario.telefono || undefined,
+    inventoryCode: ejemplar.codigo_inventario || undefined,
+    location: ejemplar.ubicacion_estante || undefined,
+    notes: row.notas || undefined,
   };
+}
+
+export async function fetchReturnRecordById(loanId: string): Promise<ReturnRecord | null> {
+  if (!loanId) return null;
+  const token = localStorage.getItem('acervo_token');
+  const headers: Record<string, string> = {
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+  };
+
+  // 1. Intentar consulta directa por ID
+  try {
+    const res = await fetch(`/api/v1/data/prestamos/${encodeURIComponent(loanId)}`, { headers });
+    if (res.ok) {
+      const row = await res.json();
+      if (row && row.id) {
+        return mapPrestamoToReturnRecord(row, 0);
+      }
+    }
+  } catch (e) {
+    console.warn('[ReturnsService] Direct fetch by ID failed, falling back to list:', e);
+  }
+
+  // 2. Consulta fallback a la lista general
+  try {
+    const res = await fetch('/api/v1/data/prestamos', { headers });
+    if (res.ok) {
+      const data = await res.json();
+      if (Array.isArray(data)) {
+        const idx = data.findIndex(
+          (p: any, i: number) =>
+            p.id === loanId ||
+            `PR-${String(i + 1).padStart(3, '0')}`.toLowerCase() === loanId.toLowerCase()
+        );
+        if (idx !== -1) {
+          return mapPrestamoToReturnRecord(data[idx], idx);
+        }
+      }
+    }
+  } catch (err) {
+    console.warn('[ReturnsService] fetchReturnRecordById fallback failed:', err);
+  }
+
+  return null;
 }
 
 export async function fetchReturnRecords(): Promise<ReturnRecord[]> {
   try {
-    const res = await fetch('/api/v1/data/prestamos');
+    const token = localStorage.getItem('acervo_token');
+    const headers: Record<string, string> = {
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    };
+    const res = await fetch('/api/v1/data/prestamos', { headers });
     if (res.ok) {
       const data = await res.json();
       if (Array.isArray(data)) {

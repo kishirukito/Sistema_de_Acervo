@@ -1,5 +1,8 @@
-from pydantic_settings import BaseSettings, SettingsConfigDict
+from pathlib import Path
 from typing import Optional
+from pydantic_settings import BaseSettings, SettingsConfigDict
+
+BACKEND_DIR = Path(__file__).resolve().parent.parent.parent
 
 class Settings(BaseSettings):
     PROJECT_NAME: str = "Microservicio de IA - Sistema de Acervo (CIU)"
@@ -19,7 +22,7 @@ class Settings(BaseSettings):
     AI_API_KEY: Optional[str] = None
 
     model_config = SettingsConfigDict(
-        env_file=(".env", "backend/.env", "../.env"),
+        env_file=(str(BACKEND_DIR / ".env"), ".env", "backend/.env", "../.env"),
         env_file_encoding="utf-8",
         extra="ignore"
     )

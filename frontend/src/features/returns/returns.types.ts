@@ -28,6 +28,12 @@ export interface ReturnRecord {
   daysDiffType: 'remaining' | 'overdue' | 'due-soon';
   status: LoanStatus;
   returnDate?: string;
+  borrowerCode?: string;
+  borrowerCareer?: string;
+  borrowerPhone?: string;
+  inventoryCode?: string;
+  location?: string;
+  notes?: string;
 }
 
 export interface ReturnsFilterState {

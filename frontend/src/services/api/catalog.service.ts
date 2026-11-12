@@ -112,7 +112,11 @@ function mapLibroToResource(row: any): Resource {
 export async function fetchCatalogResources(): Promise<Resource[]> {
   try {
     // 1. Try Python backend proxy first
-    const res = await fetch('/api/v1/data/libros');
+    const token = localStorage.getItem('acervo_token');
+    const headers: Record<string, string> = {
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    };
+    const res = await fetch('/api/v1/data/libros', { headers });
     if (res.ok) {
       const data = await res.json();
       if (Array.isArray(data) && data.length > 0) {
@@ -188,10 +192,34 @@ export async function createResource(resource: Partial<Resource>): Promise<Resou
 }
 
 /**
- * Updates a book in Supabase.
+ * Updates a book in Supabase via protected backend endpoint.
+ * Requires administrative Bearer authentication.
  */
 export async function updateResource(id: string, updates: Partial<Resource>): Promise<boolean> {
   try {
+    const token = localStorage.getItem('acervo_token');
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    };
+
+    const res = await fetch(`/api/v1/data/libros/${encodeURIComponent(id)}`, {
+      method: 'PATCH',
+      headers,
+      body: JSON.stringify({
+        isbn: updates.isbn,
+        titulo: updates.title,
+        anio_publicacion: updates.publicationYear,
+        portada_url: updates.coverUrl,
+        categoria: updates.category,
+      }),
+    });
+
+    if (res.ok) {
+      return true;
+    }
+
+    // Direct fallback if backend unreachable
     const { error } = await supabase
       .from('libros')
       .update({
@@ -202,37 +230,68 @@ export async function updateResource(id: string, updates: Partial<Resource>): Pr
       })
       .eq('id', id);
 
-    if (error) {
-      console.error('[CatalogService] Update error:', error.message);
-      return false;
-    }
-
-    return true;
+    return !error;
   } catch (err) {
     console.error('[CatalogService] Update failed:', err);
     return false;
   }
 }
 
-/**
- * Deletes a book from Supabase.
- */
-export async function deleteResource(id: string): Promise<boolean> {
-  try {
-    const { error } = await supabase
-      .from('libros')
-      .delete()
-      .eq('id', id);
+export interface DeleteResourceResult {
+  success: boolean;
+  message?: string;
+  error?: string;
+}
 
-    if (error) {
-      console.error('[CatalogService] Delete error:', error.message);
-      return false;
+/**
+ * Elimina un libro en Supabase a través del endpoint seguro del backend FastAPI.
+ * Requiere autenticación administrativa con Bearer token.
+ */
+export async function deleteResource(id: string): Promise<DeleteResourceResult> {
+  try {
+    const token = localStorage.getItem('acervo_token');
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    };
+
+    const res = await fetch(`/api/v1/data/libros/${encodeURIComponent(id)}`, {
+      method: 'DELETE',
+      headers,
+    });
+
+    if (res.ok) {
+      const data = await res.json().catch(() => ({}));
+      return {
+        success: true,
+        message: data.message || 'El libro fue eliminado correctamente del acervo.',
+      };
     }
 
-    return true;
-  } catch (err) {
+    const errData = await res.json().catch(() => ({}));
+    const errorMessage =
+      errData.detail ||
+      errData.message ||
+      (res.status === 401
+        ? 'Se requiere autenticación para realizar esta acción.'
+        : res.status === 403
+        ? 'Acceso denegado: solo personal administrativo puede eliminar libros.'
+        : res.status === 404
+        ? 'El libro no fue encontrado en la base de datos.'
+        : res.status === 409
+        ? errData.detail || 'No es posible eliminar el libro porque cuenta con ejemplares en préstamo activo.'
+        : `Error al eliminar el libro (${res.status})`);
+
+    return {
+      success: false,
+      error: errorMessage,
+    };
+  } catch (err: any) {
     console.error('[CatalogService] Delete failed:', err);
-    return false;
+    return {
+      success: false,
+      error: err?.message || 'Error de conexión con el servidor al eliminar el libro.',
+    };
   }
 }
 

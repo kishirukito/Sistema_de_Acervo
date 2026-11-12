@@ -177,7 +177,7 @@ export const UserBorrowRequestPage: React.FC = () => {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!book) return;
+    if (isSubmitting || !book) return;
 
     if (!isAvailable) {
       setDateError('Este libro no cuenta con ejemplares disponibles actualmente.');

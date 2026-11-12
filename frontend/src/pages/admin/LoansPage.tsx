@@ -10,12 +10,12 @@ import { ReturnLoanModal } from '../../features/loans/components/ReturnLoanModal
 import { RenewLoanModal } from '../../features/loans/components/RenewLoanModal';
 import { Button } from '../../components/ui/Button';
 import { LoadingSpinner } from '../../components/ui/LoadingSpinner';
-import { executeLoanReturn } from '../../features/returns/returns.service';
+import { executeLoanReturn, formatDisplayDate } from '../../features/returns/returns.service';
 import {
   MOCK_LOANS,
   MOCK_LOANS_SUMMARY,
 } from '../../features/loans/loans.mock';
-import { fetchAdminLoans, fetchLoansSummary } from '../../services/api/loans-admin.service';
+import { fetchAdminLoans, fetchLoansSummary, updateAdminLoan } from '../../services/api/loans-admin.service';
 import type {
   Loan,
   LoansFilterState,
@@ -134,24 +134,51 @@ export const LoansPage: React.FC = () => {
     setSelectedLoanForReturn(loan);
   };
 
-  const handleConfirmReturnLoan = (
+  const handleConfirmReturnLoan = async (
     loan: Loan,
     details: { returnDate: string; notes?: string }
   ) => {
-    setSelectedLoanForReturn(null);
+    // details.returnDate llega en formato ISO 8601 (YYYY-MM-DDTHH:MM:SSZ)
+    await updateAdminLoan(loan.id, {
+      returnDate: details.returnDate,
+      status: 'devuelto',
+      notes: details.notes,
+    });
+
     executeLoanReturn(loan.id, details);
-    navigate(`/admin/returns/${loan.id}/success`);
+
+    fetchAdminLoans().then((loans) => {
+      if (loans && loans.length > 0) setLoansList(loans);
+    });
+
+    setSelectedLoanForReturn(null);
+    showToast(`Préstamo ${loan.folio} devuelto exitosamente.`);
+    navigate(`/admin/returns/${loan.id}/success`, {
+      state: {
+        loanId: loan.id,
+        returnDate: formatDisplayDate(details.returnDate),
+        notes: details.notes,
+      },
+    });
   };
 
   const handleRenewLoan = (loan: Loan) => {
     setSelectedLoanForRenew(loan);
   };
 
-  const handleConfirmRenewLoan = (
+  const handleConfirmRenewLoan = async (
     loan: Loan,
     details: { newDueDate: string; dueDateNote: string }
   ) => {
     const nextCount = loan.renewalCount + 1;
+    const formattedDisplay = formatDisplayDate(details.newDueDate);
+
+    // details.newDueDate llega en formato ISO 8601 (YYYY-MM-DDTHH:MM:SSZ)
+    // Persistir renovación en Supabase mediante backend protegido
+    await updateAdminLoan(loan.id, {
+      dueDate: details.newDueDate,
+      status: 'renovado',
+    });
 
     // 1. Update local loans list
     setLoansList((prev) =>
@@ -159,7 +186,7 @@ export const LoansPage: React.FC = () => {
         l.id === loan.id
           ? {
               ...l,
-              dueDate: details.newDueDate,
+              dueDate: formattedDisplay,
               dueDateNote: details.dueDateNote,
               renewalCount: nextCount,
               status: 'ACTIVE',
@@ -168,12 +195,17 @@ export const LoansPage: React.FC = () => {
       )
     );
 
+    // Refresh loans from backend
+    fetchAdminLoans().then((loans) => {
+      if (loans && loans.length > 0) setLoansList(loans);
+    });
+
     // 2. Synchronize in-memory MOCK_LOANS
     const mockIdx = MOCK_LOANS.findIndex((l) => l.id === loan.id);
     if (mockIdx !== -1) {
       MOCK_LOANS[mockIdx] = {
         ...MOCK_LOANS[mockIdx],
-        dueDate: details.newDueDate,
+        dueDate: formattedDisplay,
         dueDateNote: details.dueDateNote,
         renewalCount: nextCount,
         status: 'ACTIVE',
@@ -194,7 +226,7 @@ export const LoansPage: React.FC = () => {
     }
 
     showToast(
-      `Préstamo ${loan.folio} renovado correctamente hasta el ${details.newDueDate}.`
+      `Préstamo ${loan.folio} renovado correctamente hasta el ${formattedDisplay}.`
     );
   };
 

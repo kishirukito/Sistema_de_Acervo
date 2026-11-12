@@ -13,7 +13,7 @@ import {
   MOCK_MANAGED_USERS,
   MOCK_USERS_METRICS,
 } from '../../features/users/users.mock';
-import { fetchManagedUsers, fetchUsersMetrics } from '../../services/api/users-managed.service';
+import { fetchManagedUsers, fetchUsersMetrics, updateManagedUser } from '../../services/api/users-managed.service';
 import type {
   ManagedUser,
   UsersFilterState,
@@ -144,6 +144,16 @@ export const UsersPage: React.FC = () => {
       prev.map((u) => (u.id === updatedUser.id ? updatedUser : u))
     );
 
+    // Persistir actualización en Supabase mediante backend protegido
+    updateManagedUser(updatedUser.id, {
+      fullName: updatedUser.fullName,
+      phone: updatedUser.phone,
+    }).then(() => {
+      fetchManagedUsers().then(users => {
+        if (users && users.length > 0) setUsersList(users);
+      });
+    });
+
     // Keep in-memory mock synchronized
     const mockIdx = MOCK_MANAGED_USERS.findIndex((u) => u.id === updatedUser.id);
     if (mockIdx !== -1) {
@@ -169,6 +179,13 @@ export const UsersPage: React.FC = () => {
         return u;
       })
     );
+
+    // Persistir cambio de estado en Supabase mediante backend protegido
+    updateManagedUser(user.id, { status: nextStatus }).then(() => {
+      fetchManagedUsers().then(users => {
+        if (users && users.length > 0) setUsersList(users);
+      });
+    });
 
     // Keep in-memory mock synchronized
     const mockIdx = MOCK_MANAGED_USERS.findIndex((u) => u.id === user.id);

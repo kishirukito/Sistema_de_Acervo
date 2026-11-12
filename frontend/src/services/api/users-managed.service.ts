@@ -87,7 +87,11 @@ function mapUsuarioToManagedUser(row: any, index: number): ManagedUser {
 export async function fetchManagedUsers(): Promise<ManagedUser[]> {
   try {
     // 1. Try Python backend proxy first (which uses service key)
-    const res = await fetch('/api/v1/data/usuarios');
+    const token = localStorage.getItem('acervo_token');
+    const headers: Record<string, string> = {
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    };
+    const res = await fetch('/api/v1/data/usuarios', { headers });
     if (res.ok) {
       const data = await res.json();
       if (Array.isArray(data) && data.length > 0) {
@@ -127,4 +131,31 @@ export async function fetchUsersMetrics(): Promise<UsersMetricsData> {
   }
 
   return { totalUsers: total, activeUsers: active, overdueLoansCount: overdueCount };
+}
+
+/**
+ * Updates a user's status or details in Supabase via protected backend endpoint.
+ */
+export async function updateManagedUser(
+  userId: string,
+  updates: { status?: UserStatus; fullName?: string; phone?: string; carrera_o_dependencia?: string }
+): Promise<boolean> {
+  try {
+    const token = localStorage.getItem('acervo_token');
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    };
+
+    const res = await fetch(`/api/v1/data/usuarios/${encodeURIComponent(userId)}`, {
+      method: 'PATCH',
+      headers,
+      body: JSON.stringify(updates),
+    });
+
+    return res.ok;
+  } catch (err) {
+    console.error('[UsersService] Update failed:', err);
+    return false;
+  }
 }

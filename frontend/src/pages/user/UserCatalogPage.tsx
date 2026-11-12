@@ -193,15 +193,25 @@ export const UserCatalogPage: React.FC = () => {
 
   // Live books state from Supabase
   const [booksList, setBooksList] = useState<Book[]>(() => [...MOCK_BOOKS]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
 
   useEffect(() => {
     let active = true;
-    booksService.getAll().then((data: Book[]) => {
-      if (active && data && data.length > 0) {
-        setBooksList(data);
-      }
-    }).catch(() => {});
-    return () => { active = false; };
+    setIsLoading(true);
+    booksService
+      .getAll()
+      .then((data: Book[]) => {
+        if (active && data && data.length > 0) {
+          setBooksList(data);
+        }
+      })
+      .catch(() => {})
+      .finally(() => {
+        if (active) setIsLoading(false);
+      });
+    return () => {
+      active = false;
+    };
   }, []);
 
   // Search state
@@ -716,8 +726,61 @@ export const UserCatalogPage: React.FC = () => {
             </div>
           </div>
 
-          {/* Empty State */}
-          {displayedBooks.length === 0 ? (
+          {/* Skeleton Loader / Empty State / Grid */}
+          {isLoading ? (
+            <div className="catalog-grid" aria-busy="true" aria-label="Cargando libros del catálogo">
+              {[1, 2, 3, 4, 5, 6].map((sk) => (
+                <div
+                  key={sk}
+                  className="catalog-card"
+                  style={{
+                    minHeight: 380,
+                    backgroundColor: '#FFFFFF',
+                    borderRadius: 12,
+                    border: '1px solid #E2E8F0',
+                    padding: 16,
+                    display: 'flex',
+                    flexDirection: 'column',
+                  }}
+                >
+                  <div
+                    style={{
+                      height: 180,
+                      backgroundColor: '#F1F5F9',
+                      borderRadius: 8,
+                      marginBottom: 16,
+                    }}
+                  />
+                  <div
+                    style={{
+                      height: 20,
+                      backgroundColor: '#E2E8F0',
+                      borderRadius: 4,
+                      marginBottom: 10,
+                      width: '75%',
+                    }}
+                  />
+                  <div
+                    style={{
+                      height: 14,
+                      backgroundColor: '#F1F5F9',
+                      borderRadius: 4,
+                      marginBottom: 12,
+                      width: '45%',
+                    }}
+                  />
+                  <div
+                    style={{
+                      height: 38,
+                      backgroundColor: '#F1F5F9',
+                      borderRadius: 8,
+                      marginTop: 'auto',
+                    }}
+                  />
+                </div>
+              ))}
+            </div>
+          ) : displayedBooks.length === 0 ? (
             <div className="catalog-empty-card">
               <div className="catalog-empty-icon" aria-hidden="true">
                 <BookOpen size={28} />

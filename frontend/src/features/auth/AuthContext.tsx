@@ -79,7 +79,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       createdAt: new Date().toISOString(),
     };
     setUser(adminUser);
-    saveMockSession(adminUser);
+    saveMockSession(adminUser, true, `secure_session_${adminUser.id}`);
   };
 
   const loginAsStudent = () => {
@@ -95,7 +95,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       createdAt: new Date().toISOString(),
     };
     setUser(studentUser);
-    saveMockSession(studentUser);
+    saveMockSession(studentUser, true, `secure_session_${studentUser.id}`);
   };
 
   const logout = () => {

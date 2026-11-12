@@ -85,16 +85,22 @@ export const booksService = {
 
     // 1. Intento principal mediante Backend Proxy (Bypasses RLS completamente con Service Role)
     try {
+      const token = localStorage.getItem('acervo_token');
+      const authHeaders: Record<string, string> = {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      };
+
       let res = await fetch('/api/v1/data/libros', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: authHeaders,
         body: JSON.stringify(payload),
       });
 
-      if (!res.ok) {
+      if (!res.ok && res.status !== 401 && res.status !== 403) {
         res = await fetch('http://127.0.0.1:8000/api/v1/data/libros', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: authHeaders,
           body: JSON.stringify(payload),
         });
       }

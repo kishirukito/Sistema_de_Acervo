@@ -1,15 +1,19 @@
-import React, { useMemo, useEffect, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
+import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { Check, AlertCircle, Clock } from 'lucide-react';
-import { getLoanReturnData } from '../../features/returns/returns.service';
+import { getLoanReturnData, formatDisplayDate, getTodayIsoString } from '../../features/returns/returns.service';
+import { fetchReturnRecordById } from '../../services/api/returns-admin.service';
 import { ReturnSuccessSummary } from '../../features/returns/components/ReturnSuccessSummary';
 import { ReturnSuccessActions } from '../../features/returns/components/ReturnSuccessActions';
+import type { LoanReturnResolvedData } from '../../features/returns/returns.types';
 import '../../features/returns/components/ReturnSuccess.css';
 
 export const ReturnSuccessPage: React.FC = () => {
   const { loanId } = useParams<{ loanId: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const headingRef = useRef<HTMLHeadingElement>(null);
+  const passedState = location.state as any;
 
   // Retrieve resolved loan return data with localStorage & state fallbacks
   const loanData = useMemo(() => {
@@ -17,12 +21,48 @@ export const ReturnSuccessPage: React.FC = () => {
     return getLoanReturnData(loanId);
   }, [loanId]);
 
+  const [asyncData, setAsyncData] = useState<LoanReturnResolvedData | null>(null);
+
+  useEffect(() => {
+    if (!loanId) return;
+    if (loanData && loanData.resourceTitle !== 'Recurso') return;
+
+    fetchReturnRecordById(loanId).then((rec) => {
+      if (rec) {
+        setAsyncData({
+          loanId: rec.loanId,
+          folio: rec.folio,
+          status: 'RETURNED',
+          userId: rec.userId,
+          userName: rec.userName,
+          userEmail: rec.userEmail,
+          userCategory: rec.userCategory,
+          userInitials: rec.userInitials,
+          userAvatarColor: rec.userAvatarColor,
+          resourceId: rec.resourceId,
+          resourceTitle: rec.resourceTitle,
+          resourceAuthor: rec.resourceAuthor,
+          isbn: rec.isbn,
+          checkoutDate: rec.checkoutDate,
+          dueDate: rec.dueDate,
+          returnDate: passedState?.returnDate || rec.returnDate || formatDisplayDate(getTodayIsoString()),
+          isOverdue: false,
+          overdueDays: 0,
+          overdueDaysText: 'Devuelto a tiempo',
+          notes: passedState?.notes || rec.notes,
+        });
+      }
+    });
+  }, [loanId, loanData, passedState]);
+
+  const resolvedData = asyncData || loanData;
+
   // Set focus on primary heading on mount for screen-reader accessibility
   useEffect(() => {
     if (headingRef.current) {
       headingRef.current.focus();
     }
-  }, [loanData]);
+  }, [resolvedData]);
 
   // Navigation handlers
   const handleBackToReturns = () => {
@@ -35,7 +75,7 @@ export const ReturnSuccessPage: React.FC = () => {
   };
 
   // STATE 1: Loan Not Found
-  if (!loanData) {
+  if (!resolvedData) {
     return (
       <div className="return-success-page">
         <div
@@ -73,7 +113,7 @@ export const ReturnSuccessPage: React.FC = () => {
   }
 
   // STATE 2: Loan Not Yet Returned
-  if (loanData.status !== 'RETURNED') {
+  if (resolvedData.status !== 'RETURNED') {
     return (
       <div className="return-success-page">
         <div
@@ -94,7 +134,7 @@ export const ReturnSuccessPage: React.FC = () => {
           </h1>
 
           <p className="return-success-state-desc">
-            El préstamo con folio <strong>{loanData.folio}</strong> todavía se encuentra registrado como activo y requiere confirmación previa.
+            El préstamo con folio <strong>{resolvedData.folio}</strong> todavía se encuentra registrado como activo y requiere confirmación previa.
           </p>
 
           <div className="return-success-state-actions">
@@ -109,7 +149,7 @@ export const ReturnSuccessPage: React.FC = () => {
             <button
               type="button"
               className="return-success-btn-primary"
-              onClick={() => navigate(`/admin/returns/${loanData.loanId}`)}
+              onClick={() => navigate(`/admin/returns/${resolvedData.loanId}`)}
             >
               Volver al registro de devolución
             </button>
@@ -146,16 +186,16 @@ export const ReturnSuccessPage: React.FC = () => {
 
         {/* Supporting description with highlighted folio and title */}
         <p className="return-success-desc">
-          El préstamo <strong>{loanData.folio}</strong> fue cerrado correctamente. El libro{' '}
-          <strong>{loanData.resourceTitle}</strong> está ahora disponible en el catálogo.
+          El préstamo <strong>{resolvedData.folio}</strong> fue cerrado correctamente. El libro{' '}
+          <strong>{resolvedData.resourceTitle}</strong> está ahora disponible en el catálogo.
         </p>
 
         {/* Mint green Summary Card */}
         <ReturnSuccessSummary
-          userName={loanData.userName}
-          resourceTitle={loanData.resourceTitle}
-          returnDate={loanData.returnDate}
-          overdueDaysText={loanData.overdueDaysText}
+          userName={resolvedData.userName}
+          resourceTitle={resolvedData.resourceTitle}
+          returnDate={resolvedData.returnDate}
+          overdueDaysText={resolvedData.overdueDaysText}
         />
 
         {/* Action Buttons: Volver a devoluciones | Nueva devolución */}

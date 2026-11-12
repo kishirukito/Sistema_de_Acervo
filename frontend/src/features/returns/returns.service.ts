@@ -7,6 +7,11 @@ import type {
   LoanReturnResolvedData,
 } from './returns.types';
 
+/**
+ * NOTA TEMPORAL DE ARQUITECTURA:
+ * La persistencia de devoluciones en 'acervo_returned_loans' se mantiene temporalmente en el cliente
+ * mientras se implementa la migración de base de datos y el endpoint correspondiente en FastAPI.
+ */
 export const RETURNED_LOANS_STORAGE_KEY = 'acervo_returned_loans';
 
 export interface ReturnExecutionDetails {
@@ -22,24 +27,17 @@ export function getTodayIsoString(): string {
   return `${year}-${month}-${day}`;
 }
 
-export function formatDisplayDate(isoDateStr: string): string {
-  if (!isoDateStr) return '';
-  const [year, month, day] = isoDateStr.split('-').map(Number);
-  const date = new Date(year, month - 1, day);
-  const dayStr = String(day).padStart(2, '0');
-  const monthNames = [
-    'ene.', 'feb.', 'mar.', 'abr.', 'may.', 'jun.',
-    'jul.', 'ago.', 'sep.', 'oct.', 'nov.', 'dic.',
-  ];
-  return `${dayStr} ${monthNames[date.getMonth()]} ${year}`;
-}
-
 export function parseDisplayOrIsoDate(dateStr: string): number | null {
   if (!dateStr) return null;
-  // Case 1: ISO YYYY-MM-DD
-  if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr.trim())) {
-    const [y, m, d] = dateStr.trim().split('-').map(Number);
-    return new Date(y, m - 1, d).getTime();
+  const trimmed = dateStr.trim();
+  // Case 1: ISO YYYY-MM-DD or ISO timestamp (e.g. 2026-11-18T00:00:00Z)
+  if (/^\d{4}-\d{2}-\d{2}/.test(trimmed)) {
+    const parsed = Date.parse(trimmed);
+    if (!isNaN(parsed)) return parsed;
+    const parts = trimmed.split('T')[0].split('-').map(Number);
+    if (parts.length === 3 && !isNaN(parts[0]) && !isNaN(parts[1]) && !isNaN(parts[2])) {
+      return new Date(parts[0], parts[1] - 1, parts[2]).getTime();
+    }
   }
   // Case 2: Display format like "25 sep. 2026"
   const monthMap: Record<string, number> = {
@@ -48,7 +46,7 @@ export function parseDisplayOrIsoDate(dateStr: string): number | null {
     'ene': 0, 'feb': 1, 'mar': 2, 'abr': 3, 'may': 4, 'jun': 5,
     'jul': 6, 'ago': 7, 'sep': 8, 'oct': 9, 'nov': 10, 'dic': 11,
   };
-  const parts = dateStr.trim().split(' ');
+  const parts = trimmed.split(' ');
   if (parts.length === 3) {
     const day = parseInt(parts[0], 10);
     const monthKey = parts[1].toLowerCase();
@@ -58,6 +56,21 @@ export function parseDisplayOrIsoDate(dateStr: string): number | null {
     }
   }
   return null;
+}
+
+export function formatDisplayDate(isoDateStr: string): string {
+  if (!isoDateStr) return '';
+  const timestamp = parseDisplayOrIsoDate(isoDateStr);
+  if (timestamp !== null) {
+    const date = new Date(timestamp);
+    const dayStr = String(date.getDate()).padStart(2, '0');
+    const monthNames = [
+      'ene.', 'feb.', 'mar.', 'abr.', 'may.', 'jun.',
+      'jul.', 'ago.', 'sep.', 'oct.', 'nov.', 'dic.',
+    ];
+    return `${dayStr} ${monthNames[date.getMonth()]} ${date.getFullYear()}`;
+  }
+  return isoDateStr;
 }
 
 export function getPersistedReturnedLoans(): Record<string, ReturnedLoanPersistedData> {

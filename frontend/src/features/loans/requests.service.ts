@@ -1,6 +1,14 @@
 import type { BorrowRequest } from '../../types';
 import { MOCK_REQUESTS } from '../../mocks/data';
 
+/**
+ * NOTA TEMPORAL DE ARQUITECTURA:
+ * La persistencia de solicitudes de préstamo utiliza temporalmente localStorage ('acervo_user_requests')
+ * debido a que la tabla 'solicitudes' en Supabase y sus endpoints en FastAPI se encuentran pendientes
+ * de una futura migración de base de datos.
+ *
+ * MOCK_REQUESTS se mantiene únicamente para entornos de prueba aislados y pruebas unitarias.
+ */
 export const USER_REQUESTS_STORAGE_KEY = 'acervo_user_requests';
 
 export interface CreateBorrowRequestParams {
@@ -157,16 +165,8 @@ export function getUserBorrowRequests(
 ): BorrowRequest[] {
   if (!user) return [];
   const persisted = getPersistedBorrowRequests();
-  const all = [...persisted, ...MOCK_REQUESTS];
-  const map = new Map<string, BorrowRequest>();
-
-  all.forEach((req) => {
-    if (!map.has(req.id)) {
-      map.set(req.id, req);
-    }
-  });
-
-  return Array.from(map.values()).filter((req) => {
+  // Solo se usan las solicitudes reales persistidas en localStorage por el usuario
+  return persisted.filter((req) => {
     const matchId = user.id && req.userId === user.id;
     const matchEmail = user.email && req.userEmail?.toLowerCase() === user.email.toLowerCase();
     return Boolean(matchId || matchEmail);

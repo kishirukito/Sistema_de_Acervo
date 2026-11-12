@@ -27,15 +27,20 @@ export interface RenewLoanModalProps {
   onConfirm: (
     loan: Loan,
     details: { newDueDate: string; dueDateNote: string }
-  ) => void;
+  ) => void | Promise<void>;
 }
 
 function parseDisplayOrIsoDate(dateStr: string): number | null {
   if (!dateStr) return null;
-  // Case 1: ISO YYYY-MM-DD
-  if (/^\d{4}-\d{2}-\d{2}$/.test(dateStr.trim())) {
-    const [y, m, d] = dateStr.trim().split('-').map(Number);
-    return new Date(y, m - 1, d).getTime();
+  const trimmed = dateStr.trim();
+  // Case 1: ISO YYYY-MM-DD or ISO timestamp (e.g. 2026-11-18T00:00:00Z)
+  if (/^\d{4}-\d{2}-\d{2}/.test(trimmed)) {
+    const parsed = Date.parse(trimmed);
+    if (!isNaN(parsed)) return parsed;
+    const parts = trimmed.split('T')[0].split('-').map(Number);
+    if (parts.length === 3 && !isNaN(parts[0]) && !isNaN(parts[1]) && !isNaN(parts[2])) {
+      return new Date(parts[0], parts[1] - 1, parts[2]).getTime();
+    }
   }
   // Case 2: Display format like "25 sep. 2026"
   const monthMap: Record<string, number> = {
@@ -44,7 +49,7 @@ function parseDisplayOrIsoDate(dateStr: string): number | null {
     'ene': 0, 'feb': 1, 'mar': 2, 'abr': 3, 'may': 4, 'jun': 5,
     'jul': 6, 'ago': 7, 'sep': 8, 'oct': 9, 'nov': 10, 'dic': 11,
   };
-  const parts = dateStr.trim().split(' ');
+  const parts = trimmed.split(' ');
   if (parts.length === 3) {
     const day = parseInt(parts[0], 10);
     const monthKey = parts[1].toLowerCase();
@@ -85,6 +90,14 @@ export const RenewLoanModal: React.FC<RenewLoanModalProps> = ({
 
   const [newDueDate, setNewDueDate] = useState<string>('');
   const [dateError, setDateError] = useState<string | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
+  const [submitError, setSubmitError] = useState<string | null>(null);
+
+  // Reset submit state when modal opens or closes
+  useEffect(() => {
+    setIsSubmitting(false);
+    setSubmitError(null);
+  }, [loan]);
 
   // Cross-reference user data from MOCK_MANAGED_USERS
   const matchedUser = useMemo(() => {
@@ -209,19 +222,31 @@ export const RenewLoanModal: React.FC<RenewLoanModalProps> = ({
   const coverInitials =
     matchedResource?.coverInitials || loan.resourceTitle.slice(0, 2).toUpperCase();
 
-  const handleConfirm = () => {
-    if (!isEligible || dateError || !newDueDate) return;
+  const handleConfirm = async () => {
+    if (!isEligible || dateError || !newDueDate || isSubmitting) return;
 
     const todayTime = new Date().setHours(0, 0, 0, 0);
     const selectedTime = parseDisplayOrIsoDate(newDueDate) ?? todayTime;
     const diffDays = Math.ceil((selectedTime - todayTime) / (24 * 60 * 60 * 1000));
     const newDueDateNote = diffDays > 0 ? `${diffDays}d restantes (renovado)` : 'Vence hoy (renovado)';
 
-    onConfirm(loan, {
-      newDueDate: formatDisplayDate(newDueDate),
-      dueDateNote: newDueDateNote,
-    });
-    onClose();
+    // Normalizar a formato ISO 8601 UTC timestamptz (YYYY-MM-DDTHH:MM:SSZ)
+    const isoDueDate = `${newDueDate}T00:00:00Z`;
+
+    setIsSubmitting(true);
+    setSubmitError(null);
+
+    try {
+      await onConfirm(loan, {
+        newDueDate: isoDueDate,
+        dueDateNote: newDueDateNote,
+      });
+      onClose();
+    } catch (err: any) {
+      setSubmitError(err?.message || 'Error al renovar el préstamo. Por favor intenta de nuevo.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -250,6 +275,7 @@ export const RenewLoanModal: React.FC<RenewLoanModalProps> = ({
             variant="outline"
             ref={cancelBtnRef}
             onClick={onClose}
+            disabled={isSubmitting}
             aria-label={isEligible ? 'Cancelar renovación' : 'Cerrar ventana informativa'}
           >
             {isEligible ? 'Cancelar' : 'Cerrar'}
@@ -261,16 +287,39 @@ export const RenewLoanModal: React.FC<RenewLoanModalProps> = ({
               variant="primary"
               leftIcon={<CheckCheck size={16} />}
               onClick={handleConfirm}
-              disabled={Boolean(dateError) || !newDueDate}
+              disabled={Boolean(dateError) || !newDueDate || isSubmitting}
+              isLoading={isSubmitting}
               aria-label="Confirmar y registrar renovación del préstamo"
             >
-              Confirmar renovación
+              {isSubmitting ? 'Renovando...' : 'Confirmar renovación'}
             </Button>
           )}
         </div>
       }
     >
       <div className="renew-loan-modal-body">
+        {submitError && (
+          <div
+            className="renew-loan-error-alert"
+            role="alert"
+            style={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '10px 14px',
+              backgroundColor: '#FEE2E2',
+              color: '#991B1B',
+              borderRadius: '8px',
+              fontSize: '0.875rem',
+              fontWeight: 500,
+              marginBottom: '1rem',
+            }}
+          >
+            <AlertTriangle size={16} />
+            <span>{submitError}</span>
+          </div>
+        )}
+
         {/* 1. Identification Header Card */}
         <div
           className="renew-loan-header-card"

@@ -1,6 +1,6 @@
-import React, { useMemo, useEffect, useRef } from 'react';
+import React, { useMemo, useEffect, useRef, useState } from 'react';
 import { useParams, useLocation, Link, useNavigate } from 'react-router-dom';
-import { Check, AlertCircle } from 'lucide-react';
+import { Check, AlertCircle, Copy } from 'lucide-react';
 import { useAuth } from '../../features/auth/AuthContext';
 import { MOCK_BOOKS } from '../../mocks/data';
 import {
@@ -21,6 +21,15 @@ export const UserRequestSuccessPage: React.FC = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const headingRef = useRef<HTMLHeadingElement>(null);
+  const [copied, setCopied] = useState(false);
+
+  const handleCopyFolio = (textToCopy: string) => {
+    if (textToCopy) {
+      navigator.clipboard.writeText(textToCopy);
+      setCopied(true);
+      setTimeout(() => setCopied(false), 2000);
+    }
+  };
 
   const state = (location.state as LocationState) || {};
 
@@ -176,7 +185,33 @@ export const UserRequestSuccessPage: React.FC = () => {
           {/* Top Row: Folio header */}
           <div className="user-request-summary-header">
             <span className="user-request-summary-header-label">Número de solicitud</span>
-            <span className="user-request-summary-header-folio">{folio}</span>
+            <div style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+              <span className="user-request-summary-header-folio">{folio}</span>
+              <button
+                type="button"
+                onClick={() => handleCopyFolio(folio)}
+                className="user-request-copy-btn"
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '4px',
+                  padding: '4px 8px',
+                  fontSize: '0.75rem',
+                  fontWeight: 600,
+                  color: copied ? '#15803D' : '#2563EB',
+                  backgroundColor: copied ? '#DCFCE7' : '#EFF6FF',
+                  border: `1px solid ${copied ? '#86EFAC' : '#BFDBFE'}`,
+                  borderRadius: '6px',
+                  cursor: 'pointer',
+                  transition: 'all 0.15s ease',
+                }}
+                title="Copiar folio al portapapeles"
+                aria-label="Copiar número de solicitud"
+              >
+                {copied ? <Check size={13} /> : <Copy size={13} />}
+                <span>{copied ? '¡Copiado!' : 'Copiar'}</span>
+              </button>
+            </div>
           </div>
 
           <hr className="user-request-summary-divider" aria-hidden="true" />

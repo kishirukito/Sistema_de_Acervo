@@ -90,7 +90,11 @@ function mapPrestamoToLoan(row: any, index: number): Loan {
 export async function fetchAdminLoans(): Promise<Loan[]> {
   try {
     // 1. Try Python backend proxy first
-    const res = await fetch('/api/v1/data/prestamos');
+    const token = localStorage.getItem('acervo_token');
+    const headers: Record<string, string> = {
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    };
+    const res = await fetch('/api/v1/data/prestamos', { headers });
     if (res.ok) {
       const data = await res.json();
       if (Array.isArray(data) && data.length > 0) {
@@ -113,6 +117,21 @@ export async function fetchAdminLoans(): Promise<Loan[]> {
   } catch {
     return [];
   }
+}
+
+/**
+ * Fetches a single loan by its UUID or Folio.
+ */
+export async function fetchAdminLoanById(loanId: string): Promise<Loan | null> {
+  if (!loanId) return null;
+  const loans = await fetchAdminLoans();
+  return (
+    loans.find(
+      (l) =>
+        l.id === loanId ||
+        l.folio.toLowerCase() === loanId.toLowerCase()
+    ) || null
+  );
 }
 
 /**
@@ -141,4 +160,38 @@ export async function fetchLoansSummary(): Promise<LoansSummaryData> {
     returnedThisMonthCount: returned,
     returnedTrend: `${returned} devueltos`,
   };
+}
+
+/**
+ * Updates a loan in Supabase via protected backend endpoint (e.g. renew or return).
+ */
+export async function updateAdminLoan(
+  loanId: string,
+  updates: { dueDate?: string; returnDate?: string; status?: string; notes?: string }
+): Promise<boolean> {
+  const token = localStorage.getItem('acervo_token');
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+  };
+
+  const res = await fetch(`/api/v1/data/prestamos/${encodeURIComponent(loanId)}`, {
+    method: 'PATCH',
+    headers,
+    body: JSON.stringify(updates),
+  });
+
+  if (!res.ok) {
+    let errorMsg = `Error al actualizar el préstamo (${res.status})`;
+    try {
+      const errBody = await res.json();
+      if (errBody && errBody.detail) {
+        errorMsg = typeof errBody.detail === 'string' ? errBody.detail : JSON.stringify(errBody.detail);
+      }
+    } catch {}
+    console.error('[LoansAdminService] Update failed:', errorMsg);
+    throw new Error(errorMsg);
+  }
+
+  return true;
 }

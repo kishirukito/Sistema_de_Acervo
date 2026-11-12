@@ -139,8 +139,8 @@ export const ReturnsPage: React.FC = () => {
   }, [filteredRecords, currentPage, itemsPerPage]);
 
   const handleProcessReturn = (record: ReturnRecord) => {
-    // Navigates to full page return confirmation route (NOT a modal)
-    navigate(`/admin/returns/${record.loanId}`);
+    // Navigates to full page return confirmation route with preloaded record in state
+    navigate(`/admin/returns/${record.loanId}`, { state: { record } });
   };
 
   const handleHeaderAction = () => {
@@ -148,7 +148,10 @@ export const ReturnsPage: React.FC = () => {
   };
 
   const handleSelectLoanForReturn = (loanId: string) => {
-    navigate(`/admin/returns/${loanId}`);
+    const matched = recordsList.find(
+      (r) => r.loanId === loanId || r.id === loanId || r.folio === loanId
+    );
+    navigate(`/admin/returns/${loanId}`, { state: { record: matched } });
   };
 
   return (

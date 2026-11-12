@@ -1,8 +1,9 @@
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 import httpx
 import asyncio
 from app.core.config import settings
+from app.core.security import require_admin
 from typing import Dict, Any, List, Optional
 from datetime import datetime, timezone
 
@@ -58,7 +59,7 @@ class UpdateEjemplarEstadoPayload(BaseModel):
 
 
 @router.get("/siabuc")
-async def get_siabuc_statistics() -> Dict[str, Any]:
+async def get_siabuc_statistics(admin: Dict[str, Any] = Depends(require_admin)) -> Dict[str, Any]:
     """
     Retorna los 4 bloques estadísticos estándar de SIABUC con datos reales de Supabase
     más el bloque de Resumen Ejecutivo con detección dinámica de préstamos vencidos por fecha.
@@ -422,7 +423,7 @@ async def get_siabuc_statistics() -> Dict[str, Any]:
 
 # Endpoints para capturar / ingresar valores en la base de datos
 @router.post("/sancion")
-async def create_sancion(payload: CreateSancionPayload):
+async def create_sancion(payload: CreateSancionPayload, admin: Dict[str, Any] = Depends(require_admin)):
     """Registra una nueva sanción o multa contable en Supabase."""
     headers = {
         "apikey": settings.SUPABASE_SERVICE_ROLE_KEY,
@@ -445,7 +446,7 @@ async def create_sancion(payload: CreateSancionPayload):
 
 
 @router.post("/reserva-espacio")
-async def create_reserva_espacio(payload: CreateReservaEspacioPayload):
+async def create_reserva_espacio(payload: CreateReservaEspacioPayload, admin: Dict[str, Any] = Depends(require_admin)):
     """Registra una reserva u ocupación de cubículo / sala en Supabase."""
     headers = {
         "apikey": settings.SUPABASE_SERVICE_ROLE_KEY,
@@ -468,7 +469,7 @@ async def create_reserva_espacio(payload: CreateReservaEspacioPayload):
 
 
 @router.post("/sesion-computo")
-async def create_sesion_computo(payload: CreateSesionComputoPayload):
+async def create_sesion_computo(payload: CreateSesionComputoPayload, admin: Dict[str, Any] = Depends(require_admin)):
     """Registra una sesión de uso de equipo de cómputo en Supabase."""
     headers = {
         "apikey": settings.SUPABASE_SERVICE_ROLE_KEY,
@@ -491,7 +492,7 @@ async def create_sesion_computo(payload: CreateSesionComputoPayload):
 
 
 @router.post("/ejemplar-estado")
-async def update_ejemplar_estado(payload: UpdateEjemplarEstadoPayload):
+async def update_ejemplar_estado(payload: UpdateEjemplarEstadoPayload, admin: Dict[str, Any] = Depends(require_admin)):
     """Actualiza el estado de un ejemplar (por ejemplo: baja, extraviado, en mantenimiento)."""
     headers = {
         "apikey": settings.SUPABASE_SERVICE_ROLE_KEY,

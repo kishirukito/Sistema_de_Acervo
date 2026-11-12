@@ -17,9 +17,7 @@ import {
   Phone,
   Bookmark,
 } from 'lucide-react';
-import { useAuth } from '../../features/auth/AuthContext';
-import { MOCK_LOANS, MOCK_BOOKS } from '../../mocks/data';
-import { fetchAdminLoans } from '../../services/api/loans-admin.service';
+import { fetchMyLoans } from '../../services/api/loans.service';
 import { booksService } from '../../services/api/books.service';
 import type { Book, Loan } from '../../types';
 import { resolveCategory } from '../../constants';
@@ -231,7 +229,6 @@ const TAB_OPTIONS: { key: LoanTabKey; label: string }[] = [
 const PAGE_SIZE = 4;
 
 export const UserLoansPage: React.FC = () => {
-  const { user } = useAuth();
   const location = useLocation();
 
   const returnState = (location.state as {
@@ -250,49 +247,46 @@ export const UserLoansPage: React.FC = () => {
   const [isRenewAllModalOpen, setIsRenewAllModalOpen] = useState<boolean>(false);
   const [contactLoan, setContactLoan] = useState<Loan | null>(null);
 
-  // Live loans & books from Supabase
-  const [allLoans, setAllLoans] = useState<Loan[]>(() => [...MOCK_LOANS]);
-  const [allBooks, setAllBooks] = useState<Book[]>(() => [...MOCK_BOOKS]);
+  // Live loans from /api/v1/data/mis-prestamos (filtered securely on backend)
+  const [myLoans, setMyLoans] = useState<Loan[]>([]);
+  const [allBooks, setAllBooks] = useState<Book[]>([]);
+  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
-  React.useEffect(() => {
+  const loadLoans = React.useCallback(() => {
     let active = true;
+    setIsLoading(true);
+    setErrorMsg(null);
+
     Promise.all([
-      fetchAdminLoans(),
+      fetchMyLoans(),
       booksService.getAll(),
-    ]).then(([loansData, booksData]) => {
-      if (active) {
-        if (loansData && loansData.length > 0) {
-          // Map to global Loan type if necessary
-          setAllLoans(loansData.map((l: any) => ({
-            id: l.id,
-            bookId: l.resourceId,
-            bookTitle: l.resourceTitle,
-            bookIsbn: '',
-            userId: l.userId,
-            userName: l.userName,
-            userEmail: '',
-            loanDate: l.checkoutDate,
-            dueDate: l.dueDate,
-            returnDate: l.returnDate,
-            status: l.status === 'OVERDUE' ? 'OVERDUE' : l.status === 'RETURNED' ? 'RETURNED' : 'ACTIVE',
-            renewalsCount: l.renewalCount,
-            notes: l.notes,
-          })));
-        }
+    ])
+      .then(([loansData, booksData]) => {
+        if (!active) return;
+        setMyLoans(loansData || []);
         if (booksData && booksData.length > 0) {
           setAllBooks(booksData);
         }
-      }
-    }).catch(() => {});
-    return () => { active = false; };
+      })
+      .catch((err: any) => {
+        if (!active) return;
+        console.error('[UserLoansPage] Error cargando préstamos:', err);
+        setErrorMsg(err?.message || 'No fue posible cargar tus préstamos en este momento.');
+        setMyLoans([]);
+      })
+      .finally(() => {
+        if (active) setIsLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
   }, []);
 
-  // Retrieve current user loans
-  const myLoans = useMemo(() => {
-    return allLoans.filter(
-      (l) => l.userId === user?.id || l.userEmail === user?.email
-    );
-  }, [user, allLoans]);
+  React.useEffect(() => {
+    return loadLoans();
+  }, [loadLoans]);
 
   // Metric counts (calculated globally from all user loans)
   const metrics = useMemo(() => {
@@ -461,7 +455,39 @@ export const UserLoansPage: React.FC = () => {
         </div>
 
         {/* List of Loans */}
-        {myLoans.length === 0 ? (
+        {isLoading ? (
+          <div className="user-loans-empty-container">
+            <RotateCw
+              size={36}
+              color="#2563EB"
+              style={{ marginBottom: 12, animation: 'spin 1s linear infinite' }}
+              aria-hidden="true"
+            />
+            <h2 style={{ fontSize: '1.125rem', fontWeight: 700, color: '#1E293B', margin: '0 0 6px 0' }}>
+              Cargando tus préstamos...
+            </h2>
+            <p style={{ fontSize: '0.875rem', color: '#64748B', maxWidth: 420, margin: 0 }}>
+              Consultando tus registros activos en la base de datos de la biblioteca.
+            </p>
+          </div>
+        ) : errorMsg ? (
+          <div className="user-loans-empty-container">
+            <AlertTriangle size={36} color="#DC2626" aria-hidden="true" style={{ marginBottom: 12 }} />
+            <h2 style={{ fontSize: '1.125rem', fontWeight: 700, color: '#991B1B', margin: '0 0 6px 0' }}>
+              No se pudieron cargar los préstamos
+            </h2>
+            <p style={{ fontSize: '0.875rem', color: '#64748B', maxWidth: 420, margin: '0 0 16px 0' }}>
+              {errorMsg}
+            </p>
+            <button
+              type="button"
+              className="user-loans-tab-btn user-loans-tab-btn--active"
+              onClick={loadLoans}
+            >
+              Reintentar consulta
+            </button>
+          </div>
+        ) : myLoans.length === 0 ? (
           <div className="user-loans-empty-container">
             <Bookmark size={40} color="#94A3B8" aria-hidden="true" style={{ marginBottom: 12 }} />
             <h2 style={{ fontSize: '1.125rem', fontWeight: 700, color: '#1E293B', margin: '0 0 6px 0' }}>

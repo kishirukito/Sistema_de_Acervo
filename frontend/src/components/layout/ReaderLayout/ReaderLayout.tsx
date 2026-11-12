@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { Outlet, useLocation, Link } from 'react-router-dom';
+import { Outlet, useLocation, Link, Navigate } from 'react-router-dom';
+import { useAuth } from '../../../features/auth/AuthContext';
 import { ReaderSidebar } from './ReaderSidebar';
 import { ReaderTopbar } from './ReaderTopbar';
 import './ReaderLayout.css';
@@ -28,8 +29,13 @@ const ROUTE_CONFIG: Record<string, { title: React.ReactNode; subtitle?: string }
 };
 
 export const ReaderLayout: React.FC = () => {
+  const { isAuthenticated } = useAuth();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const location = useLocation();
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
+  }
 
   const isRequestSuccess =
     location.pathname.startsWith('/user/catalog/') &&
