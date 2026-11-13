@@ -2,6 +2,8 @@ from fastapi import APIRouter, HTTPException, Depends, status
 import time
 import asyncio
 import httpx
+from datetime import datetime, timezone
+from app.core.config import settings
 from app.services.supabase_service import supabase_service
 from app.services.vector_service import VectorService
 from app.core.security import get_current_user, require_admin
@@ -611,7 +613,7 @@ async def get_solicitudes(current_user: Dict[str, Any] = Depends(get_current_use
     url = (
         f"{settings.SUPABASE_URL}/rest/v1/solicitudes_prestamo?select="
         "id,folio,usuario_id,libro_id,fecha_solicitud,fecha_sugerida,lugar_recogida,estado,notas,atendido_por_id,fecha_atencion,"
-        "usuarios(id,nombre_completo,email,matricula_o_nomina,carreras(nombre)),"
+        "usuarios:usuarios!solicitudes_prestamo_usuario_id_fkey(id,nombre_completo,email,matricula_o_nomina,carreras(nombre)),"
         "libros(id,titulo,isbn,portada_url,libro_autores(autores(nombre)))"
         "&order=fecha_solicitud.desc"
     )
@@ -623,14 +625,25 @@ async def get_solicitudes(current_user: Dict[str, Any] = Depends(get_current_use
         "Authorization": f"Bearer {settings.SUPABASE_SERVICE_ROLE_KEY}"
     }
 
-    async with httpx.AsyncClient(timeout=10.0) as client:
-        resp = await client.get(url, headers=headers)
-        if resp.status_code == 404 or resp.status_code == 400:
-            # En caso de que la tabla aún no esté creada en Supabase, retorna lista vacía limpia
-            return []
-        if not resp.is_success:
-            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Error al consultar solicitudes.")
-        return resp.json()
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            resp = await client.get(url, headers=headers)
+            if resp.status_code == 404 or resp.status_code == 400:
+                # Fallback simple sin joins anidados en caso de error de relación
+                fallback_url = f"{settings.SUPABASE_URL}/rest/v1/solicitudes_prestamo?select=*&order=fecha_solicitud.desc"
+                if not is_admin:
+                    fallback_url += f"&usuario_id=eq.{user_id}"
+                fb_resp = await client.get(fallback_url, headers=headers)
+                return fb_resp.json() if fb_resp.is_success else []
+            if not resp.is_success:
+                raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Error Supabase: {resp.text}")
+            return resp.json()
+    except HTTPException:
+        raise
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
 @router.post("/solicitudes")
 async def create_solicitud(

@@ -63,7 +63,35 @@ export const LoansPage: React.FC = () => {
   const [activeTab, setActiveTab] = useState<'LOANS' | 'REQUESTS'>('LOANS');
   const [borrowRequests, setBorrowRequests] = useState<BorrowRequest[]>([]);
 
-  const loadRequests = () => {
+  const loadRequests = async () => {
+    try {
+      const token = localStorage.getItem('acervo_token');
+      const headers: Record<string, string> = token
+        ? { Authorization: `Bearer ${token}` }
+        : {};
+      const res = await fetch('/api/v1/data/solicitudes', { headers });
+      if (res.ok) {
+        const data: any[] = await res.json();
+        const mapped: BorrowRequest[] = data.map((s: any) => ({
+          supabaseId: s.id,
+          id: s.folio || s.id,
+          bookId: s.libro_id ?? '',
+          bookTitle: s.libros?.titulo ?? 'Sin título',
+          userId: s.usuario_id ?? '',
+          userName: s.usuarios?.nombre_completo ?? 'Usuario',
+          userEmail: s.usuarios?.email ?? '',
+          requestDate: s.fecha_solicitud ?? s.created_at ?? '',
+          status: (s.estado as any) ?? 'PENDING',
+          notes: s.notas ?? '',
+          pickupLocation: s.lugar_recogida ?? 'Mostrador Principal',
+          suggestedDate: s.fecha_sugerida ?? '',
+        }));
+        setBorrowRequests(mapped);
+        return;
+      }
+    } catch (_) {
+      // fallback
+    }
     setBorrowRequests(getAllBorrowRequests());
   };
 
@@ -258,15 +286,25 @@ export const LoansPage: React.FC = () => {
   };
 
   const handleApproveRequest = async (req: BorrowRequest) => {
-    // 1. Intentar registrar el préstamo formal en el backend si el libro tiene ID
-    try {
-      const token = localStorage.getItem('acervo_token');
-      const headers: Record<string, string> = {
-        'Content-Type': 'application/json',
-        ...(token ? { Authorization: `Bearer ${token}` } : {}),
-      };
+    const token = localStorage.getItem('acervo_token');
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    };
 
-      // Obtener ejemplar disponible del libro
+    // 1. PATCH solicitud en Supabase → APPROVED
+    if (req.supabaseId) {
+      try {
+        await fetch(`/api/v1/data/solicitudes/${req.supabaseId}`, {
+          method: 'PATCH',
+          headers,
+          body: JSON.stringify({ estado: 'APPROVED', notas: `Aprobada por el administrador.` }),
+        });
+      } catch (_) {}
+    }
+
+    // 2. Intentar registrar el préstamo formal en el backend si el libro tiene ID
+    try {
       const catRes = await fetch('/api/v1/data/libros', { headers });
       if (catRes.ok) {
         const books = await catRes.json();
@@ -274,7 +312,6 @@ export const LoansPage: React.FC = () => {
         const availCopy = targetBook?.ejemplares?.find((ej: any) => ej.estado === 'disponible');
 
         if (availCopy && req.userId) {
-          // Registrar en Supabase
           await fetch('/api/v1/data/prestamos', {
             method: 'POST',
             headers,
@@ -284,28 +321,40 @@ export const LoansPage: React.FC = () => {
               notas: `Aprobado desde solicitud web ${req.id}. Recogida: ${req.pickupLocation || 'Mostrador'}`
             }),
           });
-          // Recargar préstamos reales
-          fetchAdminLoans().then((loans) => {
-            if (loans) setLoansList(loans);
-          });
-          fetchLoansSummary().then((sum) => {
-            if (sum) setLoansSummary(sum);
-          });
+          fetchAdminLoans().then((loans) => { if (loans) setLoansList(loans); });
+          fetchLoansSummary().then((sum) => { if (sum) setLoansSummary(sum); });
         }
       }
     } catch (err) {
       console.warn('Registro automático en backend omitido o con advertencia:', err);
     }
 
-    // 2. Marcar solicitud como Aprobada
+    // 3. Marcar solicitud como Aprobada en localStorage (fallback)
     approveBorrowRequest(req.id);
-    loadRequests();
+    await loadRequests();
     showToast(`Solicitud ${req.id} aprobada con éxito. El libro está listo para entrega.`);
   };
 
-  const handleRejectRequest = (req: BorrowRequest) => {
+  const handleRejectRequest = async (req: BorrowRequest) => {
+    const token = localStorage.getItem('acervo_token');
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    };
+
+    // PATCH solicitud en Supabase → REJECTED
+    if (req.supabaseId) {
+      try {
+        await fetch(`/api/v1/data/solicitudes/${req.supabaseId}`, {
+          method: 'PATCH',
+          headers,
+          body: JSON.stringify({ estado: 'REJECTED', notas: 'Rechazada por la biblioteca.' }),
+        });
+      } catch (_) {}
+    }
+
     rejectBorrowRequest(req.id, 'Rechazada por la biblioteca.');
-    loadRequests();
+    await loadRequests();
     showToast(`Solicitud ${req.id} rechazada.`);
   };
 

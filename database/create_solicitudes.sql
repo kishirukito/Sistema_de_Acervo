@@ -27,3 +27,4 @@ CREATE INDEX IF NOT EXISTS idx_solicitudes_estado ON public.solicitudes_prestamo
 
 -- Comentarios explicativos
 COMMENT ON TABLE public.solicitudes_prestamo IS 'Solicitudes de préstamo reservadas por los alumnos antes de acudir a ventanilla.';
+

@@ -82,6 +82,8 @@ export interface BorrowRequest {
   notes?: string;
   pickupLocation?: string;
   suggestedDate?: string;
+  /** UUID de Supabase (si la solicitud fue sincronizada con el backend) */
+  supabaseId?: string;
 }
 
 export interface SmartSearchResult {
