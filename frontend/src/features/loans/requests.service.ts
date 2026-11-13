@@ -211,3 +211,52 @@ export function cancelBorrowRequest(
   persistBorrowRequest(updated);
   return updated;
 }
+
+/**
+ * Retorna todas las solicitudes registradas (para administradores).
+ */
+export function getAllBorrowRequests(): BorrowRequest[] {
+  return getPersistedBorrowRequests();
+}
+
+/**
+ * Aprueba una solicitud de préstamo por un administrador.
+ * Cambia el estado a 'APPROVED' y guarda las notas u observaciones.
+ */
+export function approveBorrowRequest(
+  requestId: string,
+  approvalNotes?: string
+): BorrowRequest | null {
+  const target = getBorrowRequestById(requestId);
+  if (!target) return null;
+
+  const updated: BorrowRequest = {
+    ...target,
+    status: 'APPROVED',
+    notes: approvalNotes || target.notes || 'Aprobada por administración',
+  };
+
+  persistBorrowRequest(updated);
+  return updated;
+}
+
+/**
+ * Rechaza una solicitud de préstamo por un administrador.
+ * Cambia el estado a 'REJECTED' y guarda el motivo del rechazo.
+ */
+export function rejectBorrowRequest(
+  requestId: string,
+  rejectionReason?: string
+): BorrowRequest | null {
+  const target = getBorrowRequestById(requestId);
+  if (!target) return null;
+
+  const updated: BorrowRequest = {
+    ...target,
+    status: 'REJECTED',
+    notes: rejectionReason || 'Rechazada por biblioteca',
+  };
+
+  persistBorrowRequest(updated);
+  return updated;
+}

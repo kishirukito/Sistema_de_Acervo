@@ -1,6 +1,6 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, SearchX, CheckCircle2 } from 'lucide-react';
+import { Plus, SearchX, CheckCircle2, BookOpen, Clock } from 'lucide-react';
 import { LoansSummary } from '../../features/loans/components/LoansSummary';
 import { LoansFilters } from '../../features/loans/components/LoansFilters';
 import { LoansTable } from '../../features/loans/components/LoansTable';
@@ -8,6 +8,7 @@ import { LoansPagination } from '../../features/loans/components/LoansPagination
 import { LoanDetailModal } from '../../features/loans/components/LoanDetailModal';
 import { ReturnLoanModal } from '../../features/loans/components/ReturnLoanModal';
 import { RenewLoanModal } from '../../features/loans/components/RenewLoanModal';
+import { AdminRequestsTable } from '../../features/loans/components/AdminRequestsTable';
 import { Button } from '../../components/ui/Button';
 import { LoadingSpinner } from '../../components/ui/LoadingSpinner';
 import { executeLoanReturn, formatDisplayDate } from '../../features/returns/returns.service';
@@ -15,6 +16,12 @@ import {
   MOCK_LOANS,
 } from '../../features/loans/loans.mock';
 import { fetchAdminLoans, fetchLoansSummary, updateAdminLoan } from '../../services/api/loans-admin.service';
+import {
+  getAllBorrowRequests,
+  approveBorrowRequest,
+  rejectBorrowRequest,
+} from '../../features/loans/requests.service';
+import type { BorrowRequest } from '../../types';
 import type {
   Loan,
   LoansFilterState,
@@ -51,6 +58,18 @@ export const LoansPage: React.FC = () => {
   const [selectedLoanForDetail, setSelectedLoanForDetail] = useState<Loan | null>(null);
   const [selectedLoanForReturn, setSelectedLoanForReturn] = useState<Loan | null>(null);
   const [selectedLoanForRenew, setSelectedLoanForRenew] = useState<Loan | null>(null);
+  
+  // Pestañas: 'LOANS' (Préstamos activos/registrados) o 'REQUESTS' (Solicitudes de alumnos)
+  const [activeTab, setActiveTab] = useState<'LOANS' | 'REQUESTS'>('LOANS');
+  const [borrowRequests, setBorrowRequests] = useState<BorrowRequest[]>([]);
+
+  const loadRequests = () => {
+    setBorrowRequests(getAllBorrowRequests());
+  };
+
+  useEffect(() => {
+    loadRequests();
+  }, []);
 
   React.useEffect(() => {
     let active = true;
@@ -238,6 +257,58 @@ export const LoansPage: React.FC = () => {
     );
   };
 
+  const handleApproveRequest = async (req: BorrowRequest) => {
+    // 1. Intentar registrar el préstamo formal en el backend si el libro tiene ID
+    try {
+      const token = localStorage.getItem('acervo_token');
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      };
+
+      // Obtener ejemplar disponible del libro
+      const catRes = await fetch('/api/v1/data/libros', { headers });
+      if (catRes.ok) {
+        const books = await catRes.json();
+        const targetBook = books.find((b: any) => b.id === req.bookId || b.titulo?.toLowerCase() === req.bookTitle?.toLowerCase());
+        const availCopy = targetBook?.ejemplares?.find((ej: any) => ej.estado === 'disponible');
+
+        if (availCopy && req.userId) {
+          // Registrar en Supabase
+          await fetch('/api/v1/data/prestamos', {
+            method: 'POST',
+            headers,
+            body: JSON.stringify({
+              usuario_id: req.userId,
+              ejemplar_id: availCopy.id,
+              notas: `Aprobado desde solicitud web ${req.id}. Recogida: ${req.pickupLocation || 'Mostrador'}`
+            }),
+          });
+          // Recargar préstamos reales
+          fetchAdminLoans().then((loans) => {
+            if (loans) setLoansList(loans);
+          });
+          fetchLoansSummary().then((sum) => {
+            if (sum) setLoansSummary(sum);
+          });
+        }
+      }
+    } catch (err) {
+      console.warn('Registro automático en backend omitido o con advertencia:', err);
+    }
+
+    // 2. Marcar solicitud como Aprobada
+    approveBorrowRequest(req.id);
+    loadRequests();
+    showToast(`Solicitud ${req.id} aprobada con éxito. El libro está listo para entrega.`);
+  };
+
+  const handleRejectRequest = (req: BorrowRequest) => {
+    rejectBorrowRequest(req.id, 'Rechazada por la biblioteca.');
+    loadRequests();
+    showToast(`Solicitud ${req.id} rechazada.`);
+  };
+
   const handleNewLoan = () => {
     navigate('/admin/loans/new');
   };
@@ -267,50 +338,85 @@ export const LoansPage: React.FC = () => {
       {/* Summary KPI Cards */}
       <LoansSummary summary={loansSummary} />
 
-      {/* Filters Toolbar */}
-      <LoansFilters
-        filters={filters}
-        onFilterChange={handleFilterChange}
-        onClearFilters={handleClearFilters}
-        totalFilteredCount={filteredLoans.length}
-        currentPage={currentPage}
-        totalPages={totalPages}
-      />
+      {/* Pestañas de Navegación: Préstamos Activos vs Solicitudes de Alumnos */}
+      <div className="loans-tabs-container">
+        <button
+          type="button"
+          className={`loans-tab-button ${activeTab === 'LOANS' ? 'active' : ''}`}
+          onClick={() => setActiveTab('LOANS')}
+        >
+          <BookOpen size={17} />
+          <span>Préstamos registrados</span>
+          <span className="loans-tab-badge">{loansList.length}</span>
+        </button>
 
-      {/* Main Table / Empty State */}
-      {isLoading ? (
-        <div style={{ padding: '3rem 0' }}>
-          <LoadingSpinner center size="lg" text="Cargando préstamos..." />
-        </div>
-      ) : filteredLoans.length === 0 ? (
-        <div className="loans-empty-card" role="region" aria-label="Sin resultados de préstamos">
-          <div className="loans-empty-icon" aria-hidden="true">
-            <SearchX size={28} />
-          </div>
-          <h2 className="loans-empty-title">No se encontraron préstamos</h2>
-          <p className="loans-empty-desc">
-            No hay registros que coincidan con los criterios de búsqueda o filtros seleccionados.
-          </p>
-          <Button variant="primary" size="sm" onClick={handleClearFilters}>
-            Limpiar filtros
-          </Button>
-        </div>
+        <button
+          type="button"
+          className={`loans-tab-button ${activeTab === 'REQUESTS' ? 'active' : ''}`}
+          onClick={() => setActiveTab('REQUESTS')}
+        >
+          <Clock size={17} />
+          <span>Solicitudes de alumnos</span>
+          <span className={`loans-tab-badge ${borrowRequests.filter((r) => r.status === 'PENDING').length > 0 ? 'badge-highlight' : ''}`}>
+            {borrowRequests.filter((r) => r.status === 'PENDING').length} pendientes
+          </span>
+        </button>
+      </div>
+
+      {activeTab === 'REQUESTS' ? (
+        <AdminRequestsTable
+          requests={borrowRequests}
+          onApprove={handleApproveRequest}
+          onReject={handleRejectRequest}
+        />
       ) : (
         <>
-          <LoansTable
-            loans={paginatedLoans}
-            onViewLoan={handleViewLoan}
-            onReturnLoan={handleReturnLoan}
-            onRenewLoan={handleRenewLoan}
-          />
-
-          <LoansPagination
+          {/* Filters Toolbar */}
+          <LoansFilters
+            filters={filters}
+            onFilterChange={handleFilterChange}
+            onClearFilters={handleClearFilters}
+            totalFilteredCount={filteredLoans.length}
             currentPage={currentPage}
             totalPages={totalPages}
-            totalItems={filteredLoans.length}
-            itemsPerPage={itemsPerPage}
-            onPageChange={(page) => setCurrentPage(page)}
           />
+
+          {/* Main Table / Empty State */}
+          {isLoading ? (
+            <div style={{ padding: '3rem 0' }}>
+              <LoadingSpinner center size="lg" text="Cargando préstamos..." />
+            </div>
+          ) : filteredLoans.length === 0 ? (
+            <div className="loans-empty-card" role="region" aria-label="Sin resultados de préstamos">
+              <div className="loans-empty-icon" aria-hidden="true">
+                <SearchX size={28} />
+              </div>
+              <h2 className="loans-empty-title">No se encontraron préstamos</h2>
+              <p className="loans-empty-desc">
+                No hay registros que coincidan con los criterios de búsqueda o filtros seleccionados.
+              </p>
+              <Button variant="primary" size="sm" onClick={handleClearFilters}>
+                Limpiar filtros
+              </Button>
+            </div>
+          ) : (
+            <>
+              <LoansTable
+                loans={paginatedLoans}
+                onViewLoan={handleViewLoan}
+                onReturnLoan={handleReturnLoan}
+                onRenewLoan={handleRenewLoan}
+              />
+
+              <LoansPagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                totalItems={filteredLoans.length}
+                itemsPerPage={itemsPerPage}
+                onPageChange={(page) => setCurrentPage(page)}
+              />
+            </>
+          )}
         </>
       )}
 
