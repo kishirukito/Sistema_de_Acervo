@@ -57,6 +57,43 @@
     box-shadow var(--transition-fast, 150ms ease);
 }
 
+/* Variante auto-resize: sin resize manual, se expande sola */
+.edit-modal-textarea--autoresize {
+  resize: none;
+  overflow: hidden;
+  min-height: 80px;
+}
+
+/* Campo de portada */
+.edit-modal-cover-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.edit-modal-cover-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.edit-modal-cover-preview {
+  width: 52px;
+  height: 68px;
+  object-fit: cover;
+  border-radius: 6px;
+  border: 1px solid var(--color-border, #E5E7EB);
+  flex-shrink: 0;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.08);
+}
+
+.edit-modal-cover-preview--error {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #F3F4F6;
+}
+
 .edit-modal-textarea:focus {
   border-color: var(--color-primary, #2F80ED);
   box-shadow: 0 0 0 3px rgba(47, 128, 237, 0.15);

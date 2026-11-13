@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState, useRef, useCallback } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -8,6 +8,7 @@ import {
   AlertTriangle,
   RotateCcw,
   Sparkles,
+  ImageIcon,
 } from 'lucide-react';
 import { Modal } from '../../../components/ui/Modal';
 import { Input } from '../../../components/ui/Input';
@@ -39,6 +40,7 @@ const editResourceSchema = z.object({
     .min(1, 'El número total de ejemplares debe ser al menos 1'),
   location: z.string().min(2, 'La ubicación física es requerida (ej. Estante A-1)'),
   description: z.string().optional(),
+  coverUrl: z.string().url('Ingresa una URL válida (https://...)').optional().or(z.literal('')),
 });
 
 type EditResourceFormData = z.infer<typeof editResourceSchema>;
@@ -60,7 +62,18 @@ export const EditResourceModal: React.FC<EditResourceModalProps> = ({
   const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
   const [isGeneratingAI, setIsGeneratingAI] = useState(false);
   const [aiNotice, setAiNotice] = useState<string | null>(null);
+  const [coverUrl, setCoverUrl] = useState('');
+  const [coverPreviewError, setCoverPreviewError] = useState(false);
   const titleInputRef = useRef<HTMLInputElement>(null);
+  const descTextareaRef = useRef<HTMLTextAreaElement>(null);
+
+  // Auto-resize textarea al contenido
+  const autoResizeTextarea = useCallback(() => {
+    const el = descTextareaRef.current;
+    if (!el) return;
+    el.style.height = 'auto';
+    el.style.height = `${el.scrollHeight}px`;
+  }, []);
 
   const {
     register,
@@ -87,6 +100,8 @@ export const EditResourceModal: React.FC<EditResourceModalProps> = ({
       if (data?.resumen) {
         setValue('description', data.resumen, { shouldDirty: true });
         setAiNotice('¡Resumen generado y guardado en la base de datos!');
+        // Actualizar resize del textarea después del set
+        setTimeout(autoResizeTextarea, 50);
       } else {
         setAiNotice('No se obtuvo texto de resumen del microservicio.');
       }
@@ -120,9 +135,14 @@ export const EditResourceModal: React.FC<EditResourceModalProps> = ({
         totalCopies: resource.totalCopies,
         location: resource.location,
         description: resource.description || matchedBook?.description || '',
+        coverUrl: resource.coverUrl || '',
       });
+      setCoverUrl(resource.coverUrl || '');
+      setCoverPreviewError(false);
+      // Ajustar altura del textarea al contenido existente
+      setTimeout(autoResizeTextarea, 80);
     }
-  }, [resource, reset]);
+  }, [resource, reset, autoResizeTextarea]);
 
   if (!resource) return null;
 
@@ -177,6 +197,7 @@ export const EditResourceModal: React.FC<EditResourceModalProps> = ({
       location: data.location.trim(),
       status: newStatus,
       description: data.description?.trim() || undefined,
+      coverUrl: coverUrl.trim() || resource.coverUrl,
       coverInitials: data.title.trim().slice(0, 2).toUpperCase(),
     };
 
@@ -185,6 +206,7 @@ export const EditResourceModal: React.FC<EditResourceModalProps> = ({
   };
 
   const { ref: formTitleRef, ...titleRegisterProps } = register('title');
+  const { ref: descRegisterRef, ...descRegisterProps } = register('description');
 
   return (
     <Modal
@@ -301,6 +323,44 @@ export const EditResourceModal: React.FC<EditResourceModalProps> = ({
               />
             </div>
 
+            {/* Cover Image URL */}
+            <div className="edit-modal-col-span-2">
+              <div className="edit-modal-cover-group">
+                <label htmlFor="edit-book-cover" className="edit-modal-textarea-label">
+                  <ImageIcon size={13} style={{ display: 'inline', marginRight: 5, verticalAlign: 'middle' }} />
+                  URL de imagen de portada
+                </label>
+                <div className="edit-modal-cover-row">
+                  <Input
+                    id="edit-book-cover"
+                    placeholder="https://ejemplo.com/portada.jpg"
+                    value={coverUrl}
+                    onChange={(e) => {
+                      setCoverUrl(e.target.value);
+                      setCoverPreviewError(false);
+                    }}
+                    style={{ flex: 1 }}
+                  />
+                  {coverUrl && !coverPreviewError && (
+                    <img
+                      src={coverUrl}
+                      alt="Vista previa de portada"
+                      className="edit-modal-cover-preview"
+                      onError={() => setCoverPreviewError(true)}
+                    />
+                  )}
+                  {coverUrl && coverPreviewError && (
+                    <div className="edit-modal-cover-preview edit-modal-cover-preview--error">
+                      <ImageIcon size={20} color="#9CA3AF" />
+                    </div>
+                  )}
+                </div>
+                <span style={{ fontSize: '0.74rem', color: '#9CA3AF', marginTop: 2 }}>
+                  Pega la URL directa de la imagen (JPG, PNG, WebP). Se mostrará como portada en el catálogo.
+                </span>
+              </div>
+            </div>
+
             {/* Description / Synopsis */}
             <div className="edit-modal-col-span-2 edit-modal-textarea-group">
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
@@ -330,8 +390,13 @@ export const EditResourceModal: React.FC<EditResourceModalProps> = ({
                 id="edit-book-desc"
                 rows={3}
                 placeholder="Breve reseña del libro o pulsa 'Generar resumen con IA'..."
-                className="edit-modal-textarea"
-                {...register('description')}
+                className="edit-modal-textarea edit-modal-textarea--autoresize"
+                ref={(node) => {
+                  descRegisterRef(node);
+                  (descTextareaRef as any).current = node;
+                }}
+                onInput={autoResizeTextarea}
+                {...descRegisterProps}
               />
               {aiNotice && (
                 <span style={{ fontSize: '0.75rem', color: aiNotice.includes('éxito') || aiNotice.includes('guardado') ? '#10B981' : '#F59E0B' }}>
