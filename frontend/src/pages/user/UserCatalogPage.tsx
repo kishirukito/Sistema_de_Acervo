@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import { Link, useSearchParams, useLocation } from 'react-router-dom';
 import {
   Search,
@@ -21,6 +21,7 @@ import {
   getCategoryName,
 } from '../../constants';
 import { CustomSelect } from '../../components/ui/CustomSelect';
+import { useRealtimeTable } from '../../hooks/useRealtimeTable';
 import './UserCatalogPage.css';
 
 const ITEMS_PER_PAGE = 6;
@@ -194,24 +195,24 @@ export const UserCatalogPage: React.FC = () => {
   const [booksList, setBooksList] = useState<Book[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
-  useEffect(() => {
-    let active = true;
+  const loadBooks = useCallback(() => {
     setIsLoading(true);
     booksService
       .getAll()
       .then((data: Book[]) => {
-        if (active && Array.isArray(data)) {
-          setBooksList(data);
-        }
+        if (Array.isArray(data)) setBooksList(data);
       })
       .catch(() => {})
-      .finally(() => {
-        if (active) setIsLoading(false);
-      });
-    return () => {
-      active = false;
-    };
+      .finally(() => setIsLoading(false));
   }, []);
+
+  useEffect(() => {
+    loadBooks();
+  }, [loadBooks]);
+
+  // ── Realtime: actualizar catálogo del alumno cuando cambia disponibilidad ──
+  useRealtimeTable('libros', { onInsert: loadBooks, onUpdate: loadBooks, onDelete: loadBooks });
+  useRealtimeTable('ejemplares', { onUpdate: loadBooks });
 
   // Search state
   const initialSearch = searchParams.get('search') || '';

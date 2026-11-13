@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Plus, SearchX, CheckCircle, X } from 'lucide-react';
 import { CatalogToolbar } from '../../features/catalog/components/CatalogToolbar';
@@ -9,6 +9,7 @@ import { EditResourceModal } from '../../features/catalog/components/EditResourc
 import { DeleteBookModal } from '../../features/catalog/components/DeleteBookModal';
 import { MOCK_RESOURCES } from '../../features/catalog/catalog.mock';
 import { fetchCatalogResources, deleteResource, updateResource } from '../../services/api/catalog.service';
+import { useRealtimeTable } from '../../hooks/useRealtimeTable';
 import type { CatalogFilterState, Resource } from '../../features/catalog/catalog.types';
 import { resolveCategory } from '../../constants';
 import '../../features/catalog/catalog.css';
@@ -26,15 +27,27 @@ export const CatalogPage: React.FC = () => {
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [resourcesList, setResourcesList] = useState<Resource[]>([]);
 
-  React.useEffect(() => {
-    let active = true;
+  const refreshCatalog = useCallback(() => {
     fetchCatalogResources().then((data) => {
-      if (active && Array.isArray(data)) {
-        setResourcesList(data);
-      }
+      if (Array.isArray(data)) setResourcesList(data);
     });
-    return () => { active = false; };
   }, []);
+
+  React.useEffect(() => {
+    refreshCatalog();
+  }, [refreshCatalog]);
+
+  // ── Realtime: actualizar catálogo cuando cambia un libro o ejemplar ──
+  useRealtimeTable('libros', {
+    onInsert: refreshCatalog,
+    onUpdate: refreshCatalog,
+    onDelete: refreshCatalog,
+  });
+
+  useRealtimeTable('ejemplares', {
+    onInsert: refreshCatalog,
+    onUpdate: refreshCatalog,
+  });
   const [selectedResource, setSelectedResource] = useState<Resource | null>(null);
   const [editingResource, setEditingResource] = useState<Resource | null>(null);
   const [deletingResource, setDeletingResource] = useState<Resource | null>(null);

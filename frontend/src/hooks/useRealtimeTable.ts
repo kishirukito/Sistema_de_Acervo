@@ -75,3 +75,4 @@ export function useRealtimeTable<T = Record<string, any>>(
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [table, filter, enabled]);
 }
+

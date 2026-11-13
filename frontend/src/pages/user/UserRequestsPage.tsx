@@ -194,6 +194,17 @@ export const UserRequestsPage: React.FC = () => {
     },
   });
 
+  // ── Realtime: sanciones/multas → notificar al alumno en tiempo real ──
+  useRealtimeTable('sanciones_multas', {
+    enabled: Boolean(userId),
+    filter: userId ? `usuario_id=eq.${userId}` : undefined,
+    onInsert: (row: any) => {
+      const monto = row.monto ? `\$${Number(row.monto).toFixed(2)}` : '';
+      setRealtimeAlert(`⚠️ Se te aplicó una sanción${monto ? ` de ${monto}` : ''}. Revisa tu perfil para más detalles.`);
+      setTimeout(() => setRealtimeAlert(null), 8000);
+    },
+  });
+
   // Retrieve all user requests (merges API + localStorage, deduplicates by id)
   const allUserRequests = useMemo(() => {
     const localReqs = getUserBorrowRequests(user);
