@@ -16,7 +16,7 @@ import { executeLoanReturn, formatDisplayDate } from '../../features/returns/ret
 import {
   MOCK_LOANS,
 } from '../../features/loans/loans.mock';
-import { fetchAdminLoans, fetchLoansSummary, updateAdminLoan } from '../../services/api/loans-admin.service';
+import { updateAdminLoan } from '../../services/api/loans-admin.service';
 import {
   approveBorrowRequest,
   rejectBorrowRequest,
@@ -25,27 +25,21 @@ import {
   fetchAdminSolicitudes,
   ADMIN_SOLICITUDES_KEY,
 } from '../../features/loans/solicitudes.query';
+import {
+  useAdminLoans,
+  deriveLoansSummary,
+  invalidateAdminLoans,
+  ADMIN_LOANS_KEY,
+} from '../../features/loans/admin-loans.query';
 import type { BorrowRequest } from '../../types';
 import type {
   Loan,
   LoansFilterState,
-  LoansSummaryData,
 } from '../../features/loans/loans.types';
 import '../../features/loans/loans.css';
 
 /** Polling interval for new student requests (cross-session sync). */
 const ADMIN_REQUESTS_POLL_MS = 20_000;
-
-const INITIAL_SUMMARY: LoansSummaryData = {
-  activeLoansCount: 0,
-  activeTrend: '0 en circulación',
-  dueSoonCount: 0,
-  dueSoonSubtitle: 'Próximos a vencer',
-  overdueCount: 0,
-  overdueSubtitle: 'Sin adeudos',
-  returnedThisMonthCount: 0,
-  returnedTrend: 'Devueltos',
-};
 
 const INITIAL_FILTERS: LoansFilterState = {
   searchQuery: '',
@@ -57,11 +51,15 @@ const INITIAL_FILTERS: LoansFilterState = {
 export const LoansPage: React.FC = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
-  const [loansList, setLoansList] = useState<Loan[]>([]);
-  const [loansSummary, setLoansSummary] = useState<LoansSummaryData>(INITIAL_SUMMARY);
+
+  // ── React Query: préstamos admin con caché de 2 minutos ──────────────────
+  const { data: loansList = [], isLoading } = useAdminLoans();
+
+  // KPIs derivados de la misma consulta — sin segunda petición a /api/v1/data/prestamos
+  const loansSummary = useMemo(() => deriveLoansSummary(loansList), [loansList]);
+
   const [filters, setFilters] = useState<LoansFilterState>(INITIAL_FILTERS);
   const [currentPage, setCurrentPage] = useState<number>(1);
-  const [isLoading] = useState<boolean>(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [selectedLoanForDetail, setSelectedLoanForDetail] = useState<Loan | null>(null);
   const [selectedLoanForReturn, setSelectedLoanForReturn] = useState<Loan | null>(null);
@@ -80,17 +78,6 @@ export const LoansPage: React.FC = () => {
     refetchOnReconnect: true,
     staleTime: 10_000,
   });
-
-  React.useEffect(() => {
-    let active = true;
-    Promise.all([fetchAdminLoans(), fetchLoansSummary()]).then(([loans, summary]) => {
-      if (active) {
-        if (Array.isArray(loans)) setLoansList(loans);
-        if (summary) setLoansSummary(summary);
-      }
-    });
-    return () => { active = false; };
-  }, []);
 
   const itemsPerPage = 5;
 
@@ -184,9 +171,8 @@ export const LoansPage: React.FC = () => {
 
     executeLoanReturn(loan.id, details);
 
-    fetchAdminLoans().then((loans) => {
-      if (loans && loans.length > 0) setLoansList(loans);
-    });
+    // Invalidar caché de préstamos para reflejar el cambio
+    invalidateAdminLoans(queryClient);
 
     setSelectedLoanForReturn(null);
     showToast(`Préstamo ${loan.folio} devuelto exitosamente.`);
@@ -217,8 +203,8 @@ export const LoansPage: React.FC = () => {
       status: 'renovado',
     });
 
-    // 1. Update local loans list
-    setLoansList((prev) =>
+    // Actualización optimista en caché RQ — las métricas se recalculan automáticamente
+    queryClient.setQueryData<Loan[]>([ADMIN_LOANS_KEY], (prev = []) =>
       prev.map((l) =>
         l.id === loan.id
           ? {
@@ -232,12 +218,10 @@ export const LoansPage: React.FC = () => {
       )
     );
 
-    // Refresh loans from backend
-    fetchAdminLoans().then((loans) => {
-      if (loans && loans.length > 0) setLoansList(loans);
-    });
+    // Confirmar desde servidor en segundo plano
+    invalidateAdminLoans(queryClient);
 
-    // 2. Synchronize in-memory MOCK_LOANS
+    // Synchronize in-memory MOCK_LOANS
     const mockIdx = MOCK_LOANS.findIndex((l) => l.id === loan.id);
     if (mockIdx !== -1) {
       MOCK_LOANS[mockIdx] = {
@@ -247,19 +231,6 @@ export const LoansPage: React.FC = () => {
         renewalCount: nextCount,
         status: 'ACTIVE',
       };
-    }
-
-    // 3. Update summary metrics if previously overdue or due soon
-    if (loan.status === 'OVERDUE') {
-      setLoansSummary((prev) => ({
-        ...prev,
-        overdueCount: Math.max(0, prev.overdueCount - 1),
-      }));
-    } else if (loan.status === 'DUE_SOON') {
-      setLoansSummary((prev) => ({
-        ...prev,
-        dueSoonCount: Math.max(0, prev.dueSoonCount - 1),
-      }));
     }
 
     showToast(
@@ -303,8 +274,8 @@ export const LoansPage: React.FC = () => {
               notas: `Aprobado desde solicitud web ${req.id}. Recogida: ${req.pickupLocation || 'Mostrador'}`
             }),
           });
-          fetchAdminLoans().then((loans) => { if (loans) setLoansList(loans); });
-          fetchLoansSummary().then((sum) => { if (sum) setLoansSummary(sum); });
+          // Invalidar caché de préstamos para reflejar el nuevo registro
+          invalidateAdminLoans(queryClient);
         }
       }
     } catch (err) {

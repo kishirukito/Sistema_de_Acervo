@@ -1,5 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Plus, SearchX, CheckCircle2, AlertCircle } from 'lucide-react';
+import { useQueryClient } from '@tanstack/react-query';
 import { UsersMetrics } from '../../features/users/components/UsersMetrics';
 import { UsersToolbar } from '../../features/users/components/UsersToolbar';
 import { UsersTable } from '../../features/users/components/UsersTable';
@@ -12,11 +13,11 @@ import { Button } from '../../components/ui/Button';
 import {
   MOCK_MANAGED_USERS,
 } from '../../features/users/users.mock';
-import { fetchManagedUsers, fetchUsersMetrics, updateManagedUser, createManagedUser } from '../../services/api/users-managed.service';
+import { updateManagedUser, createManagedUser } from '../../services/api/users-managed.service';
+import { useAdminUsers, deriveUsersMetrics, invalidateAdminUsers, ADMIN_USERS_KEY } from '../../features/users/users.query';
 import type {
   ManagedUser,
   UsersFilterState,
-  UsersMetricsData,
   UserStatus,
 } from '../../features/users/users.types';
 import '../../features/users/users.css';
@@ -29,32 +30,22 @@ const INITIAL_FILTERS: UsersFilterState = {
 };
 
 export const UsersPage: React.FC = () => {
-  const [usersList, setUsersList] = useState<ManagedUser[]>([]);
+  const queryClient = useQueryClient();
+
+  // ── React Query: lista de usuarios con caché de 2 minutos ────────────────
+  const { data: usersList = [], isLoading } = useAdminUsers();
+
+  // KPIs derivados de la misma consulta — sin segunda petición a /api/v1/data/usuarios
+  const metrics = useMemo(() => deriveUsersMetrics(usersList), [usersList]);
+
   const [filters, setFilters] = useState<UsersFilterState>(INITIAL_FILTERS);
   const [currentPage, setCurrentPage] = useState<number>(1);
-  const [isLoading] = useState<boolean>(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [toastType, setToastType] = useState<'success' | 'error'>('success');
   const [isRegisterModalOpen, setIsRegisterModalOpen] = useState<boolean>(false);
   const [selectedUserDetail, setSelectedUserDetail] = useState<ManagedUser | null>(null);
   const [editingUser, setEditingUser] = useState<ManagedUser | null>(null);
   const [statusTargetUser, setStatusTargetUser] = useState<ManagedUser | null>(null);
-  const [metrics, setMetrics] = useState<UsersMetricsData>({
-    totalUsers: 0,
-    activeUsers: 0,
-    overdueLoansCount: 0,
-  });
-
-  React.useEffect(() => {
-    let active = true;
-    Promise.all([fetchManagedUsers(), fetchUsersMetrics()]).then(([users, metricsData]) => {
-      if (active) {
-        if (Array.isArray(users)) setUsersList(users);
-        if (metricsData) setMetrics(metricsData);
-      }
-    });
-    return () => { active = false; };
-  }, []);
 
   const itemsPerPage = 5;
 
@@ -145,18 +136,17 @@ export const UsersPage: React.FC = () => {
   };
 
   const handleEditUserSuccess = (updatedUser: ManagedUser) => {
-    setUsersList((prev) =>
+    // Actualización optimista en caché RQ
+    queryClient.setQueryData<ManagedUser[]>([ADMIN_USERS_KEY], (prev = []) =>
       prev.map((u) => (u.id === updatedUser.id ? updatedUser : u))
     );
 
-    // Persistir actualización en Supabase mediante backend protegido
+    // Persistir en Supabase e invalidar caché para confirmar desde servidor
     updateManagedUser(updatedUser.id, {
       fullName: updatedUser.fullName,
       phone: updatedUser.phone,
     }).then(() => {
-      fetchManagedUsers().then(users => {
-        if (users && users.length > 0) setUsersList(users);
-      });
+      invalidateAdminUsers(queryClient);
     });
 
     // Keep in-memory mock synchronized
@@ -176,20 +166,14 @@ export const UsersPage: React.FC = () => {
     const nextStatus: UserStatus = user.status === 'ACTIVE' ? 'INACTIVE' : 'ACTIVE';
     const wasActive = user.status === 'ACTIVE';
 
-    setUsersList((prev) =>
-      prev.map((u) => {
-        if (u.id === user.id) {
-          return { ...u, status: nextStatus };
-        }
-        return u;
-      })
+    // Actualización optimista en caché RQ — las métricas se recalculan automáticamente
+    queryClient.setQueryData<ManagedUser[]>([ADMIN_USERS_KEY], (prev = []) =>
+      prev.map((u) => (u.id === user.id ? { ...u, status: nextStatus } : u))
     );
 
-    // Persistir cambio de estado en Supabase mediante backend protegido
+    // Persistir en Supabase e invalidar caché para confirmar desde servidor
     updateManagedUser(user.id, { status: nextStatus }).then(() => {
-      fetchManagedUsers().then(users => {
-        if (users && users.length > 0) setUsersList(users);
-      });
+      invalidateAdminUsers(queryClient);
     });
 
     // Keep in-memory mock synchronized
@@ -200,14 +184,6 @@ export const UsersPage: React.FC = () => {
         status: nextStatus,
       };
     }
-
-    // Update KPI metrics
-    setMetrics((prev) => ({
-      ...prev,
-      activeUsers: wasActive
-        ? Math.max(0, prev.activeUsers - 1)
-        : prev.activeUsers + 1,
-    }));
 
     showToast(
       wasActive
@@ -246,20 +222,17 @@ export const UsersPage: React.FC = () => {
       return; // abort: keep modal state so the admin can fix the data
     }
 
-    setUsersList((prev) => [newUser, ...prev]);
+    // Actualización optimista en caché RQ — el nuevo usuario aparece inmediatamente
+    queryClient.setQueryData<ManagedUser[]>([ADMIN_USERS_KEY], (prev = []) => [newUser, ...prev]);
 
     // Keep in-memory mock synchronized
     MOCK_MANAGED_USERS.unshift(newUser);
 
-    // Update KPI metrics
-    setMetrics((prev) => ({
-      ...prev,
-      totalUsers: prev.totalUsers + 1,
-      activeUsers: newUser.status === 'ACTIVE' ? prev.activeUsers + 1 : prev.activeUsers,
-    }));
-
     // Reset pagination to first page so new user appears on top
     setCurrentPage(1);
+
+    // Invalidar para confirmar datos reales desde servidor
+    invalidateAdminUsers(queryClient);
 
     showToast(`Usuario "${newUser.fullName}" registrado exitosamente con folio ${newUser.borrowerCode}.`, 'success');
   };
