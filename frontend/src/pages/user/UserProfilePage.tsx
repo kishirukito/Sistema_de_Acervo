@@ -263,9 +263,9 @@ export const UserProfilePage: React.FC = () => {
     <div className="user-profile-page">
       {/* 1. Page Header */}
       <header className="user-profile-header">
-        <h1 className="user-profile-title">Mi perfil</h1>
+        <h1 className="user-profile-title">Información de tu cuenta</h1>
         <p className="user-profile-subtitle">
-          Consulta y actualiza la información de tu cuenta.
+          Consulta tus datos personales.
         </p>
       </header>
 

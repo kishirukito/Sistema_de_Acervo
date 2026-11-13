@@ -516,10 +516,7 @@ export const UserCatalogPage: React.FC = () => {
     <div className="catalog-container">
       {/* 1. Header */}
       <header className="user-catalog-header">
-        <h1 className="user-catalog-title">Explora nuestro catálogo</h1>
-        <p className="user-catalog-subtitle">
-          Encuentra libros por título, autor o tema.
-        </p>
+        <h1 className="user-catalog-title">Encuentra tu próxima lectura</h1>
       </header>
 
       {/* 2. Top Search Bar */}

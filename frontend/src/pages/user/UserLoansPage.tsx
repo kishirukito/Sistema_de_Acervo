@@ -363,9 +363,9 @@ export const UserLoansPage: React.FC = () => {
       {/* 1. Page Header */}
       <header className="user-loans-header">
         <div className="user-loans-header-info">
-          <h1 className="user-loans-title">Mis préstamos</h1>
+          <h1 className="user-loans-title">Consulta tus préstamos</h1>
           <p className="user-loans-subtitle">
-            Consulta tus libros prestados y sus fechas de devolución.
+            Revisa tus préstamos y sus fechas de devolución.
           </p>
         </div>
 

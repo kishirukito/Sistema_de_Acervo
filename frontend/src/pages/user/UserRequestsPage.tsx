@@ -283,9 +283,9 @@ export const UserRequestsPage: React.FC = () => {
       {/* 1. Page Header */}
       <header className="user-requests-header">
         <div className="user-requests-header-info">
-          <h1 className="user-requests-title">Mis solicitudes</h1>
+          <h1 className="user-requests-title">Da seguimiento a tus solicitudes</h1>
           <p className="user-requests-subtitle">
-            Consulta el estado de los libros que has solicitado.
+            Consulta el estado de los recursos que has solicitado.
           </p>
         </div>
 
