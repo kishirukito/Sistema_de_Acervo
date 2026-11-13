@@ -3,8 +3,9 @@ import json
 import math
 import asyncio
 import httpx
+import re
 from datetime import datetime, timezone
-from typing import List, Dict, Any, Optional
+from typing import List, Dict, Any, Optional, Tuple
 
 from app.core.config import settings
 from app.services.ai_service import AIService
@@ -16,6 +17,21 @@ EMBEDDINGS_FILE = os.path.join(DATA_DIR, "acervo_embeddings.json")
 # Key: libro_id -> { "id", "titulo", "autores", "isbn", "ubicacion", "temas", "sinopsis", "embedding", "semantic_text" }
 _VECTOR_INDEX: Dict[str, Dict[str, Any]] = {}
 _INDEX_LOCK = asyncio.Lock()
+
+QUERY_STOP_WORDS = {
+    "un", "una", "unos", "unas", "el", "la", "los", "las", "de", "del", "en", "sobre", 
+    "que", "para", "con", "libro", "libros", "quiero", "busco", "necesito", "contenga", 
+    "informacion", "información", "acerca", "por", "favor", "dame", "hay", "algun", "algún",
+    "materia", "tema", "leer", "estudiar", "aprender"
+}
+
+def extract_search_core(query: str) -> str:
+    """Extrae el núcleo temático de la consulta en lenguaje natural."""
+    words = re.findall(r'\b[a-zA-ZáéíóúÁÉÍÓÚñÑ0-9_+#\.]+\b', query.strip())
+    meaningful = [w for w in words if w.lower() not in QUERY_STOP_WORDS]
+    if meaningful:
+        return " ".join(meaningful)
+    return query.strip()
 
 def cosine_similarity(a: List[float], b: List[float]) -> float:
     if not a or not b or len(a) != len(b):
@@ -285,39 +301,47 @@ class VectorService:
         return res_map
 
     @classmethod
-    async def ground_with_llm(cls, query: str, candidate_books: List[Dict[str, Any]]) -> Dict[str, str]:
+    async def ground_with_llm(cls, query: str, candidate_books: List[Dict[str, Any]]) -> Dict[str, Dict[str, Any]]:
         """
         Fase 2 de Grounding Anti-Alucinaciones:
-        Usa llama3.2:3b a baja temperatura para validar si los libros encontrados responden a la consulta
-        y generar su justificación concisa. Prohíbe estrictamente mencionar libros fuera de la lista.
+        Usa llama3.2:3b a baja temperatura para clasificar la relevancia estricta de cada libro frente a la consulta.
+        Devuelve dict con id -> { "relevante": bool, "nivel": "directo" | "relacionado", "razon": str }.
         """
         if not candidate_books:
             return {}
 
         books_context = "\n".join(
-            f"- ID: {b['id']} | Título: {b['titulo']} | Autores: {', '.join(b.get('autores', []))} | Temas: {', '.join(b.get('temas', []))}"
+            f"- ID: {b['id']} | Título: {b['titulo']} | Autores: {', '.join(b.get('autores', []))} | Temas: {', '.join(b.get('temas', []))} | Sinopsis: {b.get('sinopsis', '')[:180]}"
             for b in candidate_books
         )
 
-        prompt = f"""Eres el clasificador bibliotecario de la Universidad Politécnica de Durango. Tu tarea es verificar la estricta relevancia temática de los libros frente a la consulta del usuario.
-
+        prompt = f"""Eres el auditor bibliotecario del Sistema de Acervo Universitario.
 Consulta del usuario: "{query}"
 
 Catálogo de libros candidatos recuperados:
 {books_context}
 
-INSTRUCCIONES CRÍTICAS ANTI-ALUCINACIONES:
-1. Revisa el contenido real del título, temas y sinopsis de cada libro candidato.
-2. Si el libro NO trata ni aborda directamente el tema solicitado (por ejemplo: el usuario busca órganos humanos, anatomía, medicina, cardiología o cocina, pero el libro es de ingeniería de software o algoritmos matemáticos), QUEDA ESTRICTAMENTE PROHIBIDO seleccionarlo.
-3. Si NINGÚN libro de la lista trata sobre la consulta del usuario, debes devolver exactamente: {{"libros_relevantes": []}}.
-4. Para los libros que SÍ traten genuinamente sobre la consulta, proporciona una justificación verídica de 1 línea.
+Tu objetivo es evaluar con precisión la relación entre la consulta del usuario y los libros del catálogo.
+Clasifica cada libro en uno de estos tres niveles:
+- "directo": El libro aborda específicamente el tema exacto pedido (ej. un libro especializado en Python para consulta de Python, o El Principito para consulta de literatura/principito).
+- "relacionado": El libro no es específico del tema pedido, pero comparte el área general o disciplinas afines útiles para el estudiante (ej. libros de programación general o algoritmos cuando busca un lenguaje de programación específico).
+- "irrelevante": El libro NO tiene ninguna relación con el tema (ej. literatura, cocina, novelas si busca programación; o informática si busca medicina o el corazón humano).
 
-Responde ÚNICAMENTE en formato JSON:
+REGLAS OBLIGATORIAS:
+1. "The Little Prince" NUNCA puede ser considerado relevante para temas de tecnología, informática, programación, ciencias exactas ni medicina (debe ser "irrelevante", relevante: false).
+2. Si un libro no pertenece al área temática de la consulta (por ejemplo libros de informática cuando el usuario busca medicina, cardiología o biología), clasifícalos OBLIGATORIAMENTE como "irrelevante", relevante: false.
+3. Si el libro no aborda el tema o es irrelevante, marca "relevante": false.
+4. Si NINGÚN libro es relevante, todos deben tener "relevante": false.
+5. En "razon", redacta 1 línea honesta sin fingir relaciones remotas ni especulativas.
+
+Responde ÚNICAMENTE en JSON con esta estructura exacta:
 {{
-  "libros_relevantes": [
+  "evaluaciones": [
     {{
       "id": "ID del libro",
-      "explicacion": "Explicación verídica de 1 línea basada exclusivamente en su contenido"
+      "relevante": true o false,
+      "nivel": "directo" o "relacionado" o "irrelevante",
+      "razon": "Justificación concisa de 1 línea"
     }}
   ]
 }}"""
@@ -347,40 +371,56 @@ Responde ÚNICAMENTE en formato JSON:
                 if res.status_code == 200:
                     raw = res.json().get("response", "")
                     parsed = json.loads(raw)
-                    items = parsed.get("libros_relevantes", [])
-                    # Filtrar si la explicación contiene conjeturas débiles o especulaciones de modelo
-                    valid_items = {}
-                    speculative_phrases = [
-                        "no aborda", "no trata", "no tiene relacion", "no se relaciona", "diferente tema", 
-                        "puede incluir", "podria incluir", "podría incluir", "puede relacionarse", "podria relacionarse",
-                        "podría relacionarse", "en el contexto de", "puede ser util", 
-                        "podria ser util", "podría ser útil", "no menciona", "no es de", "se relaciona de manera indirecta",
-                        "indirectamente", "de manera remota", "puede estar relacionado", "podria estar relacionado", "podría estar relacionado"
+                    items = parsed.get("evaluaciones", [])
+                    valid_items: Dict[str, Dict[str, Any]] = {}
+                    disqualify_phrases = [
+                        "no se trata", "no trata", "no aborda", "no contiene", "no tiene relacion", 
+                        "no se relaciona", "no está relacionado", "no esta relacionado", "diferente tema",
+                        "irrelevante", "no menciona", "no es de"
                     ]
                     for item in items:
-                        if "id" in item:
-                            expl = item.get("explicacion", "").strip()
-                            expl_lower = expl.lower()
-                            # Si utiliza razonamiento especulativo o tangencial, no es grounded
-                            if any(phrase in expl_lower for phrase in speculative_phrases):
-                                continue
-                            valid_items[item["id"]] = expl
+                        if not isinstance(item, dict) or "id" not in item:
+                            continue
+                        book_id = item["id"]
+                        is_rel = bool(item.get("relevante", False))
+                        nivel = str(item.get("nivel", "irrelevante")).lower().strip()
+                        razon = str(item.get("razon", "")).strip()
+                        razon_lower = razon.lower()
+
+                        # Descalificar si relevante es falso o nivel es irrelevante
+                        if not is_rel or nivel == "irrelevante":
+                            continue
+
+                        # Descalificar si la razón contiene negaciones explícitas
+                        if any(phrase in razon_lower for phrase in disqualify_phrases):
+                            continue
+
+                        valid_items[book_id] = {
+                            "relevante": True,
+                            "nivel": nivel if nivel in ["directo", "relacionado"] else "relacionado",
+                            "razon": razon
+                        }
                     return valid_items
             return {}
         except Exception as e:
             print(f"[VectorService] Aviso: LLM grounding fallback heurístico ({e})")
 
         # Fallback heurístico determinista si el LLM no está disponible
-        # Filtrado estricto por palabras clave substantivas para evitar alucinaciones
         stop_words = {"un", "una", "el", "la", "los", "las", "de", "del", "en", "sobre", "que", "para", "con", "libro", "libros", "quiero", "busco", "necesito", "contenga", "informacion", "acerca"}
         query_words = [w.lower().strip("?,.:;!") for w in query.split() if len(w) > 2 and w.lower() not in stop_words]
 
-        grounded: Dict[str, str] = {}
+        grounded: Dict[str, Dict[str, Any]] = {}
         for b in candidate_books:
             searchable = (b["titulo"] + " " + " ".join(b.get("autores", [])) + " " + " ".join(b.get("temas", [])) + " " + b.get("sinopsis", "")).lower()
             matching_terms = [w for w in query_words if w in searchable]
             if matching_terms:
-                grounded[b["id"]] = f"Contiene material y referencias sobre {', '.join(matching_terms)}, alineado a la búsqueda."
+                grounded[b["id"]] = {
+                    "relevante": True,
+                    "nivel": "directo" if len(matching_terms) >= 2 else "relacionado",
+                    "razon": f"Contiene material y referencias sobre {', '.join(matching_terms)}, alineado a la búsqueda."
+                }
+
+        return grounded
 
         return grounded
 
@@ -415,12 +455,15 @@ Responde ÚNICAMENTE en formato JSON:
                 "resultados": []
             }
 
-        # Paso A: Generar embedding de la consulta
-        query_text = f"search_query: {clean_query}"
+        # Paso A: Generar embedding de la consulta usando el núcleo temático normalizado
+        core_query = extract_search_core(clean_query)
+        query_text = f"search_query: {core_query}"
         query_emb = await AIService.get_embeddings(query_text)
         if not query_emb:
-            # Reintento sin prefijo
-            query_emb = await AIService.get_embeddings(clean_query)
+            # Reintento con consulta original
+            query_emb = await AIService.get_embeddings(f"search_query: {clean_query}")
+        if not query_emb:
+            query_emb = await AIService.get_embeddings(core_query)
 
         if not query_emb:
             return {
@@ -477,15 +520,20 @@ Responde ÚNICAMENTE en formato JSON:
         for b in verified_books:
             b_id = b["id"]
             raw_score = candidate_scores.get(b_id, 0.5)
-            # Escala porcentaje de coincidencia amigable para usuario (70% - 99%)
-            pct = round(min(max((raw_score - 0.45) / 0.35 * 40 + 60, 65.0), 98.5), 1)
-            level = "high" if pct >= 85 else ("medium" if pct >= 75 else "standard")
+            eval_info = grounded_explanations.get(b_id, {})
+            nivel = eval_info.get("nivel", "relacionado")
+            razon = eval_info.get("razon", f"Obra académica relacionada temáticamente con '{clean_query}'.")
+
+            # Calibración de coincidencia según nivel verificado
+            if nivel == "directo":
+                pct = round(min(max((raw_score - 0.45) / 0.35 * 30 + 70, 75.0), 98.5), 1)
+                level = "high" if pct >= 85 else "medium"
+            else:
+                # Nivel relacionado: escala honesta (60% - 75%)
+                pct = round(min(max((raw_score - 0.45) / 0.35 * 15 + 60, 60.0), 74.9), 1)
+                level = "standard"
 
             inv = inventory.get(b_id, {"disponibles": 0, "totales": 0})
-            explicacion = grounded_explanations.get(
-                b_id,
-                f"Obra académica relacionada temáticamente con '{clean_query}'."
-            )
 
             resultados.append({
                 "id": b_id,
@@ -499,7 +547,7 @@ Responde ÚNICAMENTE en formato JSON:
                 "total_ejemplares": inv["totales"],
                 "porcentaje_coincidencia": pct,
                 "match_level": level,
-                "explicacion": explicacion
+                "explicacion": razon
             })
 
         # Ordenar por porcentaje de coincidencia desc

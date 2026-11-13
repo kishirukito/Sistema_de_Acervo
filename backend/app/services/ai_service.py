@@ -142,26 +142,52 @@ class AIService:
     @classmethod
     async def suggest_topics(cls, query: str) -> List[str]:
         """
-        Sugiere tópicos y áreas relacionadas con un término de búsqueda para la biblioteca.
+        Sugiere 3 a 4 tópicos breves y limpios (máx 3 palabras cada uno)
+        directamente relacionados con el término de búsqueda, en formato JSON estricto sin saludos ni charla.
         """
-        prompt = (
-            f"El usuario busca en la biblioteca universitaria el tema: '{query}'. "
-            f"Proporciona 3 conceptos o materias académicas relacionadas directamente, separadas por coma."
-        )
+        clean_q = query.strip()
+        if not clean_q:
+            return []
+
+        prompt = f"""Eres un motor de búsqueda bibliotecario. El usuario busca: "{clean_q}".
+Genera de 3 a 4 etiquetas o materias académicas clave muy breves (máximo 3 palabras por etiqueta).
+PROHIBIDO saludar, prohibido incluir texto conversacional, introducciones o explicaciones.
+
+Responde ÚNICAMENTE un arreglo JSON de cadenas de texto con este formato exacto:
+["Etiqueta 1", "Etiqueta 2", "Etiqueta 3"]"""
+
         try:
-            async with httpx.AsyncClient(timeout=15.0) as client:
+            async with httpx.AsyncClient(timeout=10.0) as client:
                 response = await client.post(
                     f"{settings.OLLAMA_BASE_URL}/api/generate",
                     json={
                         "model": settings.LOCAL_AI_MODEL,
                         "prompt": prompt,
-                        "stream": False
+                        "stream": False,
+                        "format": "json",
+                        "options": {
+                            "temperature": 0.1
+                        }
                     }
                 )
                 if response.status_code == 200:
-                    raw = response.json().get("response", "")
-                    return [item.strip() for item in raw.split(",") if item.strip()]
-        except Exception:
-            pass
+                    raw = response.json().get("response", "").strip()
+                    parsed = json.loads(raw)
+                    if isinstance(parsed, list):
+                        clean_items = [str(x).strip().strip('"').strip("'") for x in parsed if isinstance(x, str) and len(str(x).strip()) > 1]
+                        return clean_items[:4]
+                    if isinstance(parsed, dict):
+                        # En caso de que el modelo devuelva {"etiquetas": [...]} o {"sugerencias": [...]}
+                        for v in parsed.values():
+                            if isinstance(v, list):
+                                return [str(x).strip() for x in v if isinstance(x, str)][:4]
+        except Exception as e:
+            print(f"[AIService] Error generando sugerencias con LLM: {e}")
+
+        # Fallback limpio sin charla
+        words = [w.capitalize() for w in clean_q.split() if len(w) > 3 and w.lower() not in {"quiero", "libro", "sobre", "contenga", "informacion", "acerca", "para"}]
+        if words:
+            return words[:4]
+        return ["Programación", "Ciencias de la Computación", "Ingeniería de Software"]
 
         return [query, f"Fundamentos de {query}", f"Arquitectura y {query}"]
