@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import {
   Search,
@@ -20,8 +20,7 @@ import {
   Code,
 } from 'lucide-react';
 import { BIBLIOGRAPHIC_CATEGORIES, getCategoryFullLabel } from '../../constants';
-import { booksService } from '../../services/api/books.service';
-import type { Book } from '../../types';
+import { useAllBooks } from '../../features/catalog/books.query';
 import './UserHomePage.css';
 
 const CATEGORY_ICONS: Record<string, React.ComponentType<{ size?: number; className?: string }>> = {
@@ -56,18 +55,12 @@ const CATEGORIES: CategoryItem[] = BIBLIOGRAPHIC_CATEGORIES.map((c) => ({
 export const UserHomePage: React.FC = () => {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
-  const [liveBooks, setLiveBooks] = useState<Book[]>([]);
   const [coverErrors, setCoverErrors] = useState<Record<string, boolean>>({});
 
-  useEffect(() => {
-    let active = true;
-    booksService.getAll().then((data) => {
-      if (active && data) {
-        setLiveBooks(data);
-      }
-    }).catch(() => {});
-    return () => { active = false; };
-  }, []);
+  // ── React Query: reutiliza caché de libros si ya fue cargada ─────────────
+  // Primera visita: lanza la petición y la guarda en caché 2 min.
+  // Regreso a Home desde Catálogo: datos disponibles inmediatamente.
+  const { data: liveBooks = [] } = useAllBooks();
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();

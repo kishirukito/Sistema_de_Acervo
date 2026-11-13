@@ -12,13 +12,16 @@ export const Providers: React.FC<ProvidersProps> = ({ children }) => {
       new QueryClient({
         defaultOptions: {
           queries: {
-            // staleTime global: 5 minutos para datos que no son solicitudes.
-            // Las queries de solicitudes usan su propio staleTime (10s) declarado
-            // en su useQuery para ser más reactivas.
+            // staleTime global: 5 minutos — regreso a pantalla no relanza petición
+            // si los datos tienen menos de 5 min. Las queries de solicitudes y libros
+            // declaran su propio staleTime más corto donde corresponde.
             staleTime: 1000 * 60 * 5,
+            // gcTime: cuánto tiempo permanecen en memoria los datos sin consumidores.
+            // 10 minutos permite navegar y volver sin re-fetching innecesario.
+            gcTime: 1000 * 60 * 10,
+            // 1 reintento ante error de red; falla rápido ante 4xx/5xx.
             retry: 1,
-            // Habilitar refetch al recuperar foco para toda la app.
-            // Las queries de solicitudes lo sobrescriben con refetchOnWindowFocus: true.
+            // No re-fetching silencioso al ganar foco salvo que la query lo active.
             refetchOnWindowFocus: false,
           },
         },

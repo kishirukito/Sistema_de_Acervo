@@ -17,12 +17,12 @@ import {
 } from 'lucide-react';
 import clsx from 'clsx';
 import { MOCK_BOOKS } from '../../mocks/data';
-import { booksService } from '../../services/api/books.service';
 import type { Book } from '../../types';
 import { resolveCategory, getCategoryName } from '../../constants';
 import { Card, CardBody } from '../../components/ui/Card';
 import { Button } from '../../components/ui/Button';
 import { EmptyState } from '../../components/ui/EmptyState';
+import { useAllBooks } from '../../features/catalog/books.query';
 import './UserBookDetailPage.css';
 
 interface CoverVisualMetadata {
@@ -162,55 +162,18 @@ export const UserBookDetailPage: React.FC = () => {
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }, [bookId]);
 
-  // Retrieve book from local cache or async from Supabase
-  const [book, setBook] = useState<Book | null>(() => {
-    return MOCK_BOOKS.find((b) => b.id === bookId) || null;
-  });
-  const [loading, setLoading] = useState<boolean>(!book);
-  const [allCatalogBooks, setAllCatalogBooks] = useState<Book[]>(MOCK_BOOKS);
+  // ── React Query: obtiene todos los libros desde caché compartida ──────────
+  // Si UserCatalogPage o UserHomePage ya cargaron los datos, no hay petición nueva.
+  // El selector extrae el libro que interesa sin re-render por los demás.
+  const { data: allCatalogBooks = MOCK_BOOKS, isLoading: loadingAll } = useAllBooks();
 
-  useEffect(() => {
-    let isMounted = true;
-    async function loadBookData() {
-      if (!bookId) return;
-      if (!book || book.id !== bookId) {
-        setLoading(true);
-      }
-      try {
-        const found = await booksService.getById(bookId);
-        if (isMounted) {
-          if (found) {
-            setBook(found);
-          } else {
-            const fallback = MOCK_BOOKS.find((b) => b.id === bookId) || null;
-            setBook(fallback);
-          }
-        }
-      } catch (err) {
-        console.error('Error fetching book from Supabase:', err);
-        if (isMounted) {
-          const fallback = MOCK_BOOKS.find((b) => b.id === bookId) || null;
-          setBook(fallback);
-        }
-      } finally {
-        if (isMounted) {
-          setLoading(false);
-        }
-      }
-    }
+  const book: Book | null = useMemo(
+    () => allCatalogBooks.find((b) => b.id === bookId) ?? MOCK_BOOKS.find((b) => b.id === bookId) ?? null,
+    [allCatalogBooks, bookId]
+  );
 
-    loadBookData();
-
-    booksService.getAll().then((list) => {
-      if (isMounted && list && list.length > 0) {
-        setAllCatalogBooks(list);
-      }
-    });
-
-    return () => {
-      isMounted = false;
-    };
-  }, [bookId]);
+  // isLoading solo en primera visita (caché fría); en regreso es false inmediatamente
+  const loading = loadingAll && !book;
 
   // Favorite toggle state
   const [isFavorite, setIsFavorite] = useState(false);

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React from 'react';
 import { useAuth } from '../../features/auth/AuthContext';
 import { MetricCard } from '../../features/dashboard/components/MetricCard';
 import { QuickActions } from '../../features/dashboard/components/QuickActions';
@@ -9,52 +9,32 @@ import {
 import { RecentActivity } from '../../features/dashboard/components/RecentActivity';
 import { AlertsPanel } from '../../features/dashboard/components/AlertsPanel';
 import { fetchDashboardSnapshot } from '../../services/api/dashboard.service';
-import { useRealtimeTable } from '../../hooks/useRealtimeTable';
-import type {
-  MetricData,
-  MonthlyLoanData,
-  CategoryConsultData,
-  RecentActivityItem,
-  DashboardAlert,
-} from '../../features/dashboard/dashboard.types';
+import { useQuery } from '@tanstack/react-query';
 import '../../features/dashboard/dashboard.css';
+
+/** Clave para el snapshot del dashboard. staleTime: 60s — datos estadísticos. */
+const DASHBOARD_KEY = 'dashboard-snapshot' as const;
 
 export const AdminDashboardPage: React.FC = () => {
   const { user } = useAuth();
-  const [metrics, setMetrics] = useState<MetricData[]>([]);
-  const [monthlyLoans, setMonthlyLoans] = useState<MonthlyLoanData[]>([]);
-  const [categoryConsults, setCategoryConsults] = useState<CategoryConsultData[]>([]);
-  const [recentActivities, setRecentActivities] = useState<RecentActivityItem[]>([]);
-  const [alerts, setAlerts] = useState<DashboardAlert[]>([]);
-  const [lastSyncTime, setLastSyncTime] = useState<string>('');
-  const [isLoading, setIsLoading] = useState<boolean>(true);
 
-  const refreshDashboard = useCallback(() => {
-    fetchDashboardSnapshot()
-      .then((data) => {
-        if (data) {
-          setMetrics(data.metrics);
-          setMonthlyLoans(data.monthlyLoans);
-          setCategoryConsults(data.categoryConsults);
-          setRecentActivities(data.recentActivities);
-          setAlerts(data.alerts);
-          setLastSyncTime(data.lastSyncTime);
-        }
-      })
-      .catch((err) => {
-        console.error('[AdminDashboardPage] Error loading dashboard data:', err);
-      })
-      .finally(() => setIsLoading(false));
-  }, []);
+  // ── React Query: dashboard snapshot ──────────────────────────────────────
+  // Primera visita: lanza 3 peticiones paralelas en fetchDashboardSnapshot.
+  // Regreso en < 60s: datos visibles inmediatamente desde caché sin re-fetch.
+  const { data, isLoading } = useQuery({
+    queryKey: [DASHBOARD_KEY],
+    queryFn: fetchDashboardSnapshot,
+    staleTime: 60_000,          // 1 minuto — estadísticas no cambian en segundos
+    refetchOnWindowFocus: false, // Evita re-fetch al cambiar de pestaña
+    retry: 1,
+  });
 
-  useEffect(() => {
-    setIsLoading(true);
-    refreshDashboard();
-  }, [refreshDashboard]);
-
-  // ── Realtime: actualizar KPIs cuando hay nuevos préstamos o solicitudes ──
-  useRealtimeTable('prestamos', { onInsert: refreshDashboard, onUpdate: refreshDashboard });
-  useRealtimeTable('solicitudes_prestamo', { onInsert: refreshDashboard });
+  const metrics           = data?.metrics           ?? [];
+  const monthlyLoans      = data?.monthlyLoans      ?? [];
+  const categoryConsults  = data?.categoryConsults  ?? [];
+  const recentActivities  = data?.recentActivities  ?? [];
+  const alerts            = data?.alerts            ?? [];
+  const lastSyncTime      = data?.lastSyncTime      ?? '';
 
   const getGreeting = () => {
     const hour = new Date().getHours();

@@ -13,7 +13,6 @@ import {
   Code,
 } from 'lucide-react';
 import clsx from 'clsx';
-import { booksService } from '../../services/api/books.service';
 import type { Book } from '../../types';
 import {
   BIBLIOGRAPHIC_CATEGORIES,
@@ -21,7 +20,9 @@ import {
   getCategoryName,
 } from '../../constants';
 import { CustomSelect } from '../../components/ui/CustomSelect';
+import { useAllBooks, invalidateAllBooks } from '../../features/catalog/books.query';
 import { useRealtimeTable } from '../../hooks/useRealtimeTable';
+import { useQueryClient } from '@tanstack/react-query';
 import './UserCatalogPage.css';
 
 const ITEMS_PER_PAGE = 6;
@@ -190,29 +191,19 @@ const getBookCoverMetadata = (book: Book): BookCoverMetadata => {
 export const UserCatalogPage: React.FC = () => {
   const [searchParams, setSearchParams] = useSearchParams();
   const location = useLocation();
+  const queryClient = useQueryClient();
 
-  // Live books state from Supabase
-  const [booksList, setBooksList] = useState<Book[]>([]);
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  // ── React Query: catálogo de libros con caché compartida ──────────────────
+  // Si UserHomePage ya cargó los datos, esta pantalla los muestra inmediatamente.
+  const { data: booksList = [], isLoading } = useAllBooks();
 
-  const loadBooks = useCallback(() => {
-    setIsLoading(true);
-    booksService
-      .getAll()
-      .then((data: Book[]) => {
-        if (Array.isArray(data)) setBooksList(data);
-      })
-      .catch(() => {})
-      .finally(() => setIsLoading(false));
-  }, []);
+  // ── Realtime: invalidar caché cuando cambia disponibilidad ────────────────
+  const handleBooksChange = useCallback(() => {
+    invalidateAllBooks(queryClient);
+  }, [queryClient]);
 
-  useEffect(() => {
-    loadBooks();
-  }, [loadBooks]);
-
-  // ── Realtime: actualizar catálogo del alumno cuando cambia disponibilidad ──
-  useRealtimeTable('libros', { onInsert: loadBooks, onUpdate: loadBooks, onDelete: loadBooks });
-  useRealtimeTable('ejemplares', { onUpdate: loadBooks });
+  useRealtimeTable('libros', { onInsert: handleBooksChange, onUpdate: handleBooksChange, onDelete: handleBooksChange });
+  useRealtimeTable('ejemplares', { onUpdate: handleBooksChange });
 
   // Search state
   const initialSearch = searchParams.get('search') || '';

@@ -10,6 +10,7 @@ import { DeleteBookModal } from '../../features/catalog/components/DeleteBookMod
 import { MOCK_RESOURCES } from '../../features/catalog/catalog.mock';
 import { fetchCatalogResources, deleteResource, updateResource } from '../../services/api/catalog.service';
 import { useRealtimeTable } from '../../hooks/useRealtimeTable';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { CatalogFilterState, Resource } from '../../features/catalog/catalog.types';
 import { resolveCategory } from '../../constants';
 import '../../features/catalog/catalog.css';
@@ -21,32 +22,39 @@ const INITIAL_FILTERS: CatalogFilterState = {
   publicationYear: '',
 };
 
+/** Clave compartida del catálogo admin. staleTime: 2 min. */
+export const ADMIN_CATALOG_KEY = 'admin-catalog' as const;
+
 export const CatalogPage: React.FC = () => {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [filters, setFilters] = useState<CatalogFilterState>(INITIAL_FILTERS);
   const [currentPage, setCurrentPage] = useState<number>(1);
-  const [resourcesList, setResourcesList] = useState<Resource[]>([]);
 
-  const refreshCatalog = useCallback(() => {
-    fetchCatalogResources().then((data) => {
-      if (Array.isArray(data)) setResourcesList(data);
-    });
-  }, []);
+  // ── React Query: catálogo admin con caché ─────────────────────────────────
+  // Regreso a la pantalla en < 2 min: datos visibles sin esperar red.
+  const { data: resourcesList = [] } = useQuery<Resource[]>({
+    queryKey: [ADMIN_CATALOG_KEY],
+    queryFn: fetchCatalogResources,
+    staleTime: 2 * 60 * 1000,
+    refetchOnWindowFocus: false,
+    placeholderData: MOCK_RESOURCES as Resource[],
+  });
 
-  React.useEffect(() => {
-    refreshCatalog();
-  }, [refreshCatalog]);
+  const invalidateCatalog = useCallback(() => {
+    queryClient.invalidateQueries({ queryKey: [ADMIN_CATALOG_KEY] });
+  }, [queryClient]);
 
-  // ── Realtime: actualizar catálogo cuando cambia un libro o ejemplar ──
+  // ── Realtime: invalidar caché cuando cambia un libro o ejemplar ──────────
   useRealtimeTable('libros', {
-    onInsert: refreshCatalog,
-    onUpdate: refreshCatalog,
-    onDelete: refreshCatalog,
+    onInsert: invalidateCatalog,
+    onUpdate: invalidateCatalog,
+    onDelete: invalidateCatalog,
   });
 
   useRealtimeTable('ejemplares', {
-    onInsert: refreshCatalog,
-    onUpdate: refreshCatalog,
+    onInsert: invalidateCatalog,
+    onUpdate: invalidateCatalog,
   });
   const [selectedResource, setSelectedResource] = useState<Resource | null>(null);
   const [editingResource, setEditingResource] = useState<Resource | null>(null);
@@ -121,16 +129,9 @@ export const CatalogPage: React.FC = () => {
   const handleSaveResource = async (updated: Resource) => {
     try {
       await updateResource(updated.id, updated);
-      
-      // Sincronizar catálogo refrescando desde el backend/Supabase
-      const freshData = await fetchCatalogResources();
-      if (freshData) {
-        setResourcesList(freshData);
-      } else {
-        setResourcesList((prev) =>
-          prev.map((item) => (item.id === updated.id ? updated : item))
-        );
-      }
+
+      // Invalidar caché → React Query re-fetch en background
+      invalidateCatalog();
 
       setFeedbackToast(`El libro "${updated.title}" y sus ejemplares se actualizaron correctamente.`);
     } catch (err: any) {
@@ -152,23 +153,16 @@ export const CatalogPage: React.FC = () => {
         return false;
       }
 
-      // 1. Update UI state only after backend confirmation
-      setResourcesList((prev) => prev.filter((item) => item.id !== target.id));
+      // Invalidar caché → React Query refetch en background
+      invalidateCatalog();
 
-      // 2. Synchronize real list by refetching from Supabase
-      fetchCatalogResources().then((freshData) => {
-        if (freshData) {
-          setResourcesList(freshData);
-        }
-      });
-
-      // 3. Keep in-memory mock synchronized if it existed
+      // Keep in-memory mock synchronized if it existed
       const mockIdx = MOCK_RESOURCES.findIndex((item) => item.id === target.id);
       if (mockIdx !== -1) {
         MOCK_RESOURCES.splice(mockIdx, 1);
       }
 
-      // 4. Ensure pagination stays valid
+      // Ensure pagination stays valid
       const remainingCount = filteredResources.length - 1;
       const newTotalPages = Math.ceil(remainingCount / itemsPerPage) || 1;
       if (currentPage > newTotalPages) {
