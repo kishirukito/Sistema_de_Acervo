@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '../../features/auth/AuthContext';
 import { MetricCard } from '../../features/dashboard/components/MetricCard';
 import { QuickActions } from '../../features/dashboard/components/QuickActions';
@@ -9,6 +9,7 @@ import {
 import { RecentActivity } from '../../features/dashboard/components/RecentActivity';
 import { AlertsPanel } from '../../features/dashboard/components/AlertsPanel';
 import { fetchDashboardSnapshot } from '../../services/api/dashboard.service';
+import { useRealtimeTable } from '../../hooks/useRealtimeTable';
 import type {
   MetricData,
   MonthlyLoanData,
@@ -28,13 +29,10 @@ export const AdminDashboardPage: React.FC = () => {
   const [lastSyncTime, setLastSyncTime] = useState<string>('');
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
-  useEffect(() => {
-    let active = true;
-    setIsLoading(true);
-
+  const refreshDashboard = useCallback(() => {
     fetchDashboardSnapshot()
       .then((data) => {
-        if (active && data) {
+        if (data) {
           setMetrics(data.metrics);
           setMonthlyLoans(data.monthlyLoans);
           setCategoryConsults(data.categoryConsults);
@@ -46,14 +44,17 @@ export const AdminDashboardPage: React.FC = () => {
       .catch((err) => {
         console.error('[AdminDashboardPage] Error loading dashboard data:', err);
       })
-      .finally(() => {
-        if (active) setIsLoading(false);
-      });
-
-    return () => {
-      active = false;
-    };
+      .finally(() => setIsLoading(false));
   }, []);
+
+  useEffect(() => {
+    setIsLoading(true);
+    refreshDashboard();
+  }, [refreshDashboard]);
+
+  // ── Realtime: actualizar KPIs cuando hay nuevos préstamos o solicitudes ──
+  useRealtimeTable('prestamos', { onInsert: refreshDashboard, onUpdate: refreshDashboard });
+  useRealtimeTable('solicitudes_prestamo', { onInsert: refreshDashboard });
 
   const getGreeting = () => {
     const hour = new Date().getHours();

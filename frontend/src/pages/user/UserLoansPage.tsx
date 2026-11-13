@@ -21,6 +21,7 @@ import { fetchMyLoans } from '../../services/api/loans.service';
 import { booksService } from '../../services/api/books.service';
 import type { Book, Loan } from '../../types';
 import { resolveCategory } from '../../constants';
+import { useRealtimeTable } from '../../hooks/useRealtimeTable';
 import './UserLoansPage.css';
 
 interface CoverVisualMetadata {
@@ -287,6 +288,12 @@ export const UserLoansPage: React.FC = () => {
   React.useEffect(() => {
     return loadLoans();
   }, [loadLoans]);
+
+  // ── Realtime: si el admin modifica un préstamo del alumno → recargarlo ──
+  useRealtimeTable('prestamos', {
+    onUpdate: loadLoans,
+    onInsert: loadLoans,
+  });
 
   // Metric counts (calculated globally from all user loans)
   const metrics = useMemo(() => {
