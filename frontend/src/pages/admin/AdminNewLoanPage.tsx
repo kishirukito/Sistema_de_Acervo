@@ -1,4 +1,5 @@
 import React, { useState, useRef, useMemo, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import {
   ArrowLeft,
@@ -48,9 +49,15 @@ export const AdminNewLoanPage: React.FC = () => {
   const userSearchRef = useRef<HTMLInputElement>(null);
   const dateInputRef = useRef<HTMLInputElement>(null);
 
+  // ── React Query: catálogo de recursos (clave compartida con CatalogPage) ─
+  const { data: resources = [] } = useQuery<Resource[]>({
+    queryKey: ['admin-catalog'],
+    queryFn: fetchCatalogResources,
+    staleTime: 1000 * 60 * 2, // 2 min
+  });
+
   // Loaded database data
   const [users, setUsers] = useState<ManagedUser[]>([]);
-  const [resources, setResources] = useState<Resource[]>([]);
   const [loanTypes, setLoanTypes] = useState<LoanType[]>([]);
   const [instituciones, setInstituciones] = useState<InstitucionConvenio[]>([]);
   const [isLoadingData, setIsLoadingData] = useState(true);
@@ -95,15 +102,13 @@ export const AdminNewLoanPage: React.FC = () => {
     async function loadData() {
       setIsLoadingData(true);
       try {
-        const [usersData, resourcesData, typesData, instData] = await Promise.all([
+        const [usersData, typesData, instData] = await Promise.all([
           fetchManagedUsers(),
-          fetchCatalogResources(),
           fetchLoanTypes(),
           fetchInstituciones(),
         ]);
         if (isMounted) {
           setUsers(usersData);
-          setResources(resourcesData);
           setLoanTypes(typesData);
           setInstituciones(instData);
 
