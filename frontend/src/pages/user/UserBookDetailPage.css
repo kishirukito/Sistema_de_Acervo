@@ -784,19 +784,46 @@
 }
 
 @media (max-width: 480px) {
+  .book-detail-hero-card {
+    padding: 16px 14px;
+    gap: 16px;
+  }
+
+  .book-detail-cover-wrapper {
+    max-width: 200px;
+    height: 280px;
+  }
+
+  .book-detail-title {
+    font-size: 1.25rem;
+    word-break: break-word;
+  }
+
   .book-detail-biblio-grid {
     grid-template-columns: 1fr;
+    gap: 12px;
   }
 
   .book-detail-stats-row {
-    gap: 8px;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 6px;
   }
 
   .book-detail-stat-number {
-    font-size: 1.25rem;
+    font-size: 1.125rem;
   }
 
   .book-detail-stat-label {
-    font-size: 0.6875rem;
+    font-size: 0.625rem;
+  }
+
+  .book-detail-request-btn {
+    height: 44px;
+    font-size: 0.875rem;
+  }
+
+  .book-detail-favorite-btn {
+    height: 42px;
+    font-size: 0.875rem;
   }
 }

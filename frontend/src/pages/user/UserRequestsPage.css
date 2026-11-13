@@ -1084,3 +1084,27 @@
     padding: 4px 0;
   }
 }
+
+@media (max-width: 380px) {
+  .user-requests-metrics-grid {
+    gap: 8px;
+  }
+
+  .user-requests-metric-card {
+    padding: 10px 8px;
+    gap: 6px;
+  }
+
+  .user-requests-metric-icon-box {
+    width: 36px;
+    height: 36px;
+  }
+
+  .user-requests-metric-number {
+    font-size: 1.125rem;
+  }
+
+  .user-requests-metric-label {
+    font-size: 0.6875rem;
+  }
+}

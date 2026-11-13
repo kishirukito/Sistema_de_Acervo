@@ -273,3 +273,36 @@
     padding: 0 16px;
   }
 }
+
+@media (max-width: 640px) {
+  .reader-topbar {
+    height: 60px;
+    padding: 0 12px;
+  }
+
+  .reader-topbar-left {
+    gap: 10px;
+    min-width: 0;
+  }
+
+  .reader-topbar-title {
+    font-size: 1rem;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .reader-topbar-right {
+    gap: 8px;
+    flex-shrink: 0;
+  }
+
+  .reader-topbar-user-info,
+  .reader-topbar-chevron {
+    display: none;
+  }
+
+  .reader-topbar-user {
+    padding: 0;
+  }
+}

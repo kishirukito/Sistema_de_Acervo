@@ -521,17 +521,17 @@ export const UserCatalogPage: React.FC = () => {
 
       {/* 2. Top Search Bar */}
       <form
-        className="catalog-search-card"
+        className="catalog-search-card user-catalog-search-card"
         onSubmit={handleSearchSubmit}
         role="search"
         aria-label="Buscador del catálogo"
       >
-        <div className="catalog-search-field-container">
-          <Search size={18} className="catalog-search-icon" aria-hidden="true" />
+        <div className="catalog-search-field-container user-catalog-search-field-container">
+          <Search size={18} className="catalog-search-icon user-catalog-search-icon" aria-hidden="true" />
           <input
             type="text"
-            className="catalog-search-input"
-            placeholder="Busca por título, autor o tema."
+            className="catalog-search-input user-catalog-search-input"
+            placeholder="Busca por título, autor o tema..."
             value={searchInput}
             onChange={(e) => setSearchInput(e.target.value)}
             aria-label="Término de búsqueda"
@@ -539,22 +539,22 @@ export const UserCatalogPage: React.FC = () => {
           {searchInput.length > 0 && (
             <button
               type="button"
-              className="catalog-search-clear-btn"
+              className="catalog-search-clear-btn user-catalog-search-clear-btn"
               onClick={handleClearSearch}
               aria-label="Borrar búsqueda"
             >
               <X size={16} />
             </button>
           )}
-          <button type="submit" className="catalog-search-submit-btn">
+          <button type="submit" className="catalog-search-submit-btn user-catalog-search-submit-btn">
             Buscar
           </button>
         </div>
 
-        <div className="catalog-search-scope-box">
+        <div className="catalog-search-scope-box user-catalog-search-scope-box">
           <label
             htmlFor="catalog-search-scope-select"
-            className="catalog-search-scope-label"
+            className="catalog-search-scope-label user-catalog-search-scope-label"
           >
             Buscar por
           </label>
@@ -686,7 +686,7 @@ export const UserCatalogPage: React.FC = () => {
               </p>
             </div>
 
-            <div style={{ display: 'flex', alignItems: 'center', gap: 12 }}>
+            <div className="catalog-results-controls">
               {/* Mobile Filter Trigger Button */}
               <button
                 type="button"
@@ -808,6 +808,16 @@ export const UserCatalogPage: React.FC = () => {
                         className="catalog-card-cover"
                         style={{ background: meta.gradient }}
                       >
+                        {book.coverUrl && (
+                          <img
+                            src={book.coverUrl}
+                            alt={book.title}
+                            className="catalog-card-cover-img"
+                            onError={(e) => {
+                              (e.target as HTMLElement).style.display = 'none';
+                            }}
+                          />
+                        )}
                         <span className="catalog-card-cover-tag">
                           BIBLIOTECA
                         </span>

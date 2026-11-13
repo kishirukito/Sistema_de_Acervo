@@ -648,5 +648,36 @@
   .user-profile-pref-item {
     align-items: flex-start;
   }
+
+  .user-profile-email-text {
+    word-break: break-all;
+  }
+
+  .user-profile-toast {
+    left: 16px;
+    right: 16px;
+    bottom: 16px;
+    justify-content: center;
+    text-align: center;
+  }
+
+  .user-profile-btn-primary,
+  .user-profile-btn-outline,
+  .user-profile-btn-dark,
+  .user-profile-btn-danger {
+    min-height: 44px;
+  }
+}
+
+@media (max-width: 420px) {
+  .user-profile-avatar-circle {
+    width: 56px;
+    height: 56px;
+    font-size: 1.125rem;
+  }
+
+  .user-profile-title {
+    font-size: 1.25rem;
+  }
 }
 

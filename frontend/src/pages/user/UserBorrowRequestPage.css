@@ -677,10 +677,20 @@
 }
 
 @media (max-width: 520px) {
+  .borrow-request-title {
+    font-size: 1.375rem;
+    word-break: break-word;
+  }
+
   .borrow-request-book-layout {
     flex-direction: column;
     align-items: center;
     text-align: center;
+  }
+
+  .borrow-request-book-cover {
+    width: 120px;
+    height: 170px;
   }
 
   .borrow-request-category-pill,
@@ -694,5 +704,10 @@
 
   .borrow-request-conditions-card {
     padding: 16px;
+  }
+
+  .borrow-request-btn-cancel,
+  .borrow-request-btn-submit {
+    height: 44px;
   }
 }

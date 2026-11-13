@@ -48,3 +48,9 @@
     padding: 16px 14px 36px 14px;
   }
 }
+
+@media (max-width: 380px) {
+  .reader-layout-content {
+    padding: 14px 10px 32px 10px;
+  }
+}

@@ -1041,3 +1041,27 @@
   }
 }
 
+@media (max-width: 380px) {
+  .user-loans-metrics-grid {
+    gap: 8px;
+  }
+
+  .user-loans-metric-card {
+    padding: 10px 8px;
+    gap: 6px;
+  }
+
+  .user-loans-metric-icon-box {
+    width: 36px;
+    height: 36px;
+  }
+
+  .user-loans-metric-number {
+    font-size: 1.125rem;
+  }
+
+  .user-loans-metric-label {
+    font-size: 0.6875rem;
+  }
+}
+
