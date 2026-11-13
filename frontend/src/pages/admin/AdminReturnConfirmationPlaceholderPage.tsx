@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useParams, useNavigate, useLocation, Link } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
 import {
   ArrowLeft,
   RotateCcw,
@@ -24,6 +25,8 @@ import { MOCK_LOANS } from '../../features/loans/loans.mock';
 import { MOCK_RESOURCES } from '../../features/catalog/catalog.mock';
 import { MOCK_MANAGED_USERS } from '../../features/users/users.mock';
 import { CATEGORY_LABELS } from '../../constants';
+import { ADMIN_RETURNS_KEY } from '../../features/returns/returns.query';
+import { ADMIN_LOANS_KEY } from '../../features/loans/admin-loans.query';
 import {
   getTodayIsoString,
   formatDisplayDate,
@@ -39,6 +42,7 @@ export const AdminReturnConfirmationPlaceholderPage: React.FC = () => {
   const { loanId } = useParams<{ loanId: string }>();
   const navigate = useNavigate();
   const location = useLocation();
+  const queryClient = useQueryClient();
 
   // Registro pasado por navegación si vino de la tabla
   const passedRecord: ReturnRecord | undefined = (location.state as any)?.record;
@@ -263,6 +267,11 @@ export const AdminReturnConfirmationPlaceholderPage: React.FC = () => {
         returnDate: isoReturnDate,
         notes: notes.trim() || undefined,
       });
+
+      // Invalidar caché de devoluciones y préstamos para que el listado
+      // refleje el cambio sin necesidad de recargar la página.
+      queryClient.invalidateQueries({ queryKey: [ADMIN_RETURNS_KEY] });
+      queryClient.invalidateQueries({ queryKey: [ADMIN_LOANS_KEY] });
 
       // Navigate to dedicated success screen
       navigate(`/admin/returns/${targetId}/success`, {

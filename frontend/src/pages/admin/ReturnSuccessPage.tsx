@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { Check, AlertCircle, Clock } from 'lucide-react';
+import { Check, AlertCircle, Clock, Loader2 } from 'lucide-react';
 import { getLoanReturnData, formatDisplayDate, getTodayIsoString } from '../../features/returns/returns.service';
 import { fetchReturnRecordById } from '../../services/api/returns-admin.service';
 import { ReturnSuccessSummary } from '../../features/returns/components/ReturnSuccessSummary';
@@ -22,12 +22,29 @@ export const ReturnSuccessPage: React.FC = () => {
   }, [loanId]);
 
   const [asyncData, setAsyncData] = useState<LoanReturnResolvedData | null>(null);
+  // isLoadingAsync: true mientras la petición async no ha concluido Y loanData no es suficiente.
+  // Evita mostrar "Devolución no encontrada" mientras se espera la respuesta.
+  const [isLoadingAsync, setIsLoadingAsync] = useState<boolean>(
+    // Solo necesitamos la carga async si loanData no existe o su título es el placeholder
+    !loanData || loanData.resourceTitle === 'Recurso'
+  );
 
   useEffect(() => {
-    if (!loanId) return;
-    if (loanData && loanData.resourceTitle !== 'Recurso') return;
+    if (!loanId) {
+      setIsLoadingAsync(false);
+      return;
+    }
+    // Si ya tenemos datos locales con título real, no hacemos fetch async
+    if (loanData && loanData.resourceTitle !== 'Recurso') {
+      setIsLoadingAsync(false);
+      return;
+    }
+
+    let active = true;
+    setIsLoadingAsync(true);
 
     fetchReturnRecordById(loanId).then((rec) => {
+      if (!active) return;
       if (rec) {
         setAsyncData({
           loanId: rec.loanId,
@@ -52,7 +69,11 @@ export const ReturnSuccessPage: React.FC = () => {
           notes: passedState?.notes || rec.notes,
         });
       }
+    }).finally(() => {
+      if (active) setIsLoadingAsync(false);
     });
+
+    return () => { active = false; };
   }, [loanId, loanData, passedState]);
 
   const resolvedData = asyncData || loanData;
@@ -73,6 +94,33 @@ export const ReturnSuccessPage: React.FC = () => {
     // Navigates to returns with state to automatically trigger loan search modal
     navigate('/admin/returns', { state: { openSearchModal: true } });
   };
+
+  // STATE 0: Carga en progreso — evita mostrar "no encontrado" mientras la petición async está pendiente
+  if (isLoadingAsync && !resolvedData) {
+    return (
+      <div className="return-success-page">
+        <div
+          className="return-success-state-card"
+          role="status"
+          aria-live="polite"
+        >
+          <div className="return-success-state-icon" aria-hidden="true" style={{ color: '#6B7280' }}>
+            <Loader2 size={32} className="animate-spin" />
+          </div>
+          <h1
+            ref={headingRef}
+            tabIndex={-1}
+            className="return-success-state-title"
+          >
+            Cargando devolución...
+          </h1>
+          <p className="return-success-state-desc">
+            Obteniendo información del préstamo registrado.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   // STATE 1: Loan Not Found
   if (!resolvedData) {
