@@ -18,7 +18,9 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({
 
   const isAvailable = resource.availability === 'AVAILABLE';
   const matchLabel =
-    resource.matchLevel === 'high'
+    resource.relevanceScore !== undefined
+      ? `${resource.relevanceScore}% coincidencia`
+      : resource.matchLevel === 'high'
       ? 'Coincidencia alta'
       : resource.matchLevel === 'medium'
       ? 'Coincidencia media'
@@ -79,6 +81,30 @@ export const ResourceCard: React.FC<ResourceCardProps> = ({
 
         {/* Short description */}
         <p className="search-book-desc">{resource.description}</p>
+
+        {/* AI Grounded Explanation if available */}
+        {resource.aiExplanation && (
+          <div
+            style={{
+              display: 'flex',
+              alignItems: 'flex-start',
+              gap: '6px',
+              padding: '6px 10px',
+              backgroundColor: '#f0fdf4',
+              borderRadius: '6px',
+              border: '1px solid #bbf7d0',
+              fontSize: '0.82rem',
+              color: '#166534',
+              marginBottom: '10px',
+            }}
+          >
+            <Sparkles size={14} style={{ marginTop: '2px', flexShrink: 0, color: '#15803d' }} />
+            <span>
+              <strong>Por qué coincide: </strong>
+              {resource.aiExplanation}
+            </span>
+          </div>
+        )}
 
         {/* Bottom row: Availability and Action Buttons */}
         <div className="search-card-bottom-row">

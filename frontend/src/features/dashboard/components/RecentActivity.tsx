@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import type { RecentActivityItem } from '../dashboard.types';
 
 interface RecentActivityProps {
@@ -6,6 +7,8 @@ interface RecentActivityProps {
 }
 
 export const RecentActivity: React.FC<RecentActivityProps> = ({ items }) => {
+  const navigate = useNavigate();
+
   const getBadgeClass = (status: RecentActivityItem['status']) => {
     switch (status) {
       case 'Activo':
@@ -26,7 +29,8 @@ export const RecentActivity: React.FC<RecentActivityProps> = ({ items }) => {
         <button
           type="button"
           className="dashboard-card-link"
-          onClick={() => alert('Ver todo el historial de actividades')}
+          onClick={() => navigate('/admin/loans')}
+          aria-label="Ver todos los préstamos y devoluciones"
         >
           Ver todo
         </button>
@@ -44,17 +48,25 @@ export const RecentActivity: React.FC<RecentActivityProps> = ({ items }) => {
             </tr>
           </thead>
           <tbody>
-            {items.map((item) => (
-              <tr key={item.id}>
-                <td className="activity-type-cell">{item.type}</td>
-                <td>{item.user}</td>
-                <td>{item.resource}</td>
-                <td>{item.date}</td>
-                <td>
-                  <span className={getBadgeClass(item.status)}>{item.status}</span>
+            {items.length === 0 ? (
+              <tr>
+                <td colSpan={5} style={{ textAlign: 'center', padding: '32px 16px', color: '#64748B' }}>
+                  No hay actividad de préstamos registrada en el acervo.
                 </td>
               </tr>
-            ))}
+            ) : (
+              items.map((item) => (
+                <tr key={item.id}>
+                  <td className="activity-type-cell">{item.type}</td>
+                  <td>{item.user}</td>
+                  <td>{item.resource}</td>
+                  <td>{item.date}</td>
+                  <td>
+                    <span className={getBadgeClass(item.status)}>{item.status}</span>
+                  </td>
+                </tr>
+              ))
+            )}
           </tbody>
         </table>
       </div>

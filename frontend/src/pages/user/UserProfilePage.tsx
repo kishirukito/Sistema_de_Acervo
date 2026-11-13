@@ -32,7 +32,6 @@ export const UserProfilePage: React.FC = () => {
   const [email, setEmail] = useState(user?.email || '');
   const [phone, setPhone] = useState(user?.phone || '');
   const [carreraId, setCarreraId] = useState<string>((user as any)?.carreraId || '');
-  const [dependenciaOArea, setDependenciaOArea] = useState<string>((user as any)?.dependenciaOArea || (user as any)?.departmentOrCareer || '');
   const [carrerasList, setCarrerasList] = useState<Carrera[]>([]);
   const userIdentifier = user?.identifierCode || (user?.id ? user.id.slice(0, 8) : 'SIN-FOLIO');
 
@@ -49,9 +48,6 @@ export const UserProfilePage: React.FC = () => {
       if (user.avatarUrl) setAvatarUrl(user.avatarUrl);
       if (user.phone) setPhone(user.phone);
       if ((user as any).carreraId) setCarreraId((user as any).carreraId);
-      if ((user as any).dependenciaOArea || (user as any).departmentOrCareer) {
-        setDependenciaOArea((user as any).dependenciaOArea || (user as any).departmentOrCareer);
-      }
     }
   }, [user]);
 
@@ -167,16 +163,39 @@ export const UserProfilePage: React.FC = () => {
           'Content-Type': 'application/json',
           ...(token ? { Authorization: `Bearer ${token}` } : {}),
         };
-        await fetch(`/api/v1/data/usuarios/${user.id}`, {
+        const res = await fetch(`/api/v1/data/usuarios/${user.id}`, {
           method: 'PATCH',
           headers,
           body: JSON.stringify({
             nombre_completo: fullName.trim(),
             telefono: phone.trim() || null,
-            carrera_id: carreraId || null,
-            dependencia_o_area: dependenciaOArea.trim() || null,
+            // carrera_id y dependencia_o_area solo modificables por Admin
           }),
         });
+        if (res.ok) {
+          // Sync updated fields into localStorage so reload shows current values
+          const SESSION_KEY = 'sistema-acervo-session';
+          try {
+            const raw = localStorage.getItem(SESSION_KEY);
+            if (raw) {
+              const session = JSON.parse(raw);
+              if (session?.user) {
+                session.user.name = fullName.trim();
+                session.user.phone = phone.trim() || null;
+                localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+              }
+            }
+            const rawCurrent = localStorage.getItem('acervo_current_user');
+            if (rawCurrent) {
+              const cu = JSON.parse(rawCurrent);
+              cu.name = fullName.trim();
+              cu.phone = phone.trim() || null;
+              localStorage.setItem('acervo_current_user', JSON.stringify(cu));
+            }
+          } catch {
+            // non-blocking: session sync failed but save succeeded
+          }
+        }
       }
       showToast('Cambios guardados correctamente.', 'success');
     } catch {
@@ -352,45 +371,31 @@ export const UserProfilePage: React.FC = () => {
                 Carrera universitaria (UNIPOLI)
               </label>
               <div className="user-profile-input-wrapper">
-                <select
-                  id="input-carrera"
-                  className="user-profile-input"
-                  value={carreraId}
-                  onChange={(e) => setCarreraId(e.target.value)}
-                  style={{ backgroundColor: '#FFFFFF' }}
-                >
-                  <option value="">-- Sin carrera seleccionada --</option>
-                  {['TSU', 'Licenciatura', 'Ingeniería', 'Maestría'].map((nivel) => {
-                    const deEsteNivel = carrerasList.filter((c) => c.nivel === nivel);
-                    if (deEsteNivel.length === 0) return null;
-                    return (
-                      <optgroup key={nivel} label={`Oferta: ${nivel}`}>
-                        {deEsteNivel.map((c) => (
-                          <option key={c.id} value={c.id}>
-                            {c.nombre}
-                          </option>
-                        ))}
-                      </optgroup>
-                    );
-                  })}
-                </select>
-              </div>
-            </div>
-
-            <div className="user-profile-field-group">
-              <label htmlFor="input-dependencia" className="user-profile-field-label">
-                Área o dependencia (Docentes / Administrativos)
-              </label>
-              <div className="user-profile-input-wrapper">
                 <input
-                  id="input-dependencia"
+                  id="input-carrera"
                   type="text"
-                  className="user-profile-input"
-                  value={dependenciaOArea}
-                  onChange={(e) => setDependenciaOArea(e.target.value)}
-                  placeholder="Ej. División de Telemática y Software"
+                  className="user-profile-input user-profile-input--disabled"
+                  value={
+                    carrerasList.find((c) => c.id === carreraId)?.nombre ||
+                    (user as any)?.carrera?.nombre ||
+                    (user as any)?.departmentOrCareer ||
+                    'Sin carrera asignada'
+                  }
+                  disabled
+                  readOnly
+                  aria-describedby="carrera-lock-note"
                 />
+                <span className="user-profile-input-icon-right" title="Campo bloqueado">
+                  <Lock size={15} />
+                </span>
               </div>
+              <p
+                id="carrera-lock-note"
+                className="user-profile-helper-text"
+                style={{ marginTop: 4, color: '#6B7280', fontSize: '0.75rem' }}
+              >
+                Para solicitar un cambio de carrera, acude a Servicios Escolares o Administración de Biblioteca.
+              </p>
             </div>
 
             <div className="user-profile-field-group">

@@ -19,11 +19,14 @@ export const MonthlyLoansChart: React.FC<LineChartProps> = ({ data, title, subti
   const chartWidth = width - paddingLeft - paddingRight;
   const chartHeight = height - paddingTop - paddingBottom;
 
-  const maxY = 100;
-  const yTicks = [0, 25, 50, 75, 100];
+  const maxVal = Math.max(...data.map((d) => d.loans), 0);
+  const maxY = maxVal <= 4 ? 4 : maxVal <= 10 ? 10 : maxVal <= 20 ? 20 : maxVal <= 50 ? 50 : Math.ceil(maxVal / 20) * 20;
+  const rawTicks = [0, Math.round(maxY * 0.25), Math.round(maxY * 0.5), Math.round(maxY * 0.75), maxY];
+  const yTicks = Array.from(new Set(rawTicks)).sort((a, b) => a - b);
 
   const points = data.map((d, index) => {
-    const x = paddingLeft + (index / (data.length - 1)) * chartWidth;
+    const divisor = data.length > 1 ? data.length - 1 : 1;
+    const x = paddingLeft + (index / divisor) * chartWidth;
     const y = paddingTop + chartHeight - (d.loans / maxY) * chartHeight;
     return { x, y, label: d.month, value: d.loans };
   });
@@ -115,8 +118,10 @@ export const CategoryConsultsChart: React.FC<BarChartProps> = ({ data, title, su
   const chartWidth = width - paddingLeft - paddingRight;
   const chartHeight = height - paddingTop - paddingBottom;
 
-  const maxY = 240;
-  const yTicks = [0, 60, 120, 180, 240];
+  const maxCount = Math.max(...data.map((d) => d.count), 0);
+  const maxY = maxCount <= 4 ? 4 : maxCount <= 8 ? 8 : maxCount <= 20 ? 20 : Math.ceil(maxCount / 5) * 5;
+  const rawTicks = [0, Math.round(maxY * 0.25), Math.round(maxY * 0.5), Math.round(maxY * 0.75), maxY];
+  const yTicks = Array.from(new Set(rawTicks)).sort((a, b) => a - b);
   const barWidth = 18;
 
   return (

@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Plus, SearchX, CheckCircle2 } from 'lucide-react';
+import { Plus, SearchX, CheckCircle2, AlertCircle } from 'lucide-react';
 import { UsersMetrics } from '../../features/users/components/UsersMetrics';
 import { UsersToolbar } from '../../features/users/components/UsersToolbar';
 import { UsersTable } from '../../features/users/components/UsersTable';
@@ -11,9 +11,8 @@ import { LoadingSpinner } from '../../components/ui/LoadingSpinner';
 import { Button } from '../../components/ui/Button';
 import {
   MOCK_MANAGED_USERS,
-  MOCK_USERS_METRICS,
 } from '../../features/users/users.mock';
-import { fetchManagedUsers, fetchUsersMetrics, updateManagedUser } from '../../services/api/users-managed.service';
+import { fetchManagedUsers, fetchUsersMetrics, updateManagedUser, createManagedUser } from '../../services/api/users-managed.service';
 import type {
   ManagedUser,
   UsersFilterState,
@@ -30,22 +29,27 @@ const INITIAL_FILTERS: UsersFilterState = {
 };
 
 export const UsersPage: React.FC = () => {
-  const [usersList, setUsersList] = useState<ManagedUser[]>(() => [...MOCK_MANAGED_USERS]);
+  const [usersList, setUsersList] = useState<ManagedUser[]>([]);
   const [filters, setFilters] = useState<UsersFilterState>(INITIAL_FILTERS);
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [isLoading] = useState<boolean>(false);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [toastType, setToastType] = useState<'success' | 'error'>('success');
   const [isRegisterModalOpen, setIsRegisterModalOpen] = useState<boolean>(false);
   const [selectedUserDetail, setSelectedUserDetail] = useState<ManagedUser | null>(null);
   const [editingUser, setEditingUser] = useState<ManagedUser | null>(null);
   const [statusTargetUser, setStatusTargetUser] = useState<ManagedUser | null>(null);
-  const [metrics, setMetrics] = useState<UsersMetricsData>(() => ({ ...MOCK_USERS_METRICS }));
+  const [metrics, setMetrics] = useState<UsersMetricsData>({
+    totalUsers: 0,
+    activeUsers: 0,
+    overdueLoansCount: 0,
+  });
 
   React.useEffect(() => {
     let active = true;
     Promise.all([fetchManagedUsers(), fetchUsersMetrics()]).then(([users, metricsData]) => {
       if (active) {
-        if (users && users.length > 0) setUsersList(users);
+        if (Array.isArray(users)) setUsersList(users);
         if (metricsData) setMetrics(metricsData);
       }
     });
@@ -54,7 +58,8 @@ export const UsersPage: React.FC = () => {
 
   const itemsPerPage = 5;
 
-  const showToast = (message: string) => {
+  const showToast = (message: string, type: 'success' | 'error' = 'success') => {
+    setToastType(type);
     setToastMessage(message);
     setTimeout(() => {
       setToastMessage((current) => (current === message ? null : current));
@@ -215,7 +220,32 @@ export const UsersPage: React.FC = () => {
     setIsRegisterModalOpen(true);
   };
 
-  const handleCreateUserSuccess = (newUser: ManagedUser) => {
+  const handleCreateUserSuccess = async (newUser: ManagedUser) => {
+    const rol = newUser.kind === 'ADMINISTRATIVE'
+      ? (newUser.role === 'LIBRARIAN' ? 'personal' : 'admin')
+      : (newUser.category === 'TEACHER' ? 'docente' : 'lector');
+
+    try {
+      const created = await createManagedUser({
+        fullName: newUser.fullName,
+        email: newUser.email,
+        phone: newUser.phone,
+        borrowerCode: newUser.borrowerCode,
+        rol,
+        carreraId: newUser.carreraId || null,
+        dependenciaOArea: newUser.dependenciaOArea || null,
+      });
+
+      if (created && created.id) {
+        newUser.id = created.id;
+      }
+    } catch (err: any) {
+      // Surface the backend error — do NOT close the modal silently
+      const msg = err?.message || 'No se pudo guardar el usuario en la base de datos.';
+      showToast(`Error al registrar usuario: ${msg}`, 'error');
+      return; // abort: keep modal state so the admin can fix the data
+    }
+
     setUsersList((prev) => [newUser, ...prev]);
 
     // Keep in-memory mock synchronized
@@ -231,7 +261,7 @@ export const UsersPage: React.FC = () => {
     // Reset pagination to first page so new user appears on top
     setCurrentPage(1);
 
-    showToast(`Usuario "${newUser.fullName}" registrado exitosamente con folio ${newUser.borrowerCode}.`);
+    showToast(`Usuario "${newUser.fullName}" registrado exitosamente con folio ${newUser.borrowerCode}.`, 'success');
   };
 
   return (
@@ -308,8 +338,14 @@ export const UsersPage: React.FC = () => {
 
       {/* Toast Notification Banner */}
       {toastMessage && (
-        <div className="users-toast-banner" role="status" aria-live="polite">
-          <CheckCircle2 size={18} color="#27AE60" />
+        <div
+          className={`users-toast-banner${toastType === 'error' ? ' users-toast-banner--error' : ''}`}
+          role={toastType === 'error' ? 'alert' : 'status'}
+          aria-live="polite"
+        >
+          {toastType === 'error'
+            ? <AlertCircle size={18} color="#DC2626" />
+            : <CheckCircle2 size={18} color="#27AE60" />}
           <span>{toastMessage}</span>
         </div>
       )}

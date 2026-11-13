@@ -8,16 +8,19 @@ import { ReturnsPagination } from '../../features/returns/components/ReturnsPagi
 import { SearchReturnLoanModal } from '../../features/returns/components/SearchReturnLoanModal';
 import { Button } from '../../components/ui/Button';
 import { LoadingSpinner } from '../../components/ui/LoadingSpinner';
-import {
-  MOCK_RETURN_RECORDS,
-  MOCK_RETURNS_SUMMARY,
-} from '../../features/returns/returns.mock';
 import { fetchReturnRecords, fetchReturnsSummary } from '../../services/api/returns-admin.service';
 import type {
   ReturnRecord,
   ReturnsFilterState,
+  ReturnsSummaryData,
 } from '../../features/returns/returns.types';
 import '../../features/returns/returns.css';
+
+const INITIAL_RETURNS_SUMMARY: ReturnsSummaryData = {
+  pendingReturnsCount: 0,
+  overdueCount: 0,
+  returnedTodayCount: 0,
+};
 
 const INITIAL_FILTERS: ReturnsFilterState = {
   searchQuery: '',
@@ -29,8 +32,8 @@ const INITIAL_FILTERS: ReturnsFilterState = {
 export const ReturnsPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
-  const [recordsList, setRecordsList] = useState<ReturnRecord[]>(() => [...MOCK_RETURN_RECORDS]);
-  const [returnsSummary, setReturnsSummary] = useState(() => ({ ...MOCK_RETURNS_SUMMARY }));
+  const [recordsList, setRecordsList] = useState<ReturnRecord[]>([]);
+  const [returnsSummary, setReturnsSummary] = useState<ReturnsSummaryData>(INITIAL_RETURNS_SUMMARY);
   const [filters, setFilters] = useState<ReturnsFilterState>(INITIAL_FILTERS);
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [isLoading] = useState<boolean>(false);
@@ -61,7 +64,7 @@ export const ReturnsPage: React.FC = () => {
     let active = true;
     Promise.all([fetchReturnRecords(), fetchReturnsSummary()]).then(([records, summary]) => {
       if (active) {
-        if (records && records.length > 0) setRecordsList(records);
+        if (Array.isArray(records)) setRecordsList(records);
         if (summary) setReturnsSummary(summary);
       }
     });

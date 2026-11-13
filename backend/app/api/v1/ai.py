@@ -3,9 +3,12 @@ from app.schemas.ai_schema import (
     AISummaryRequest,
     AISearchRequest,
     AIEmbeddingRequest,
-    AIEmbeddingResponse
+    AIEmbeddingResponse,
+    SmartSearchRequest,
+    SmartSearchResponse
 )
 from app.services.ai_service import AIService
+from app.services.vector_service import VectorService
 from app.services.supabase_service import supabase_service
 from app.core.config import settings
 from app.core.security import get_current_user, require_admin
@@ -123,4 +126,40 @@ async def delete_summary(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Error al eliminar el resumen IA."
+        )
+
+@router.post("/indexar-acervo")
+async def indexar_acervo(
+    admin: Dict[str, Any] = Depends(require_admin)
+):
+    """
+    Indexa en lote todos los libros existentes en Supabase con nomic-embed-text
+    y sincroniza el almacén vectorial persistente. Requiere rol de administrador.
+    """
+    try:
+        resultado = await VectorService.index_all_books()
+        return resultado
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error durante la indexación del acervo: {str(e)}"
+        )
+
+@router.post("/busqueda-inteligente", response_model=SmartSearchResponse)
+async def busqueda_inteligente(
+    payload: SmartSearchRequest,
+    current_user: Dict[str, Any] = Depends(get_current_user)
+):
+    """
+    Búsqueda Semántica en Lenguaje Natural con nomic-embed-text y Grounding anti-alucinaciones con llama3.2:3b.
+    Devuelve los libros reales coincidentes con disponibilidad en tiempo real y justificación fundamentada.
+    """
+    try:
+        top_k = payload.top_k or 5
+        res = await VectorService.smart_search(query=payload.query, top_k=top_k)
+        return res
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error al procesar la búsqueda inteligente: {str(e)}"
         )

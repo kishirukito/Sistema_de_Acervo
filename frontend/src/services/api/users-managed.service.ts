@@ -143,6 +143,40 @@ export async function fetchUsersMetrics(): Promise<UsersMetricsData> {
 }
 
 /**
+ * Creates a new user in Supabase via protected backend endpoint.
+ * Throws an Error with a user-facing message if the backend rejects the request.
+ */
+export async function createManagedUser(user: any): Promise<any> {
+  const token = localStorage.getItem('acervo_token');
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+  };
+  const res = await fetch('/api/v1/data/usuarios', {
+    method: 'POST',
+    headers,
+    body: JSON.stringify(user),
+  });
+  if (res.ok) {
+    return await res.json();
+  }
+  // Parse backend error and surface it to the caller
+  let errorMessage = `Error del servidor (${res.status}).`;
+  try {
+    const errData = await res.json();
+    if (typeof errData.detail === 'string') {
+      errorMessage = errData.detail;
+    } else if (errData.detail?.message) {
+      const extra = Array.isArray(errData.detail.errors) ? ' ' + errData.detail.errors.join(' ') : '';
+      errorMessage = errData.detail.message + extra;
+    }
+  } catch {
+    // response body was not JSON
+  }
+  throw new Error(errorMessage);
+}
+
+/**
  * Updates a user's status or details in Supabase via protected backend endpoint.
  */
 export async function updateManagedUser(

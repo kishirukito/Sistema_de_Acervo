@@ -38,3 +38,27 @@ class AIEmbeddingResponse(BaseModel):
     dimension: int
     modelo: str
 
+class SmartSearchRequest(BaseModel):
+    query: str = Field(..., min_length=2, description="Consulta en lenguaje natural del usuario")
+    top_k: Optional[int] = Field(default=5, ge=1, le=10, description="Máximo de libros devueltos")
+
+class SmartSearchResultItem(BaseModel):
+    id: str
+    titulo: str
+    autores: List[str] = Field(default_factory=list)
+    isbn: Optional[str] = None
+    ubicacion: Optional[str] = None
+    temas: List[str] = Field(default_factory=list)
+    sinopsis: Optional[str] = None
+    ejemplares_disponibles: int = 0
+    total_ejemplares: int = 0
+    porcentaje_coincidencia: float = 0.0
+    match_level: str = "high"
+    explicacion: str
+
+class SmartSearchResponse(BaseModel):
+    query: str
+    total_encontrados: int
+    mensaje: str
+    resultados: List[SmartSearchResultItem]
+

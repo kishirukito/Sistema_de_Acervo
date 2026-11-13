@@ -1,224 +1,367 @@
 /**
- * Dashboard Service — Fetches aggregate metrics from Supabase
- * for the admin dashboard.
- *
- * Falls back to mock data when Supabase is unreachable.
+ * Dashboard Service — Fetches 100% real data from FastAPI endpoints
+ * (/api/v1/data/libros, /api/v1/data/prestamos, /api/v1/data/usuarios)
+ * with zero fake/hardcoded mocks.
  */
 
-import { supabase } from './supabase';
-import {
-  MOCK_METRICS,
-  MOCK_MONTHLY_LOANS,
-  MOCK_CATEGORY_CONSULTS,
-  MOCK_RECENT_ACTIVITIES,
-  MOCK_DASHBOARD_ALERTS,
-} from '../../features/dashboard/dashboard.mock';
 import type {
   MetricData,
   MonthlyLoanData,
   CategoryConsultData,
   RecentActivityItem,
   DashboardAlert,
+  ActivityStatus,
 } from '../../features/dashboard/dashboard.types';
+import {
+  BIBLIOGRAPHIC_CATEGORIES,
+  getCategoryFullLabel,
+} from '../../constants/categories';
 
-export async function fetchDashboardMetrics(): Promise<MetricData[]> {
+export interface DashboardSnapshot {
+  metrics: MetricData[];
+  monthlyLoans: MonthlyLoanData[];
+  categoryConsults: CategoryConsultData[];
+  recentActivities: RecentActivityItem[];
+  alerts: DashboardAlert[];
+  lastSyncTime: string;
+}
+
+const MONTH_NAMES = [
+  'Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun',
+  'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'
+];
+
+/**
+ * Helper to fetch with bearer token from localStorage
+ */
+async function apiGet<T>(endpoint: string): Promise<T[]> {
   try {
-    // Fetch counts in parallel
-    const [booksRes, usersRes, loansActiveRes, loansOverdueRes] = await Promise.all([
-      supabase.from('libros').select('id', { count: 'exact', head: true }),
-      supabase.from('usuarios').select('id', { count: 'exact', head: true }),
-      supabase.from('prestamos').select('id', { count: 'exact', head: true }).in('estado', ['activo', 'renovado']),
-      supabase.from('prestamos').select('id', { count: 'exact', head: true }).eq('estado', 'vencido'),
-    ]);
+    const token = localStorage.getItem('acervo_token');
+    const headers: Record<string, string> = {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    };
+    const res = await fetch(endpoint, { headers });
+    if (!res.ok) {
+      console.warn(`[DashboardService] GET ${endpoint} returned ${res.status}`);
+      return [];
+    }
+    const data = await res.json();
+    return Array.isArray(data) ? data : [];
+  } catch (err) {
+    console.error(`[DashboardService] Network error fetching ${endpoint}:`, err);
+    return [];
+  }
+}
 
-    const totalBooks = booksRes.count ?? 0;
-    const totalUsers = usersRes.count ?? 0;
-    const activeLoans = loansActiveRes.count ?? 0;
-    const overdueLoans = loansOverdueRes.count ?? 0;
+/**
+ * Format date in Spanish as "DD MMM YYYY"
+ */
+function formatSpanishDate(isoDate?: string | null): string {
+  if (!isoDate) return '—';
+  try {
+    const d = new Date(isoDate);
+    if (isNaN(d.getTime())) return '—';
+    const day = String(d.getUTCDate()).padStart(2, '0');
+    const month = MONTH_NAMES[d.getUTCMonth()];
+    const year = d.getUTCFullYear();
+    return `${day} ${month} ${year}`;
+  } catch {
+    return '—';
+  }
+}
 
-    // If all counts are 0 and there were errors, fall back to mocks
-    if (totalBooks === 0 && totalUsers === 0 && booksRes.error) {
-      return [...MOCK_METRICS];
+/**
+ * Classifies a book into exactly ONE canonical Dewey category,
+ * avoiding duplicate tags.
+ */
+function classifyBook(book: any): string {
+  const dewey = String(book.clasificacion_dewey || '').trim();
+  if (dewey && /^\d{3}/.test(dewey)) {
+    const code = dewey.slice(0, 3);
+    const cat = BIBLIOGRAPHIC_CATEGORIES.find((c) => c.code === code);
+    if (cat) return cat.label;
+  }
+
+  // Check libro_temas
+  if (Array.isArray(book.libro_temas) && book.libro_temas.length > 0) {
+    for (const lt of book.libro_temas) {
+      const temaNombre = lt.temas?.nombre || lt.nombre || '';
+      const fullLabel = getCategoryFullLabel(temaNombre);
+      if (fullLabel && fullLabel !== '000 — Generalidades') {
+        return fullLabel;
+      }
+    }
+  }
+
+  // Check title heuristics
+  const title = String(book.titulo || '').toLowerCase();
+  if (title.includes('prince') || title.includes('principito') || title.includes('quijote') || title.includes('soledad') || title.includes('poema')) {
+    return '800 — Literatura';
+  }
+  if (title.includes('historia') || title.includes('geografía') || title.includes('guerra')) {
+    return '900 — Historia y Geografía';
+  }
+  if (title.includes('código') || title.includes('code') || title.includes('software') || title.includes('algorithm') || title.includes('program') || title.includes('clean') || title.includes('comput')) {
+    return '000 — Ciencias de las Computadoras, Información y Obras Generales';
+  }
+
+  return '000 — Ciencias de las Computadoras, Información y Obras Generales';
+}
+
+/**
+ * Primary aggregator: fetches real data from backend endpoints and calculates
+ * all 5 widgets of the dashboard without any fake data.
+ */
+export async function fetchDashboardSnapshot(): Promise<DashboardSnapshot> {
+  const [libros, prestamos, usuarios] = await Promise.all([
+    apiGet<any>('/api/v1/data/libros'),
+    apiGet<any>('/api/v1/data/prestamos'),
+    apiGet<any>('/api/v1/data/usuarios'),
+  ]);
+
+  const now = new Date();
+
+  // 1. Libros & Ejemplares counts
+  const totalBooks = libros.length;
+  let totalEjemplares = 0;
+  let disponiblesEjemplares = 0;
+  let exhaustedBooksCount = 0;
+
+  for (const b of libros) {
+    const ejList = Array.isArray(b.ejemplares) ? b.ejemplares : [];
+    const bTotal = ejList.length;
+    const bDisp = ejList.filter((e: any) => e.estado === 'disponible').length;
+    totalEjemplares += bTotal;
+    disponiblesEjemplares += bDisp;
+    if (bTotal > 0 && bDisp === 0) {
+      exhaustedBooksCount++;
+    }
+  }
+
+  // 2. Préstamos metrics
+  let activeLoans = 0;
+  let overdueLoans = 0;
+  let dueSoonLoans = 0;
+  const in48Hours = new Date(now.getTime() + 48 * 3600 * 1000);
+
+  for (const p of prestamos) {
+    const estado = String(p.estado || '').toLowerCase();
+    const isReturned = estado === 'devuelto' || Boolean(p.fecha_devolucion_real);
+    const dueDate = p.fecha_limite_devolucion ? new Date(p.fecha_limite_devolucion) : null;
+    const isOverdue = !isReturned && (estado === 'vencido' || (dueDate !== null && dueDate < now));
+
+    if (!isReturned) {
+      if (isOverdue) {
+        overdueLoans++;
+        activeLoans++; // Un préstamo vencido sigue activo en circulación
+      } else {
+        activeLoans++;
+        if (dueDate !== null && dueDate <= in48Hours && dueDate >= now) {
+          dueSoonLoans++;
+        }
+      }
+    }
+  }
+
+  // 3. Usuarios metrics
+  const totalUsers = usuarios.length;
+  const activeUsers = usuarios.filter((u: any) => u.estado === 'activo').length;
+
+  // 4. KPI Cards
+  const metrics: MetricData[] = [
+    {
+      id: 'metric-books',
+      title: 'TOTAL DE LIBROS',
+      value: totalBooks,
+      trend: `${disponiblesEjemplares} disponibles / ${totalEjemplares} totales`,
+      trendType: 'neutral',
+      iconType: 'book',
+      accentColor: '#1E3A5F',
+      badgeBgColor: '#EFF6FF',
+    },
+    {
+      id: 'metric-active-loans',
+      title: 'PRÉSTAMOS ACTIVOS',
+      value: activeLoans,
+      trend: `${activeLoans} en circulación`,
+      trendType: 'neutral',
+      iconType: 'book-open',
+      accentColor: '#27AE60',
+      badgeBgColor: '#DDF5E7',
+    },
+    {
+      id: 'metric-users',
+      title: 'USUARIOS REGISTRADOS',
+      value: totalUsers,
+      trend: `${activeUsers} usuarios activos`,
+      trendType: 'positive',
+      iconType: 'clipboard',
+      accentColor: '#2F80ED',
+      badgeBgColor: '#EFF6FF',
+    },
+    {
+      id: 'metric-overdue',
+      title: 'PRÉSTAMOS VENCIDOS',
+      value: overdueLoans,
+      trend: overdueLoans > 0 ? `${overdueLoans} requieren atención` : 'Sin adeudos pendientes',
+      trendType: overdueLoans > 0 ? 'negative' : 'positive',
+      iconType: 'clock',
+      accentColor: '#EB5757',
+      badgeBgColor: '#FDE2E2',
+    },
+  ];
+
+  // 5. Monthly Loans (Current Year)
+  const currentYear = now.getFullYear();
+  const monthlyCounts: Record<string, number> = {};
+  MONTH_NAMES.forEach((m) => { monthlyCounts[m] = 0; });
+
+  for (const p of prestamos) {
+    if (p.fecha_prestamo) {
+      const d = new Date(p.fecha_prestamo);
+      if (!isNaN(d.getTime()) && d.getFullYear() === currentYear) {
+        const m = MONTH_NAMES[d.getMonth()];
+        if (m) monthlyCounts[m]++;
+      }
+    }
+  }
+
+  const monthlyLoans: MonthlyLoanData[] = MONTH_NAMES.map((m) => ({
+    month: m,
+    loans: monthlyCounts[m] || 0,
+  }));
+
+  // 6. Category Consults / Libros por categoría
+  const categoryCounts: Record<string, number> = {};
+  for (const b of libros) {
+    const catLabel = classifyBook(b);
+    categoryCounts[catLabel] = (categoryCounts[catLabel] || 0) + 1;
+  }
+
+  const categoryConsults: CategoryConsultData[] = Object.entries(categoryCounts)
+    .map(([category, count]) => ({ category, count }))
+    .sort((a, b) => b.count - a.count);
+
+  // 7. Recent Activities (Top 6–8 real movements)
+  const sortedPrestamos = [...prestamos].sort((a, b) => {
+    const dateA = new Date(a.fecha_devolucion_real || a.fecha_prestamo || 0).getTime();
+    const dateB = new Date(b.fecha_devolucion_real || b.fecha_prestamo || 0).getTime();
+    return dateB - dateA;
+  });
+
+  const recentActivities: RecentActivityItem[] = sortedPrestamos.slice(0, 8).map((p, idx) => {
+    const isReturned = p.estado === 'devuelto' || Boolean(p.fecha_devolucion_real);
+    const dueDate = p.fecha_limite_devolucion ? new Date(p.fecha_limite_devolucion) : null;
+    const isOverdue = !isReturned && (p.estado === 'vencido' || (dueDate !== null && dueDate < now));
+
+    let status: ActivityStatus = 'Activo';
+    if (isReturned) status = 'Devuelto';
+    else if (isOverdue) status = 'Vencido';
+
+    let userName = 'Usuario';
+    if (p.usuarios?.nombre_completo) {
+      userName = p.usuarios.nombre_completo;
+    } else if (p.instituciones_convenio?.nombre) {
+      userName = `${p.instituciones_convenio.nombre}${p.instituciones_convenio.nombre_biblioteca ? ` (${p.instituciones_convenio.nombre_biblioteca})` : ''}`;
+    } else if (p.responsable_externo_nombre) {
+      userName = p.responsable_externo_nombre;
     }
 
-    return [
-      {
-        id: 'metric-books',
-        title: 'Libros en catálogo',
-        value: totalBooks,
-        trend: `${totalBooks} títulos registrados`,
-        trendType: 'neutral',
-        iconType: 'book',
-        accentColor: '#2F80ED',
-        badgeBgColor: '#EBF5FF',
-      },
-      {
-        id: 'metric-active-loans',
-        title: 'Préstamos activos',
-        value: activeLoans,
-        trend: `${activeLoans} en circulación`,
-        trendType: 'neutral',
-        iconType: 'book-open',
-        accentColor: '#27AE60',
-        badgeBgColor: '#E8F5E9',
-      },
-      {
-        id: 'metric-users',
-        title: 'Usuarios registrados',
-        value: totalUsers,
-        trend: `${totalUsers} usuarios`,
-        trendType: 'positive',
-        iconType: 'clipboard',
-        accentColor: '#F2994A',
-        badgeBgColor: '#FFF3E0',
-      },
-      {
-        id: 'metric-overdue',
-        title: 'Préstamos vencidos',
-        value: overdueLoans,
-        trend: overdueLoans > 0 ? `${overdueLoans} requieren atención` : 'Sin vencidos',
-        trendType: overdueLoans > 0 ? 'negative' : 'positive',
-        iconType: 'clock',
-        accentColor: '#EB5757',
-        badgeBgColor: '#FEECEC',
-      },
-    ];
-  } catch {
-    return [...MOCK_METRICS];
+    const bookTitle = p.ejemplares?.libros?.titulo || 'Recurso bibliográfico';
+    const activityDate = formatSpanishDate(p.fecha_devolucion_real || p.fecha_prestamo);
+
+    return {
+      id: p.id || `act-real-${idx}`,
+      type: isReturned ? 'Devolución' : 'Préstamo',
+      user: userName,
+      resource: bookTitle,
+      date: activityDate,
+      status,
+    };
+  });
+
+  // 8. Alerts
+  const alerts: DashboardAlert[] = [];
+  if (overdueLoans > 0) {
+    alerts.push({
+      id: 'alert-overdue',
+      title: 'Préstamos vencidos',
+      text: `Hay ${overdueLoans} préstamo(s) con fecha vencida que requieren devolución inmediata.`,
+      type: 'error',
+      actionUrl: '/admin/returns',
+      actionText: 'Ir a Devoluciones',
+    });
   }
+
+  if (dueSoonLoans > 0) {
+    alerts.push({
+      id: 'alert-due-soon',
+      title: 'Próximos a vencer',
+      text: `${dueSoonLoans} préstamo(s) vencerán dentro de las próximas 48 horas.`,
+      type: 'warning',
+      actionUrl: '/admin/loans',
+      actionText: 'Ver Préstamos',
+    });
+  }
+
+  if (exhaustedBooksCount > 0) {
+    alerts.push({
+      id: 'alert-exhausted',
+      title: 'Ejemplares agotados',
+      text: `${exhaustedBooksCount} libro(s) tienen todos sus ejemplares prestados actualmente.`,
+      type: 'warning',
+      actionUrl: '/admin/catalog',
+      actionText: 'Ver Catálogo',
+    });
+  }
+
+  if (alerts.length === 0) {
+    alerts.push({
+      id: 'alert-ok',
+      title: 'Todo en orden',
+      text: 'No hay préstamos vencidos ni alertas pendientes en el acervo.',
+      type: 'success',
+    });
+  }
+
+  // 9. Last sync timestamp in Spanish (HH:MM hrs)
+  const hours = String(now.getHours()).padStart(2, '0');
+  const minutes = String(now.getMinutes()).padStart(2, '0');
+  const lastSyncTime = `hoy, ${hours}:${minutes} hrs`;
+
+  return {
+    metrics,
+    monthlyLoans,
+    categoryConsults,
+    recentActivities,
+    alerts,
+    lastSyncTime,
+  };
+}
+
+// Backwards compatibility functions delegating to snapshot
+export async function fetchDashboardMetrics(): Promise<MetricData[]> {
+  const snap = await fetchDashboardSnapshot();
+  return snap.metrics;
 }
 
 export async function fetchMonthlyLoans(): Promise<MonthlyLoanData[]> {
-  try {
-    const { data, error } = await supabase
-      .from('prestamos')
-      .select('fecha_prestamo');
-
-    if (error || !data || data.length === 0) return [...MOCK_MONTHLY_LOANS];
-
-    const months = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
-    const counts: Record<string, number> = {};
-    months.forEach(m => { counts[m] = 0; });
-
-    for (const p of data) {
-      if (p.fecha_prestamo) {
-        const d = new Date(p.fecha_prestamo);
-        const m = months[d.getMonth()];
-        if (m) counts[m]++;
-      }
-    }
-
-    return months.map(m => ({ month: m, loans: counts[m] || 0 }));
-  } catch {
-    return [...MOCK_MONTHLY_LOANS];
-  }
+  const snap = await fetchDashboardSnapshot();
+  return snap.monthlyLoans;
 }
 
 export async function fetchCategoryConsults(): Promise<CategoryConsultData[]> {
-  try {
-    const { data, error } = await supabase
-      .from('libro_temas')
-      .select('temas ( nombre )');
-
-    if (error || !data || data.length === 0) return [...MOCK_CATEGORY_CONSULTS];
-
-    const counts: Record<string, number> = {};
-    for (const lt of data) {
-      const name = (lt as any).temas?.nombre || 'Sin categoría';
-      counts[name] = (counts[name] || 0) + 1;
-    }
-
-    return Object.entries(counts)
-      .map(([category, count]) => ({ category, count }))
-      .sort((a, b) => b.count - a.count);
-  } catch {
-    return [...MOCK_CATEGORY_CONSULTS];
-  }
+  const snap = await fetchDashboardSnapshot();
+  return snap.categoryConsults;
 }
 
 export async function fetchRecentActivities(): Promise<RecentActivityItem[]> {
-  try {
-    const { data, error } = await supabase
-      .from('prestamos')
-      .select(`
-        id, estado, fecha_prestamo, fecha_devolucion_real,
-        usuarios ( nombre_completo ),
-        ejemplares ( libros ( titulo ) )
-      `)
-      .order('fecha_prestamo', { ascending: false })
-      .limit(5);
-
-    if (error || !data || data.length === 0) return [...MOCK_RECENT_ACTIVITIES];
-
-    return data.map((p, i) => {
-      const usuario = (p as any).usuarios?.nombre_completo || 'Usuario';
-      const libro = (p as any).ejemplares?.libros?.titulo || 'Libro';
-      let status: 'Activo' | 'Devuelto' | 'Vencido' | 'Pendiente' = 'Activo';
-      if (p.estado === 'devuelto') status = 'Devuelto';
-      else if (p.estado === 'vencido') status = 'Vencido';
-
-      return {
-        id: p.id || `act-${i}`,
-        type: p.estado === 'devuelto' ? 'Devolución' : 'Préstamo',
-        user: usuario,
-        resource: libro,
-        date: p.fecha_prestamo ? new Date(p.fecha_prestamo).toLocaleDateString('es-MX') : '',
-        status,
-      };
-    });
-  } catch {
-    return [...MOCK_RECENT_ACTIVITIES];
-  }
+  const snap = await fetchDashboardSnapshot();
+  return snap.recentActivities;
 }
 
 export async function fetchDashboardAlerts(): Promise<DashboardAlert[]> {
-  try {
-    const alerts: DashboardAlert[] = [];
-
-    // Check for overdue loans
-    const { count: overdueCount } = await supabase
-      .from('prestamos')
-      .select('id', { count: 'exact', head: true })
-      .eq('estado', 'vencido');
-
-    if (overdueCount && overdueCount > 0) {
-      alerts.push({
-        id: 'alert-overdue',
-        title: 'Préstamos vencidos',
-        text: `Hay ${overdueCount} préstamo(s) con fecha vencida que requieren atención inmediata.`,
-        type: 'error',
-      });
-    }
-
-    // Check for books with no available copies
-    const { data: ejemplares } = await supabase
-      .from('ejemplares')
-      .select('estado');
-
-    if (ejemplares) {
-      const unavailable = ejemplares.filter(e => e.estado !== 'disponible').length;
-      if (unavailable > 0) {
-        alerts.push({
-          id: 'alert-unavailable',
-          title: 'Ejemplares no disponibles',
-          text: `${unavailable} ejemplar(es) se encuentran prestados o en mantenimiento.`,
-          type: 'warning',
-        });
-      }
-    }
-
-    if (alerts.length === 0) {
-      alerts.push({
-        id: 'alert-ok',
-        title: 'Todo en orden',
-        text: 'No hay alertas pendientes en el sistema.',
-        type: 'success',
-      });
-    }
-
-    return alerts;
-  } catch {
-    return [...MOCK_DASHBOARD_ALERTS];
-  }
+  const snap = await fetchDashboardSnapshot();
+  return snap.alerts;
 }
-

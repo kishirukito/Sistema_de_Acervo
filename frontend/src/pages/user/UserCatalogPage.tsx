@@ -13,7 +13,6 @@ import {
   Code,
 } from 'lucide-react';
 import clsx from 'clsx';
-import { MOCK_BOOKS } from '../../mocks/data';
 import { booksService } from '../../services/api/books.service';
 import type { Book } from '../../types';
 import {
@@ -192,7 +191,7 @@ export const UserCatalogPage: React.FC = () => {
   const location = useLocation();
 
   // Live books state from Supabase
-  const [booksList, setBooksList] = useState<Book[]>(() => [...MOCK_BOOKS]);
+  const [booksList, setBooksList] = useState<Book[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   useEffect(() => {
@@ -201,7 +200,7 @@ export const UserCatalogPage: React.FC = () => {
     booksService
       .getAll()
       .then((data: Book[]) => {
-        if (active && data && data.length > 0) {
+        if (active && Array.isArray(data)) {
           setBooksList(data);
         }
       })

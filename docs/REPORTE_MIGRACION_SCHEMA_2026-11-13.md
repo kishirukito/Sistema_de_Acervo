@@ -186,3 +186,4 @@ git commit -m "feat: integrar normalización tipos_prestamo, catálogos carreras
 - Frontend: UserProfilePage permite editar carrera y dependencia/área
 - DB: 17/17 pruebas de integración en verde · Build Vite exit 0"
 ```
+

@@ -8,7 +8,7 @@ import { BookDetailModal } from '../../features/search/components/BookDetailModa
 import { EditResourceModal } from '../../features/catalog/components/EditResourceModal';
 import { DeleteBookModal } from '../../features/catalog/components/DeleteBookModal';
 import { MOCK_RESOURCES } from '../../features/catalog/catalog.mock';
-import { fetchCatalogResources, deleteResource } from '../../services/api/catalog.service';
+import { fetchCatalogResources, deleteResource, updateResource } from '../../services/api/catalog.service';
 import type { CatalogFilterState, Resource } from '../../features/catalog/catalog.types';
 import { resolveCategory } from '../../constants';
 import '../../features/catalog/catalog.css';
@@ -24,12 +24,12 @@ export const CatalogPage: React.FC = () => {
   const navigate = useNavigate();
   const [filters, setFilters] = useState<CatalogFilterState>(INITIAL_FILTERS);
   const [currentPage, setCurrentPage] = useState<number>(1);
-  const [resourcesList, setResourcesList] = useState<Resource[]>(() => [...MOCK_RESOURCES]);
+  const [resourcesList, setResourcesList] = useState<Resource[]>([]);
 
   React.useEffect(() => {
     let active = true;
     fetchCatalogResources().then((data) => {
-      if (active && data && data.length > 0) {
+      if (active && Array.isArray(data)) {
         setResourcesList(data);
       }
     });
@@ -105,20 +105,28 @@ export const CatalogPage: React.FC = () => {
     setCurrentPage(1);
   };
 
-  const handleSaveResource = (updated: Resource) => {
-    setResourcesList((prev) =>
-      prev.map((item) => (item.id === updated.id ? updated : item))
-    );
-    // Keep in-memory mock synchronized
-    const mockIdx = MOCK_RESOURCES.findIndex((item) => item.id === updated.id);
-    if (mockIdx !== -1) {
-      MOCK_RESOURCES[mockIdx] = updated;
+  const handleSaveResource = async (updated: Resource) => {
+    try {
+      await updateResource(updated.id, updated);
+      
+      // Sincronizar catálogo refrescando desde el backend/Supabase
+      const freshData = await fetchCatalogResources();
+      if (freshData) {
+        setResourcesList(freshData);
+      } else {
+        setResourcesList((prev) =>
+          prev.map((item) => (item.id === updated.id ? updated : item))
+        );
+      }
+
+      setFeedbackToast(`El libro "${updated.title}" y sus ejemplares se actualizaron correctamente.`);
+    } catch (err: any) {
+      console.error('[CatalogPage] Error updating resource:', err);
+      setFeedbackToast(err?.message || `Error al actualizar el libro "${updated.title}".`);
     }
-    setFeedbackToast(`El libro "${updated.title}" se actualizó correctamente.`);
+
     setTimeout(() => {
-      setFeedbackToast((current) =>
-        current?.includes(updated.title) ? null : current
-      );
+      setFeedbackToast(null);
     }, 4500);
   };
 

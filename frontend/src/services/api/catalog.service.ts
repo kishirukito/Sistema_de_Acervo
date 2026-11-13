@@ -209,14 +209,25 @@ export async function updateResource(id: string, updates: Partial<Resource>): Pr
       body: JSON.stringify({
         isbn: updates.isbn,
         titulo: updates.title,
+        autor: updates.author,
+        editorial: updates.publisher,
         anio_publicacion: updates.publicationYear,
         portada_url: updates.coverUrl,
         categoria: updates.category,
+        total_copias: updates.totalCopies,
+        cantidad_ejemplares: updates.totalCopies,
+        ubicacion_estante: updates.location,
+        descripcion: updates.description,
       }),
     });
 
     if (res.ok) {
       return true;
+    }
+
+    const errData = await res.json().catch(() => ({}));
+    if (errData?.detail) {
+      throw new Error(errData.detail);
     }
 
     // Direct fallback if backend unreachable
@@ -231,9 +242,9 @@ export async function updateResource(id: string, updates: Partial<Resource>): Pr
       .eq('id', id);
 
     return !error;
-  } catch (err) {
+  } catch (err: any) {
     console.error('[CatalogService] Update failed:', err);
-    return false;
+    throw err;
   }
 }
 

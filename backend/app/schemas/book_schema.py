@@ -55,6 +55,8 @@ class BookUpdateSchema(BaseModel):
     anio_publicacion: Optional[int] = Field(default=None, ge=1000, le=2100)
     edicion: Optional[str] = Field(default=None, max_length=50)
     categoria: Optional[str] = Field(default=None, max_length=50)
+    total_copias: Optional[int] = Field(default=None, ge=0, le=50)
+    cantidad_ejemplares: Optional[int] = Field(default=None, ge=0, le=50)
     ubicacion_estante: Optional[str] = Field(default=None, max_length=100)
     ubicacion: Optional[str] = Field(default=None, max_length=100)
     portada_url: Optional[str] = Field(default=None, max_length=1000)
@@ -76,6 +78,12 @@ class BookUpdateSchema(BaseModel):
             normalized["anio_publicacion"] = normalized["publishYear"]
         if "publicationYear" in normalized and "anio_publicacion" not in normalized:
             normalized["anio_publicacion"] = normalized["publicationYear"]
+        if "totalCopies" in normalized:
+            normalized["total_copias"] = normalized["totalCopies"]
+            normalized["cantidad_ejemplares"] = normalized["totalCopies"]
+        if "ejemplares" in normalized:
+            normalized["total_copias"] = normalized["ejemplares"]
+            normalized["cantidad_ejemplares"] = normalized["ejemplares"]
         if "coverUrl" in normalized and "portada_url" not in normalized:
             normalized["portada_url"] = normalized["coverUrl"]
         if "description" in normalized and "descripcion" not in normalized:

@@ -223,7 +223,60 @@ export async function updateAdminLoan(
   return true;
 }
 
+// ==============================================================================
+// Caché en Memoria / SessionStorage con TTL de 10 minutos para Catálogos
+// ==============================================================================
+const CATALOG_CACHE_TTL_MS = 10 * 60 * 1000; // 10 minutos
+const memoryCatalogCache: Record<string, { timestamp: number; data: any[] }> = {};
+
+function getCachedCatalog(key: string): any[] | null {
+  const now = Date.now();
+  // 1. Revisar memoria RAM
+  if (memoryCatalogCache[key] && now - memoryCatalogCache[key].timestamp < CATALOG_CACHE_TTL_MS) {
+    return memoryCatalogCache[key].data;
+  }
+  // 2. Revisar sessionStorage
+  try {
+    const raw = sessionStorage.getItem(`acervo_catalog_${key}`);
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      if (parsed.timestamp && now - parsed.timestamp < CATALOG_CACHE_TTL_MS && Array.isArray(parsed.data)) {
+        memoryCatalogCache[key] = { timestamp: parsed.timestamp, data: parsed.data };
+        return parsed.data;
+      }
+    }
+  } catch {}
+  return null;
+}
+
+function setCachedCatalog(key: string, data: any[]): void {
+  const entry = { timestamp: Date.now(), data };
+  memoryCatalogCache[key] = entry;
+  try {
+    sessionStorage.setItem(`acervo_catalog_${key}`, JSON.stringify(entry));
+  } catch {}
+}
+
+export function invalidateCatalogCache(key?: 'carreras' | 'loanTypes' | 'instituciones'): void {
+  if (key) {
+    delete memoryCatalogCache[key];
+    try {
+      sessionStorage.removeItem(`acervo_catalog_${key}`);
+    } catch {}
+  } else {
+    for (const k of ['carreras', 'loanTypes', 'instituciones']) {
+      delete memoryCatalogCache[k];
+      try {
+        sessionStorage.removeItem(`acervo_catalog_${k}`);
+      } catch {}
+    }
+  }
+}
+
 export async function fetchLoanTypes(): Promise<any[]> {
+  const cached = getCachedCatalog('loanTypes');
+  if (cached) return cached;
+
   try {
     const token = localStorage.getItem('acervo_token');
     const headers: Record<string, string> = {
@@ -231,7 +284,9 @@ export async function fetchLoanTypes(): Promise<any[]> {
     };
     const res = await fetch('/api/v1/data/tipos-prestamo', { headers });
     if (res.ok) {
-      return await res.json();
+      const data = await res.json();
+      setCachedCatalog('loanTypes', data);
+      return data;
     }
   } catch (err) {
     console.warn('[LoansAdminService] fetchLoanTypes failed:', err);
@@ -240,6 +295,9 @@ export async function fetchLoanTypes(): Promise<any[]> {
 }
 
 export async function fetchInstituciones(): Promise<any[]> {
+  const cached = getCachedCatalog('instituciones');
+  if (cached) return cached;
+
   try {
     const token = localStorage.getItem('acervo_token');
     const headers: Record<string, string> = {
@@ -247,7 +305,9 @@ export async function fetchInstituciones(): Promise<any[]> {
     };
     const res = await fetch('/api/v1/data/instituciones', { headers });
     if (res.ok) {
-      return await res.json();
+      const data = await res.json();
+      setCachedCatalog('instituciones', data);
+      return data;
     }
   } catch (err) {
     console.warn('[LoansAdminService] fetchInstituciones failed:', err);
@@ -270,10 +330,16 @@ export async function createInstitucion(payload: any): Promise<any> {
     const err = await res.json().catch(() => ({}));
     throw new Error(err.detail || 'Error al registrar la institución');
   }
-  return await res.json();
+  const created = await res.json();
+  // Invalidación automática del caché de instituciones
+  invalidateCatalogCache('instituciones');
+  return created;
 }
 
 export async function fetchCarreras(): Promise<any[]> {
+  const cached = getCachedCatalog('carreras');
+  if (cached) return cached;
+
   try {
     const token = localStorage.getItem('acervo_token');
     const headers: Record<string, string> = {
@@ -281,7 +347,9 @@ export async function fetchCarreras(): Promise<any[]> {
     };
     const res = await fetch('/api/v1/data/carreras', { headers });
     if (res.ok) {
-      return await res.json();
+      const data = await res.json();
+      setCachedCatalog('carreras', data);
+      return data;
     }
   } catch (err) {
     console.warn('[LoansAdminService] fetchCarreras failed:', err);

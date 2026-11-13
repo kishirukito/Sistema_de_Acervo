@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useAuth } from '../../features/auth/AuthContext';
 import { MetricCard } from '../../features/dashboard/components/MetricCard';
 import { QuickActions } from '../../features/dashboard/components/QuickActions';
 import {
@@ -7,57 +8,71 @@ import {
 } from '../../features/dashboard/components/SimpleChart';
 import { RecentActivity } from '../../features/dashboard/components/RecentActivity';
 import { AlertsPanel } from '../../features/dashboard/components/AlertsPanel';
-import {
-  MOCK_METRICS,
-  MOCK_MONTHLY_LOANS,
-  MOCK_CATEGORY_CONSULTS,
-  MOCK_RECENT_ACTIVITIES,
-  MOCK_DASHBOARD_ALERTS,
-} from '../../features/dashboard/dashboard.mock';
-import {
-  fetchDashboardMetrics,
-  fetchMonthlyLoans,
-  fetchCategoryConsults,
-  fetchRecentActivities,
-  fetchDashboardAlerts,
-} from '../../services/api/dashboard.service';
+import { fetchDashboardSnapshot } from '../../services/api/dashboard.service';
+import type {
+  MetricData,
+  MonthlyLoanData,
+  CategoryConsultData,
+  RecentActivityItem,
+  DashboardAlert,
+} from '../../features/dashboard/dashboard.types';
 import '../../features/dashboard/dashboard.css';
 
 export const AdminDashboardPage: React.FC = () => {
-  const [metrics, setMetrics] = useState(MOCK_METRICS);
-  const [monthlyLoans, setMonthlyLoans] = useState(MOCK_MONTHLY_LOANS);
-  const [categoryConsults, setCategoryConsults] = useState(MOCK_CATEGORY_CONSULTS);
-  const [recentActivities, setRecentActivities] = useState(MOCK_RECENT_ACTIVITIES);
-  const [alerts, setAlerts] = useState(MOCK_DASHBOARD_ALERTS);
+  const { user } = useAuth();
+  const [metrics, setMetrics] = useState<MetricData[]>([]);
+  const [monthlyLoans, setMonthlyLoans] = useState<MonthlyLoanData[]>([]);
+  const [categoryConsults, setCategoryConsults] = useState<CategoryConsultData[]>([]);
+  const [recentActivities, setRecentActivities] = useState<RecentActivityItem[]>([]);
+  const [alerts, setAlerts] = useState<DashboardAlert[]>([]);
+  const [lastSyncTime, setLastSyncTime] = useState<string>('');
+  const [isLoading, setIsLoading] = useState<boolean>(true);
 
   useEffect(() => {
     let active = true;
-    Promise.all([
-      fetchDashboardMetrics(),
-      fetchMonthlyLoans(),
-      fetchCategoryConsults(),
-      fetchRecentActivities(),
-      fetchDashboardAlerts(),
-    ]).then(([m, ml, cc, ra, al]) => {
-      if (active) {
-        if (m) setMetrics(m);
-        if (ml) setMonthlyLoans(ml);
-        if (cc) setCategoryConsults(cc);
-        if (ra) setRecentActivities(ra);
-        if (al) setAlerts(al);
-      }
-    });
-    return () => { active = false; };
+    setIsLoading(true);
+
+    fetchDashboardSnapshot()
+      .then((data) => {
+        if (active && data) {
+          setMetrics(data.metrics);
+          setMonthlyLoans(data.monthlyLoans);
+          setCategoryConsults(data.categoryConsults);
+          setRecentActivities(data.recentActivities);
+          setAlerts(data.alerts);
+          setLastSyncTime(data.lastSyncTime);
+        }
+      })
+      .catch((err) => {
+        console.error('[AdminDashboardPage] Error loading dashboard data:', err);
+      })
+      .finally(() => {
+        if (active) setIsLoading(false);
+      });
+
+    return () => {
+      active = false;
+    };
   }, []);
+
+  const getGreeting = () => {
+    const hour = new Date().getHours();
+    if (hour < 12) return 'Buenos días';
+    if (hour < 19) return 'Buenas tardes';
+    return 'Buenas noches';
+  };
+
+  const adminDisplayName = user?.name ? user.name.split(' ')[0] : 'Administrador';
+  const currentYear = new Date().getFullYear();
 
   return (
     <div className="dashboard-container">
       {/* Page Header */}
       <header className="dashboard-header">
         <div className="dashboard-header-titles">
-          <h1 className="dashboard-welcome">Buenos días, Camila</h1>
+          <h1 className="dashboard-welcome">{`${getGreeting()}, ${adminDisplayName}`}</h1>
           <p className="dashboard-subtitle">
-            Aquí tienes el resumen de tu acervo.
+            Aquí tienes el resumen en tiempo real de tu acervo bibliográfico.
           </p>
         </div>
         <QuickActions />
@@ -65,9 +80,15 @@ export const AdminDashboardPage: React.FC = () => {
 
       {/* 4 Metric Cards */}
       <section className="dashboard-metrics-grid" aria-label="Métricas generales">
-        {metrics.map((metric) => (
-          <MetricCard key={metric.id} data={metric} />
-        ))}
+        {metrics.length === 0 && isLoading ? (
+          <div style={{ gridColumn: '1 / -1', padding: '24px', textAlign: 'center', color: '#64748B' }}>
+            Cargando estadísticas en tiempo real...
+          </div>
+        ) : (
+          metrics.map((metric) => (
+            <MetricCard key={metric.id} data={metric} />
+          ))
+        )}
       </section>
 
       {/* 2 Charts Grid */}
@@ -75,19 +96,19 @@ export const AdminDashboardPage: React.FC = () => {
         <MonthlyLoansChart
           data={monthlyLoans}
           title="Préstamos por mes"
-          subtitle="Enero - Septiembre 2026"
+          subtitle={`${currentYear} — Registro anual de circulación`}
         />
         <CategoryConsultsChart
           data={categoryConsults}
-          title="Categorías más consultadas"
-          subtitle="Libros por categoría en catálogo"
+          title="Libros por categoría"
+          subtitle="Distribución del acervo en catálogo (Dewey)"
         />
       </section>
 
       {/* Bottom Grid: Recent Activity & Alerts */}
       <section className="dashboard-bottom-grid" aria-label="Actividad y Alertas">
         <RecentActivity items={recentActivities} />
-        <AlertsPanel alerts={alerts} />
+        <AlertsPanel alerts={alerts} lastSyncTime={lastSyncTime} />
       </section>
     </div>
   );

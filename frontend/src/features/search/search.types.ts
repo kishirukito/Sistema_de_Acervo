@@ -24,6 +24,8 @@ export interface ResourceSearchResult {
   };
   coverInitials: string;
   aiSummary: string;
+  aiExplanation?: string;
+  relevanceScore?: number;
 }
 
 export interface RecommendedBook {

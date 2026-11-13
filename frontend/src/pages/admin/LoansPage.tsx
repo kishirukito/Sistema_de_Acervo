@@ -13,7 +13,6 @@ import { LoadingSpinner } from '../../components/ui/LoadingSpinner';
 import { executeLoanReturn, formatDisplayDate } from '../../features/returns/returns.service';
 import {
   MOCK_LOANS,
-  MOCK_LOANS_SUMMARY,
 } from '../../features/loans/loans.mock';
 import { fetchAdminLoans, fetchLoansSummary, updateAdminLoan } from '../../services/api/loans-admin.service';
 import type {
@@ -22,6 +21,17 @@ import type {
   LoansSummaryData,
 } from '../../features/loans/loans.types';
 import '../../features/loans/loans.css';
+
+const INITIAL_SUMMARY: LoansSummaryData = {
+  activeLoansCount: 0,
+  activeTrend: '0 en circulación',
+  dueSoonCount: 0,
+  dueSoonSubtitle: 'Próximos a vencer',
+  overdueCount: 0,
+  overdueSubtitle: 'Sin adeudos',
+  returnedThisMonthCount: 0,
+  returnedTrend: 'Devueltos',
+};
 
 const INITIAL_FILTERS: LoansFilterState = {
   searchQuery: '',
@@ -32,10 +42,8 @@ const INITIAL_FILTERS: LoansFilterState = {
 
 export const LoansPage: React.FC = () => {
   const navigate = useNavigate();
-  const [loansList, setLoansList] = useState<Loan[]>(() => [...MOCK_LOANS]);
-  const [loansSummary, setLoansSummary] = useState<LoansSummaryData>(() => ({
-    ...MOCK_LOANS_SUMMARY,
-  }));
+  const [loansList, setLoansList] = useState<Loan[]>([]);
+  const [loansSummary, setLoansSummary] = useState<LoansSummaryData>(INITIAL_SUMMARY);
   const [filters, setFilters] = useState<LoansFilterState>(INITIAL_FILTERS);
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [isLoading] = useState<boolean>(false);
@@ -48,7 +56,7 @@ export const LoansPage: React.FC = () => {
     let active = true;
     Promise.all([fetchAdminLoans(), fetchLoansSummary()]).then(([loans, summary]) => {
       if (active) {
-        if (loans && loans.length > 0) setLoansList(loans);
+        if (Array.isArray(loans)) setLoansList(loans);
         if (summary) setLoansSummary(summary);
       }
     });

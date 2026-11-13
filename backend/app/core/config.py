@@ -19,6 +19,7 @@ class Settings(BaseSettings):
     OLLAMA_BASE_URL: str = "http://localhost:11434"
     LOCAL_AI_MODEL: str = "llama3.2:3b"
     LOCAL_EMBEDDING_MODEL: str = "nomic-embed-text"
+    OLLAMA_KEEP_ALIVE: str = "-1" # Mantener modelos cargados en memoria RAM/VRAM indefinidamente
     AI_API_KEY: Optional[str] = None
 
     model_config = SettingsConfigDict(

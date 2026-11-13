@@ -34,6 +34,8 @@ export interface DashboardAlert {
   title: string;
   text: string;
   type: AlertType;
+  actionUrl?: string;
+  actionText?: string;
 }
 
 export interface MonthlyLoanData {

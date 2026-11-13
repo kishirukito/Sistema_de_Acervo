@@ -1,6 +1,30 @@
 import httpx
+from collections import OrderedDict
 from typing import List, Dict, Any
 from app.core.config import settings
+
+# ==============================================================================
+# Caché LRU en Memoria para Embeddings (maxsize = 256)
+# ==============================================================================
+_EMBEDDINGS_CACHE: OrderedDict[str, List[float]] = OrderedDict()
+_EMBEDDINGS_CACHE_MAXSIZE = 256
+
+def get_cached_embedding(text: str) -> List[float] | None:
+    norm = text.strip()
+    if norm in _EMBEDDINGS_CACHE:
+        _EMBEDDINGS_CACHE.move_to_end(norm)
+        return _EMBEDDINGS_CACHE[norm]
+    return None
+
+def set_cached_embedding(text: str, vector: List[float]) -> None:
+    norm = text.strip()
+    if not norm or not vector:
+        return
+    if norm in _EMBEDDINGS_CACHE:
+        _EMBEDDINGS_CACHE.move_to_end(norm)
+    _EMBEDDINGS_CACHE[norm] = vector
+    if len(_EMBEDDINGS_CACHE) > _EMBEDDINGS_CACHE_MAXSIZE:
+        _EMBEDDINGS_CACHE.popitem(last=False)
 
 class AIService:
     """
@@ -27,7 +51,13 @@ class AIService:
         )
 
         try:
-            # Conexión al servidor local de Ollama (timeout de conexión rápido de 2s para fallback inmediato si no está activo)
+            # Conexión al servidor local de Ollama con keep_alive=-1 para retención permanente
+            keep_alive_val: Any = -1
+            try:
+                keep_alive_val = int(settings.OLLAMA_KEEP_ALIVE)
+            except Exception:
+                keep_alive_val = settings.OLLAMA_KEEP_ALIVE
+
             async with httpx.AsyncClient(timeout=httpx.Timeout(30.0, connect=2.0)) as client:
                 response = await client.post(
                     f"{settings.OLLAMA_BASE_URL}/api/generate",
@@ -35,6 +65,7 @@ class AIService:
                         "model": settings.LOCAL_AI_MODEL,
                         "prompt": prompt,
                         "stream": False,
+                        "keep_alive": keep_alive_val,
                         "options": {
                             "temperature": 0.3,
                             "top_p": 0.9
@@ -76,19 +107,34 @@ class AIService:
     @classmethod
     async def get_embeddings(cls, texto: str) -> List[float]:
         """
-        Genera el vector de embeddings del texto usando el modelo local de embeddings (ej. nomic-embed-text).
+        Genera el vector de embeddings del texto usando el modelo local de embeddings (ej. nomic-embed-text)
+        con verificación previa en el caché LRU en memoria.
         """
+        cached = get_cached_embedding(texto)
+        if cached is not None:
+            return cached
+
         try:
+            keep_alive_val: Any = -1
+            try:
+                keep_alive_val = int(settings.OLLAMA_KEEP_ALIVE)
+            except Exception:
+                keep_alive_val = settings.OLLAMA_KEEP_ALIVE
+
             async with httpx.AsyncClient(timeout=15.0) as client:
                 response = await client.post(
                     f"{settings.OLLAMA_BASE_URL}/api/embeddings",
                     json={
                         "model": settings.LOCAL_EMBEDDING_MODEL,
-                        "prompt": texto
+                        "prompt": texto,
+                        "keep_alive": keep_alive_val
                     }
                 )
                 if response.status_code == 200:
-                    return response.json().get("embedding", [])
+                    vector = response.json().get("embedding", [])
+                    if vector:
+                        set_cached_embedding(texto, vector)
+                    return vector
         except Exception as e:
             print(f"[LOCAL AI ERROR] Fallo al generar embedding local: {e}")
         return []
