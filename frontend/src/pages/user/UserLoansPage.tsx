@@ -18,7 +18,7 @@ import {
   Bookmark,
 } from 'lucide-react';
 import { fetchMyLoans } from '../../services/api/loans.service';
-import { booksService } from '../../services/api/books.service';
+import { useAllBooks } from '../../features/catalog/books.query';
 import type { Book, Loan } from '../../types';
 import { resolveCategory } from '../../constants';
 import { useRealtimeTable } from '../../hooks/useRealtimeTable';
@@ -248,9 +248,11 @@ export const UserLoansPage: React.FC = () => {
   const [isRenewAllModalOpen, setIsRenewAllModalOpen] = useState<boolean>(false);
   const [contactLoan, setContactLoan] = useState<Loan | null>(null);
 
+  // ── React Query: catálogo desde caché compartida ──────────────────────────
+  const { data: allBooks = [] } = useAllBooks();
+
   // Live loans from /api/v1/data/mis-prestamos (filtered securely on backend)
   const [myLoans, setMyLoans] = useState<Loan[]>([]);
-  const [allBooks, setAllBooks] = useState<Book[]>([]);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
 
@@ -259,16 +261,10 @@ export const UserLoansPage: React.FC = () => {
     setIsLoading(true);
     setErrorMsg(null);
 
-    Promise.all([
-      fetchMyLoans(),
-      booksService.getAll(),
-    ])
-      .then(([loansData, booksData]) => {
+    fetchMyLoans()
+      .then((loansData) => {
         if (!active) return;
         setMyLoans(loansData || []);
-        if (booksData && booksData.length > 0) {
-          setAllBooks(booksData);
-        }
       })
       .catch((err: any) => {
         if (!active) return;
