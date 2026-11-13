@@ -1,4 +1,5 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState } from 'react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import {
   CheckCircle2,
   BookOpen,
@@ -26,16 +27,17 @@ import { InventarioStatsView } from '../../features/reports/components/Inventari
 import { ServiciosStatsView } from '../../features/reports/components/ServiciosStatsView';
 import { ReportDataEntryModal } from '../../features/reports/components/ReportDataEntryModal';
 
-import type { ReportsFilterState, QuickReportItem, SiabucReportData } from '../../features/reports/reports.types';
+import type { ReportsFilterState, QuickReportItem } from '../../features/reports/reports.types';
 import { fetchSiabucReports, DEFAULT_SIABUC_DATA } from '../../services/api/reports.service';
 import '../../features/reports/reports.css';
 
 type ActiveTab = 'circulacion' | 'procesos' | 'inventario' | 'servicios' | 'resumen';
 
+const SIABUC_REPORTS_KEY = ['siabuc-reports'] as const;
+
 export const ReportsPage: React.FC = () => {
+  const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<ActiveTab>('resumen');
-  const [loading, setLoading] = useState<boolean>(true);
-  const [siabucData, setSiabucData] = useState<SiabucReportData>(DEFAULT_SIABUC_DATA);
 
   // Data entry modal state
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -53,21 +55,17 @@ export const ReportsPage: React.FC = () => {
 
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
-  const loadData = useCallback(async () => {
-    setLoading(true);
-    try {
-      const data = await fetchSiabucReports();
-      setSiabucData(data);
-    } catch (e) {
-      console.error('Error loading SIABUC stats', e);
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    loadData();
-  }, [loadData]);
+  // React Query — staleTime: 5 min para estadísticas SIABUC.
+  // No se hace polling porque el endpoint puede tener efectos secundarios.
+  // La invalidación solo ocurre tras acción explícita del usuario (handleModalSuccess).
+  const { data: siabucData = DEFAULT_SIABUC_DATA, isLoading: loading } = useQuery({
+    queryKey: SIABUC_REPORTS_KEY,
+    queryFn: fetchSiabucReports,
+    staleTime: 1000 * 60 * 5,   // 5 min
+    gcTime: 1000 * 60 * 15,     // 15 min en memoria
+    refetchOnWindowFocus: false,
+    retry: 1,
+  });
 
   const showToast = (msg: string) => {
     setToastMessage(msg);
@@ -97,7 +95,7 @@ export const ReportsPage: React.FC = () => {
 
   const handleModalSuccess = (msg: string) => {
     showToast(msg);
-    loadData();
+    queryClient.invalidateQueries({ queryKey: SIABUC_REPORTS_KEY });
   };
 
   // Real Executive Summary Data from Supabase / Backend
