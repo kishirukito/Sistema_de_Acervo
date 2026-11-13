@@ -711,3 +711,62 @@
     transform: translateY(0);
   }
 }
+
+/* ==============================================================================
+   RESPONSIVIDAD MÓVIL (PRÉSTAMOS)
+   ============================================================================== */
+@media (max-width: 1024px) {
+  .loans-summary-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 640px) {
+  .loans-container {
+    padding: 0;
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+  .loans-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+  .loans-header-actions {
+    width: 100%;
+  }
+  .loans-new-btn {
+    width: 100%;
+    justify-content: center;
+  }
+  .loans-summary-grid {
+    grid-template-columns: 1fr !important;
+    gap: 0.875rem;
+  }
+  .loans-filters-card {
+    padding: 1rem;
+  }
+  .loans-filters-primary-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+  }
+  .loans-filters-secondary-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.75rem;
+  }
+  .loans-table-card {
+    max-width: 100%;
+    overflow: hidden;
+  }
+  .loans-table-wrapper {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .loans-table {
+    min-width: 720px;
+  }
+}

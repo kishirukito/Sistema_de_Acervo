@@ -18,17 +18,18 @@ class LoginRequest(BaseModel):
 @router.post("/login")
 async def login(req: LoginRequest):
     email = req.email.strip().lower()
-    url = f"{settings.SUPABASE_URL}/rest/v1/usuarios?email=eq.{email}&select=id,rol,email,password_hash,nombre_completo,matricula_o_nomina,carrera_o_dependencia,estado,created_at"
+    url = f"{settings.SUPABASE_URL}/rest/v1/usuarios?email=eq.{email}&select=id,rol,email,password_hash,nombre_completo,matricula_o_nomina,dependencia_o_area,carrera_id,estado,created_at,telefono,carreras(id,nivel,nombre)"
     headers = {
         "apikey": settings.SUPABASE_SERVICE_ROLE_KEY,
         "Authorization": f"Bearer {settings.SUPABASE_SERVICE_ROLE_KEY}"
     }
 
     async with httpx.AsyncClient() as client:
-        # First try fetching with telefono
-        resp = await client.get(f"{settings.SUPABASE_URL}/rest/v1/usuarios?email=eq.{email}&select=id,rol,email,password_hash,nombre_completo,matricula_o_nomina,carrera_o_dependencia,estado,created_at,telefono", headers=headers)
+        resp = await client.get(url, headers=headers)
         if resp.status_code == 400:
-            resp = await client.get(url, headers=headers)
+            # Fallback if carreras table relationship or extra fields differ
+            fallback_url = f"{settings.SUPABASE_URL}/rest/v1/usuarios?email=eq.{email}&select=id,rol,email,password_hash,nombre_completo,matricula_o_nomina,dependencia_o_area,carrera_id,estado,created_at"
+            resp = await client.get(fallback_url, headers=headers)
         if resp.status_code != 200:
             raise HTTPException(status_code=500, detail="Error de conexión con la base de datos")
         users = resp.json()
@@ -59,12 +60,16 @@ async def login(req: LoginRequest):
     is_admin = user.get("rol") in ["admin", "personal"]
     role = "ADMIN" if user.get("rol") == "admin" else ("LIBRARIAN" if user.get("rol") == "personal" else None)
     
-    dep = (user.get("carrera_o_dependencia") or "").lower()
+    dep = (user.get("dependencia_o_area") or "").lower()
     category = "STUDENT"
     if "docente" in dep or "profesor" in dep:
         category = "TEACHER"
     elif "egresado" in dep:
         category = "GRADUATE"
+
+    # Carrera info si existe
+    carrera_info = user.get("carreras") if isinstance(user.get("carreras"), dict) else None
+    career_name = carrera_info.get("nombre") if carrera_info else (user.get("dependencia_o_area") or "")
 
     user_payload = {
         "id": user["id"],
@@ -76,7 +81,10 @@ async def login(req: LoginRequest):
         "category": category if not is_admin else None,
         "status": "ACTIVE" if user["estado"] == "activo" else "INACTIVE",
         "identifierCode": user.get("matricula_o_nomina") or "",
-        "departmentOrCareer": user.get("carrera_o_dependencia") or "",
+        "departmentOrCareer": career_name,
+        "dependenciaOArea": user.get("dependencia_o_area") or "",
+        "carreraId": user.get("carrera_id"),
+        "carrera": carrera_info,
         "createdAt": user.get("created_at") or "",
     }
 

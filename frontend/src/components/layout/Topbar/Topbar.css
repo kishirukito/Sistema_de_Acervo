@@ -18,6 +18,24 @@
   align-items: center;
 }
 
+.app-topbar-mobile-menu-btn {
+  display: none;
+  background: none;
+  border: none;
+  padding: 6px;
+  margin-right: 8px;
+  cursor: pointer;
+  border-radius: 6px;
+  align-items: center;
+  justify-content: center;
+}
+
+@media (max-width: 1024px) {
+  .app-topbar-mobile-menu-btn {
+    display: flex;
+  }
+}
+
 .app-topbar-title {
   font-family: var(--font-family-heading, sans-serif);
   font-size: 1.25rem;
@@ -247,4 +265,19 @@
 .app-topbar-user-role {
   font-size: 0.7rem;
   color: #6B7280;
+}
+
+@media (max-width: 640px) {
+  .app-topbar {
+    padding: 0 12px;
+  }
+  .app-topbar-title {
+    font-size: 1rem;
+  }
+  .app-topbar-user-info {
+    display: none;
+  }
+  .app-topbar-right {
+    gap: 10px;
+  }
 }

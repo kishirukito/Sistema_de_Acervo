@@ -425,3 +425,61 @@
   margin: 0;
   line-height: 1.5;
 }
+
+/* ==============================================================================
+   RESPONSIVIDAD MÓVIL (DASHBOARD)
+   ============================================================================== */
+@media (max-width: 1024px) {
+  .dashboard-metrics-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .dashboard-charts-grid {
+    grid-template-columns: 1fr;
+  }
+  .dashboard-bottom-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .dashboard-container {
+    padding: 0;
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+  .dashboard-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+  .dashboard-actions {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+  .dashboard-btn-outline,
+  .dashboard-btn-highlight {
+    flex: 1;
+    justify-content: center;
+  }
+  .dashboard-metrics-grid {
+    grid-template-columns: 1fr !important;
+    gap: 0.875rem;
+  }
+  .dashboard-charts-grid {
+    grid-template-columns: 1fr !important;
+    gap: 0.875rem;
+  }
+  .dashboard-bottom-grid {
+    grid-template-columns: 1fr !important;
+    gap: 0.875rem;
+  }
+  .activity-table-wrapper {
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    width: 100%;
+    max-width: 100%;
+  }
+  .activity-table {
+    min-width: 480px;
+  }
+}

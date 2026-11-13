@@ -45,11 +45,17 @@ function mapUsuarioToManagedUser(row: any, index: number): ManagedUser {
     }
   }
 
+  const carreraData = row.carreras && typeof row.carreras === 'object' ? {
+    id: row.carreras.id,
+    nivel: row.carreras.nivel,
+    nombre: row.carreras.nombre,
+  } : null;
+
   const base = {
     id: row.id,
     fullName: row.nombre_completo || 'Sin nombre',
     email: row.email || '',
-    phone: undefined,
+    phone: row.telefono || undefined,
     status: mapEstadoToStatus(row.estado),
     activeLoans,
     borrowerCode: row.matricula_o_nomina || row.id.slice(0, 8),
@@ -57,6 +63,9 @@ function mapUsuarioToManagedUser(row: any, index: number): ManagedUser {
     hasOverdueLoan,
     avatarColor: color,
     avatarInitials: initials,
+    carreraId: row.carrera_id || null,
+    carrera: carreraData,
+    dependenciaOArea: row.dependencia_o_area || row.carrera_o_dependencia || null,
   };
 
   if (kind === 'ADMINISTRATIVE') {
@@ -68,7 +77,7 @@ function mapUsuarioToManagedUser(row: any, index: number): ManagedUser {
   }
 
   let category: 'TEACHER' | 'STUDENT' | 'EXTERNAL' | 'ROOM' | 'GRADUATE' = 'STUDENT';
-  const dep = (row.carrera_o_dependencia || '').toLowerCase();
+  const dep = (row.dependencia_o_area || row.carrera_o_dependencia || '').toLowerCase();
   if (dep.includes('docente') || dep.includes('profesor')) category = 'TEACHER';
   else if (dep.includes('egresado')) category = 'GRADUATE';
   else if (dep.includes('externo')) category = 'EXTERNAL';

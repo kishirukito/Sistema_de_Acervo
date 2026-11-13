@@ -20,7 +20,9 @@ import type {
   ManagedUser,
   AdministrativeRole,
   NormalUserCategory,
+  Carrera,
 } from '../users.types';
+import { fetchCarreras } from '../../../services/api/loans-admin.service';
 import './RegisterUserModal.css';
 
 const registerUserSchema = z
@@ -43,6 +45,8 @@ const registerUserSchema = z
     category: z
       .enum(['STUDENT', 'TEACHER', 'GRADUATE', 'EXTERNAL', 'ROOM'])
       .optional(),
+    carreraId: z.string().optional(),
+    dependenciaOArea: z.string().optional(),
     roomResponsibleName: z.string().trim().optional(),
   })
   .superRefine((data, ctx) => {
@@ -148,7 +152,14 @@ export const RegisterUserModal: React.FC<RegisterUserModalProps> = ({
   onSuccess,
 }) => {
   const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
+  const [carrerasList, setCarrerasList] = useState<Carrera[]>([]);
   const fullNameRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    fetchCarreras().then((data) => {
+      if (Array.isArray(data)) setCarrerasList(data);
+    });
+  }, []);
 
   const isEdit = mode === 'edit';
 
@@ -188,6 +199,8 @@ export const RegisterUserModal: React.FC<RegisterUserModalProps> = ({
           email: user.email,
           phone: user.phone || '',
           borrowerCode: user.borrowerCode,
+          carreraId: user.carreraId || '',
+          dependenciaOArea: user.dependenciaOArea || '',
           roomResponsibleName:
             user.kind === 'NORMAL' && user.category === 'ROOM'
               ? user.roomResponsibleName || ''
@@ -202,6 +215,8 @@ export const RegisterUserModal: React.FC<RegisterUserModalProps> = ({
           email: '',
           phone: '',
           borrowerCode: '',
+          carreraId: '',
+          dependenciaOArea: '',
           roomResponsibleName: '',
         });
       }
@@ -251,6 +266,7 @@ export const RegisterUserModal: React.FC<RegisterUserModalProps> = ({
           avatarInitials: initials,
         };
       } else {
+        const foundCarrera = carrerasList.find((c) => c.id === data.carreraId);
         updatedUser = {
           id: user.id,
           status: user.status,
@@ -265,6 +281,9 @@ export const RegisterUserModal: React.FC<RegisterUserModalProps> = ({
           phone: data.phone?.trim() || undefined,
           borrowerCode: data.borrowerCode.trim().toUpperCase(),
           avatarInitials: initials,
+          carreraId: data.carreraId || null,
+          carrera: foundCarrera || null,
+          dependenciaOArea: data.dependenciaOArea?.trim() || null,
           roomResponsibleName:
             data.category === 'ROOM'
               ? data.roomResponsibleName?.trim() || undefined
@@ -297,6 +316,7 @@ export const RegisterUserModal: React.FC<RegisterUserModalProps> = ({
         avatarInitials: initials,
       };
     } else {
+      const foundCarrera = carrerasList.find((c) => c.id === data.carreraId);
       newUser = {
         id: `usr-${Date.now()}`,
         fullName: data.fullName.trim(),
@@ -308,6 +328,9 @@ export const RegisterUserModal: React.FC<RegisterUserModalProps> = ({
         createdAt: formattedDate,
         kind: 'NORMAL',
         category: data.category as NormalUserCategory,
+        carreraId: data.carreraId || null,
+        carrera: foundCarrera || null,
+        dependenciaOArea: data.dependenciaOArea?.trim() || null,
         roomResponsibleName:
           data.category === 'ROOM'
             ? data.roomResponsibleName?.trim()
@@ -494,6 +517,54 @@ export const RegisterUserModal: React.FC<RegisterUserModalProps> = ({
                 error={errors.role?.message}
                 {...register('role')}
               />
+            )}
+
+            {/* Selector de Carrera UNIPOLI agrupada por Nivel si es Estudiante */}
+            {selectedKind === 'NORMAL' && selectedCategory === 'STUDENT' && (
+              <div className="register-user-field-group" style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                <label className="register-user-field-label" style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#334155' }}>
+                  Carrera universitaria (UNIPOLI)
+                </label>
+                <select
+                  className="register-loan-date-input"
+                  style={{
+                    height: '2.5rem',
+                    border: '1px solid #CBD5E1',
+                    borderRadius: '6px',
+                    padding: '0 0.75rem',
+                    fontSize: '0.875rem',
+                    backgroundColor: '#FFFFFF',
+                  }}
+                  {...register('carreraId')}
+                >
+                  <option value="">-- Selecciona una carrera --</option>
+                  {['TSU', 'Licenciatura', 'Ingeniería', 'Maestría'].map((nivel) => {
+                    const deEsteNivel = carrerasList.filter((c) => c.nivel === nivel);
+                    if (deEsteNivel.length === 0) return null;
+                    return (
+                      <optgroup key={nivel} label={`Oferta Académica: ${nivel}`}>
+                        {deEsteNivel.map((c) => (
+                          <option key={c.id} value={c.id}>
+                            {c.nombre}
+                          </option>
+                        ))}
+                      </optgroup>
+                    );
+                  })}
+                </select>
+              </div>
+            )}
+
+            {/* Campo Dependencia / Área para Docente, Administrativo o Personal */}
+            {(selectedKind === 'ADMINISTRATIVE' || selectedCategory === 'TEACHER' || selectedCategory === 'EXTERNAL') && (
+              <div className="register-user-field-group" style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                <Input
+                  label="Dependencia, área o facultad"
+                  placeholder="Ej. División de Telemática y Software"
+                  error={errors.dependenciaOArea?.message}
+                  {...register('dependenciaOArea')}
+                />
+              </div>
             )}
 
             {/* Borrower code */}

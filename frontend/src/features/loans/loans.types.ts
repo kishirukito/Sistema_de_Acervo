@@ -9,6 +9,28 @@ export type NormalUserCategory =
   | 'ROOM'
   | 'GRADUATE';
 
+export interface LoanType {
+  id: string;
+  clave: string;
+  nombre: string;
+  descripcion?: string;
+  dias_plazo_default: number;
+  requiere_convenio: boolean;
+  activo?: boolean;
+}
+
+export interface InstitucionConvenio {
+  id: string;
+  nombre: string;
+  nombre_biblioteca?: string | null;
+  clave_convenio?: string | null;
+  responsable_titular?: string | null;
+  responsable_email?: string | null;
+  responsable_telefono?: string | null;
+  direccion?: string | null;
+  activa?: boolean;
+}
+
 export interface Loan {
   id: string;
   folio: string;
@@ -29,6 +51,19 @@ export interface Loan {
   renewalCount: number;
   renewalLimit: number;
   notes?: string;
+  // Campos del nuevo esquema
+  tipoPrestamoId?: string;
+  tipoPrestamoClave?: string; // 'domicilio' | 'sala' | 'interbibliotecario'
+  tipoPrestamoNombre?: string;
+  userCareerName?: string;
+  institucionId?: string | null;
+  institucionNombre?: string | null;
+  institucionBiblioteca?: string | null;
+  responsableExternoNombre?: string | null;
+  responsableExternoCargo?: string | null;
+  responsableExternoContacto?: string | null;
+  folioOficio?: string | null;
+  autorizadoPorNombre?: string | null;
 }
 
 export interface LoansFilterState {

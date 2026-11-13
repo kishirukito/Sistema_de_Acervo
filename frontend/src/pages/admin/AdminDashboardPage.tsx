@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { Monitor } from 'lucide-react';
 import { MetricCard } from '../../features/dashboard/components/MetricCard';
 import { QuickActions } from '../../features/dashboard/components/QuickActions';
 import {
@@ -25,22 +24,6 @@ import {
 import '../../features/dashboard/dashboard.css';
 
 export const AdminDashboardPage: React.FC = () => {
-  const [isDesktop, setIsDesktop] = useState<boolean>(() => {
-    if (typeof window !== 'undefined') {
-      return window.innerWidth >= 1024;
-    }
-    return true;
-  });
-
-  useEffect(() => {
-    const handleResize = () => {
-      setIsDesktop(window.innerWidth >= 1024);
-    };
-
-    window.addEventListener('resize', handleResize);
-    return () => window.removeEventListener('resize', handleResize);
-  }, []);
-
   const [metrics, setMetrics] = useState(MOCK_METRICS);
   const [monthlyLoans, setMonthlyLoans] = useState(MOCK_MONTHLY_LOANS);
   const [categoryConsults, setCategoryConsults] = useState(MOCK_CATEGORY_CONSULTS);
@@ -66,25 +49,6 @@ export const AdminDashboardPage: React.FC = () => {
     });
     return () => { active = false; };
   }, []);
-
-  // Screen size requirement (< 1024px fallback card)
-  if (!isDesktop) {
-    return (
-      <div className="desktop-only-container">
-        <div className="desktop-only-card" role="alert">
-          <div className="desktop-only-icon" aria-hidden="true">
-            <Monitor size={36} />
-          </div>
-          <h2 className="desktop-only-title">
-            El panel administrativo está disponible para equipos de escritorio
-          </h2>
-          <p className="desktop-only-text">
-            Utiliza una pantalla de 1024 px o más para acceder al módulo administrativo.
-          </p>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="dashboard-container">

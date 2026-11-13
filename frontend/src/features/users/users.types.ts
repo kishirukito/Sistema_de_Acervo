@@ -11,6 +11,13 @@ export type NormalUserCategory =
 
 export type UserStatus = 'ACTIVE' | 'INACTIVE' | 'SUSPENDED';
 
+export interface Carrera {
+  id: string;
+  nivel: string; // TSU, Licenciatura, Ingeniería, Maestría
+  nombre: string;
+  activa?: boolean;
+}
+
 export interface BaseManagedUser {
   id: string;
   fullName: string;
@@ -23,6 +30,9 @@ export interface BaseManagedUser {
   hasOverdueLoan?: boolean;
   avatarColor?: string;
   avatarInitials?: string;
+  carreraId?: string | null;
+  carrera?: Carrera | null;
+  dependenciaOArea?: string | null;
 }
 
 export interface AdministrativeUser extends BaseManagedUser {

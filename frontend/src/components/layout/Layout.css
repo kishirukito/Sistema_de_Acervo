@@ -2,7 +2,9 @@
   display: flex;
   min-height: 100vh;
   width: 100%;
+  max-width: 100vw;
   background-color: var(--color-background, #F7F9FC);
+  overflow-x: hidden;
 }
 
 .app-layout-main {
@@ -10,6 +12,9 @@
   display: flex;
   flex-direction: column;
   min-width: 0;
+  max-width: 100%;
+  width: 100%;
+  overflow-x: hidden;
 }
 
 .app-layout-content {
@@ -18,4 +23,18 @@
   max-width: 1440px;
   width: 100%;
   margin: 0 auto;
+  box-sizing: border-box;
+  overflow-x: hidden;
+}
+
+@media (max-width: 1024px) {
+  .app-layout-content {
+    padding: 20px 16px;
+  }
+}
+
+@media (max-width: 640px) {
+  .app-layout-content {
+    padding: 14px 10px;
+  }
 }

@@ -1,3 +1,4 @@
+import React, { useState } from 'react';
 import { Outlet, Navigate, useLocation, Link } from 'react-router-dom';
 import { AppSidebar } from '../AppSidebar';
 import { Topbar } from '../Topbar';
@@ -22,6 +23,7 @@ const ADMIN_ROUTE_TITLES: Record<string, string> = {
 export const AdminLayout: React.FC = () => {
   const { user, isAuthenticated } = useAuth();
   const location = useLocation();
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
@@ -71,9 +73,16 @@ export const AdminLayout: React.FC = () => {
 
   return (
     <div className="app-layout">
-      <AppSidebar items={ADMIN_NAV_ITEMS} />
+      <AppSidebar
+        items={ADMIN_NAV_ITEMS}
+        isOpen={mobileMenuOpen}
+        onClose={() => setMobileMenuOpen(false)}
+      />
       <div className="app-layout-main">
-        <Topbar title={currentTitle} />
+        <Topbar
+          title={currentTitle}
+          onOpenMobileMenu={() => setMobileMenuOpen(true)}
+        />
         <main className="app-layout-content">
           <Outlet />
         </main>

@@ -14,9 +14,11 @@ export interface NavItem {
 
 interface AppSidebarProps {
   items: NavItem[];
+  isOpen?: boolean;
+  onClose?: () => void;
 }
 
-export const AppSidebar: React.FC<AppSidebarProps> = ({ items }) => {
+export const AppSidebar: React.FC<AppSidebarProps> = ({ items, isOpen = false, onClose }) => {
   const { logout } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
@@ -30,58 +32,69 @@ export const AppSidebar: React.FC<AppSidebarProps> = ({ items }) => {
   const mainNavItems = items.filter((item) => item.path !== '/admin/profile');
 
   return (
-    <aside className="app-sidebar" aria-label="Navegación principal">
-      <div className="app-sidebar-header">
-        <div className="app-sidebar-logo-icon">
-          <BookMarked size={20} />
+    <>
+      {isOpen && (
+        <div
+          className="app-sidebar-backdrop"
+          onClick={onClose}
+          aria-hidden="true"
+        />
+      )}
+      <aside className={clsx('app-sidebar', isOpen && 'app-sidebar--open')} aria-label="Navegación principal">
+        <div className="app-sidebar-header">
+          <div className="app-sidebar-logo-icon">
+            <BookMarked size={20} />
+          </div>
+          <div className="app-sidebar-brand">
+            <span className="app-sidebar-brand-name">{APP_NAME}</span>
+          </div>
         </div>
-        <div className="app-sidebar-brand">
-          <span className="app-sidebar-brand-name">{APP_NAME}</span>
+
+        <nav className="app-sidebar-nav">
+          {mainNavItems.map((item) => {
+            const Icon = item.icon;
+            const isSearchMatch =
+              item.path === '/admin/search' && (location.pathname === '/search' || location.pathname === '/admin/search');
+
+            return (
+              <NavLink
+                key={item.path}
+                to={item.path}
+                onClick={() => onClose?.()}
+                className={({ isActive }) =>
+                  clsx('app-sidebar-link', (isActive || isSearchMatch) && 'app-sidebar-link--active')
+                }
+              >
+                <Icon className="app-sidebar-icon" size={18} />
+                <span>{item.label}</span>
+              </NavLink>
+            );
+          })}
+        </nav>
+
+        <div className="app-sidebar-footer">
+          <NavLink
+            to="/admin/profile"
+            onClick={() => onClose?.()}
+            className={({ isActive }) =>
+              clsx('app-sidebar-link', isActive && 'app-sidebar-link--active')
+            }
+          >
+            <User className="app-sidebar-icon" size={18} />
+            <span>Perfil</span>
+          </NavLink>
+
+          <button
+            type="button"
+            onClick={handleLogout}
+            className="app-sidebar-logout-btn"
+            aria-label="Cerrar sesión"
+          >
+            <LogOut size={18} />
+            <span>Cerrar sesión</span>
+          </button>
         </div>
-      </div>
-
-      <nav className="app-sidebar-nav">
-        {mainNavItems.map((item) => {
-          const Icon = item.icon;
-          const isSearchMatch =
-            item.path === '/admin/search' && (location.pathname === '/search' || location.pathname === '/admin/search');
-
-          return (
-            <NavLink
-              key={item.path}
-              to={item.path}
-              className={({ isActive }) =>
-                clsx('app-sidebar-link', (isActive || isSearchMatch) && 'app-sidebar-link--active')
-              }
-            >
-              <Icon className="app-sidebar-icon" size={18} />
-              <span>{item.label}</span>
-            </NavLink>
-          );
-        })}
-      </nav>
-
-      <div className="app-sidebar-footer">
-        <NavLink
-          to="/admin/profile"
-          className={({ isActive }) =>
-            clsx('app-sidebar-link', isActive && 'app-sidebar-link--active')
-          }
-        >
-          <User className="app-sidebar-icon" size={18} />
-          <span>Perfil</span>
-        </NavLink>
-
-        <button
-          type="button"
-          onClick={handleLogout}
-          className="app-sidebar-logout-btn"
-          aria-label="Cerrar sesión"
-        >
-          <LogOut size={18} />
-          <span>Cerrar sesión</span>
-        </button>
-      </div>
-    </aside>
+      </aside>
+    </>
   );
 };

@@ -2,12 +2,26 @@ from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 import httpx
 import asyncio
+import time
 from app.core.config import settings
 from app.core.security import require_admin
 from typing import Dict, Any, List, Optional
 from datetime import datetime, timezone
 
 router = APIRouter(prefix="/reports", tags=["Estadísticas SIABUC"])
+
+# ==============================================================================
+# CACHÉ EN MEMORIA PARA REPORTES SIABUC (TTL 60 SEGUNDOS)
+# ==============================================================================
+_siabuc_cache: Dict[str, Any] = {
+    "data": None,
+    "expires_at": 0.0
+}
+
+def invalidate_siabuc_cache():
+    """Invalida inmediatamente la caché de estadísticas SIABUC."""
+    _siabuc_cache["data"] = None
+    _siabuc_cache["expires_at"] = 0.0
 
 DEWEY_LABELS = {
     "000": "000 Obras Generales y Computación",
@@ -63,7 +77,12 @@ async def get_siabuc_statistics(admin: Dict[str, Any] = Depends(require_admin)) 
     """
     Retorna los 4 bloques estadísticos estándar de SIABUC con datos reales de Supabase
     más el bloque de Resumen Ejecutivo con detección dinámica de préstamos vencidos por fecha.
+    Implementa caché en memoria con TTL de 60 segundos para alto rendimiento.
     """
+    now_ts = time.time()
+    if _siabuc_cache["data"] is not None and now_ts < _siabuc_cache["expires_at"]:
+        return _siabuc_cache["data"]
+
     headers = {
         "apikey": settings.SUPABASE_SERVICE_ROLE_KEY,
         "Authorization": f"Bearer {settings.SUPABASE_SERVICE_ROLE_KEY}"
@@ -83,7 +102,7 @@ async def get_siabuc_statistics(admin: Dict[str, Any] = Depends(require_admin)) 
 
         reqs = [
             client.get(
-                f"{settings.SUPABASE_URL}/rest/v1/prestamos?select=*,usuarios(nombre_completo,email,carrera_o_dependencia,tipo_usuario_id,tipos_usuario(nombre)),ejemplares(id,estado,codigo_inventario,libros(id,titulo,clasificacion_dewey))&order=fecha_prestamo.desc",
+                f"{settings.SUPABASE_URL}/rest/v1/prestamos?select=*,tipos_prestamo(id,clave,nombre),usuarios:usuarios!prestamos_usuario_id_fkey(nombre_completo,email,dependencia_o_area,carrera_id,tipo_usuario_id,tipos_usuario(nombre),carreras(id,nivel,nombre)),instituciones_convenio(id,nombre,nombre_biblioteca),autorizado_por:usuarios!prestamos_autorizado_por_id_fkey(id,nombre_completo),ejemplares(id,estado,codigo_inventario,libros(id,titulo,clasificacion_dewey))&order=fecha_prestamo.desc",
                 headers=headers
             ),
             client.get(f"{settings.SUPABASE_URL}/rest/v1/sanciones_multas?select=*,usuarios(nombre_completo,email)&order=created_at.desc", headers=headers),
@@ -154,17 +173,32 @@ async def get_siabuc_statistics(admin: Dict[str, Any] = Depends(require_admin)) 
 
         # Tipo de usuario
         t_nombre = (p.get("usuarios") or {}).get("tipos_usuario", {}).get("nombre") if isinstance(p.get("usuarios"), dict) else None
-        t_nombre = t_nombre or "Estudiante / Lector Regular"
+        if not t_nombre:
+            if p.get("instituciones_convenio"):
+                t_nombre = "Préstamo Interbibliotecario (Convenio)"
+            else:
+                t_nombre = "Estudiante / Lector Regular"
         prestamos_por_tipo[t_nombre] = prestamos_por_tipo.get(t_nombre, 0) + 1
 
-        # Carrera o dependencia
-        carrera = (p.get("usuarios") or {}).get("carrera_o_dependencia") if isinstance(p.get("usuarios"), dict) else None
-        carrera = carrera or "Ingeniería en Sistemas Computacionales"
+        # Carrera o dependencia / Institución
+        carrera_obj = (p.get("usuarios") or {}).get("carreras") if isinstance(p.get("usuarios"), dict) else None
+        carrera = carrera_obj.get("nombre") if isinstance(carrera_obj, dict) else None
+        if not carrera and isinstance(p.get("usuarios"), dict):
+            carrera = p.get("usuarios").get("dependencia_o_area")
+        if not carrera and p.get("instituciones_convenio"):
+            carrera = (p.get("instituciones_convenio") or {}).get("nombre") or "Institución Externa en Convenio"
+        carrera = carrera or "General / Sin especificar"
         prestamos_por_carrera[carrera] = prestamos_por_carrera.get(carrera, 0) + 1
 
         # Modalidad y renovaciones
-        if p.get("tipo_prestamo") == "sala":
+        tipo_info = p.get("tipos_prestamo") if isinstance(p.get("tipos_prestamo"), dict) else {}
+        tipo_clave = tipo_info.get("clave") or p.get("tipo_prestamo") or "domicilio"
+
+        if tipo_clave == "sala":
             prestamos_sala += 1
+        elif tipo_clave == "interbibliotecario":
+            # Contabilizamos en métricas
+            prestamos_domicilio += 1
         else:
             prestamos_domicilio += 1
         renovaciones_totales += (p.get("renovaciones_count") or 0)
@@ -345,7 +379,7 @@ async def get_siabuc_statistics(admin: Dict[str, Any] = Depends(require_admin)) 
             "status": "OVERDUE"
         })
 
-    return {
+    result_data = {
         "circulacion": {
             "total_prestamos": total_prestamos_count,
             "prestamos_sala": prestamos_sala,
@@ -420,11 +454,16 @@ async def get_siabuc_statistics(admin: Dict[str, Any] = Depends(require_admin)) 
         }
     }
 
+    _siabuc_cache["data"] = result_data
+    _siabuc_cache["expires_at"] = time.time() + 60.0
+    return result_data
+
 
 # Endpoints para capturar / ingresar valores en la base de datos
 @router.post("/sancion")
 async def create_sancion(payload: CreateSancionPayload, admin: Dict[str, Any] = Depends(require_admin)):
     """Registra una nueva sanción o multa contable en Supabase."""
+    invalidate_siabuc_cache()
     headers = {
         "apikey": settings.SUPABASE_SERVICE_ROLE_KEY,
         "Authorization": f"Bearer {settings.SUPABASE_SERVICE_ROLE_KEY}",
@@ -448,6 +487,7 @@ async def create_sancion(payload: CreateSancionPayload, admin: Dict[str, Any] = 
 @router.post("/reserva-espacio")
 async def create_reserva_espacio(payload: CreateReservaEspacioPayload, admin: Dict[str, Any] = Depends(require_admin)):
     """Registra una reserva u ocupación de cubículo / sala en Supabase."""
+    invalidate_siabuc_cache()
     headers = {
         "apikey": settings.SUPABASE_SERVICE_ROLE_KEY,
         "Authorization": f"Bearer {settings.SUPABASE_SERVICE_ROLE_KEY}",
@@ -471,6 +511,7 @@ async def create_reserva_espacio(payload: CreateReservaEspacioPayload, admin: Di
 @router.post("/sesion-computo")
 async def create_sesion_computo(payload: CreateSesionComputoPayload, admin: Dict[str, Any] = Depends(require_admin)):
     """Registra una sesión de uso de equipo de cómputo en Supabase."""
+    invalidate_siabuc_cache()
     headers = {
         "apikey": settings.SUPABASE_SERVICE_ROLE_KEY,
         "Authorization": f"Bearer {settings.SUPABASE_SERVICE_ROLE_KEY}",
@@ -494,6 +535,7 @@ async def create_sesion_computo(payload: CreateSesionComputoPayload, admin: Dict
 @router.post("/ejemplar-estado")
 async def update_ejemplar_estado(payload: UpdateEjemplarEstadoPayload, admin: Dict[str, Any] = Depends(require_admin)):
     """Actualiza el estado de un ejemplar (por ejemplo: baja, extraviado, en mantenimiento)."""
+    invalidate_siabuc_cache()
     headers = {
         "apikey": settings.SUPABASE_SERVICE_ROLE_KEY,
         "Authorization": f"Bearer {settings.SUPABASE_SERVICE_ROLE_KEY}",

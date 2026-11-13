@@ -1030,3 +1030,81 @@
   }
 }
 
+/* ==============================================================================
+   RESPONSIVIDAD MÓVIL (REPORTES)
+   ============================================================================== */
+@media (max-width: 1024px) {
+  .reports-kpi-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  .reports-charts-grid {
+    grid-template-columns: 1fr;
+  }
+  .reports-bottom-split {
+    grid-template-columns: 1fr;
+  }
+  .reports-split-2 {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .reports-container {
+    padding: 0;
+    max-width: 100%;
+    overflow-x: hidden;
+  }
+  .reports-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+  .reports-header-actions {
+    width: 100%;
+    flex-wrap: wrap;
+  }
+  .reports-btn-outline,
+  .reports-btn-primary {
+    flex: 1;
+    justify-content: center;
+  }
+  .reports-tabs-bar {
+    width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+    flex-wrap: nowrap;
+    padding-bottom: 4px;
+  }
+  .reports-kpi-grid {
+    grid-template-columns: 1fr !important;
+    gap: 0.875rem;
+  }
+  .reports-charts-grid {
+    grid-template-columns: 1fr !important;
+    gap: 0.875rem;
+  }
+  .reports-bottom-split {
+    grid-template-columns: 1fr !important;
+    gap: 0.875rem;
+  }
+  .reports-split-2 {
+    grid-template-columns: 1fr !important;
+    gap: 0.875rem;
+  }
+  .reports-card {
+    padding: 1rem;
+    max-width: 100%;
+    overflow: hidden;
+  }
+  .reports-overdue-table-wrapper {
+    width: 100%;
+    max-width: 100%;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+  .reports-overdue-table {
+    min-width: 650px;
+  }
+}
+
+

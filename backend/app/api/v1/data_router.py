@@ -1,19 +1,70 @@
 from fastapi import APIRouter, HTTPException, Depends, status
 from app.services.supabase_service import supabase_service
 from app.core.security import get_current_user, require_admin
+from app.schemas.book_schema import BookCreateSchema, BookUpdateSchema
+from app.api.v1.reports_router import invalidate_siabuc_cache
 from typing import List, Dict, Any
 
 router = APIRouter(prefix="/data", tags=["Datos Seguros de Supabase"])
 
 @router.get("/usuarios", response_model=List[Dict[str, Any]])
 async def get_all_usuarios(admin: Dict[str, Any] = Depends(require_admin)):
-    """Obtiene todos los usuarios de Supabase. Requiere rol administrativo."""
+    """Obtiene todos los usuarios de Supabase con carreras. Requiere rol administrativo."""
     try:
         return await supabase_service.get_users()
     except Exception as e:
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Error al consultar el catálogo de usuarios."
+        )
+
+@router.get("/tipos-prestamo", response_model=List[Dict[str, Any]])
+async def get_all_tipos_prestamo(current_user: Dict[str, Any] = Depends(get_current_user)):
+    """Obtiene los tipos de préstamo activos del sistema."""
+    try:
+        return await supabase_service.get_loan_types()
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error al consultar los tipos de préstamo."
+        )
+
+@router.get("/carreras", response_model=List[Dict[str, Any]])
+async def get_all_carreras(current_user: Dict[str, Any] = Depends(get_current_user)):
+    """Obtiene las carreras universitarias de la UNIPOLI ordenadas por nivel y nombre."""
+    try:
+        return await supabase_service.get_carreras()
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error al consultar el catálogo de carreras."
+        )
+
+@router.get("/instituciones", response_model=List[Dict[str, Any]])
+async def get_all_instituciones(current_user: Dict[str, Any] = Depends(get_current_user)):
+    """Obtiene las instituciones y bibliotecas en convenio activas."""
+    try:
+        return await supabase_service.get_instituciones()
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error al consultar las instituciones en convenio."
+        )
+
+@router.post("/instituciones")
+async def create_institucion(
+    payload: Dict[str, Any],
+    admin: Dict[str, Any] = Depends(require_admin)
+):
+    """Registra una nueva institución o biblioteca externa en convenio. Requiere rol administrativo."""
+    try:
+        return await supabase_service.create_institucion(payload)
+    except ValueError as ve:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(ve))
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error al registrar la institución en convenio."
         )
 
 @router.get("/prestamos", response_model=List[Dict[str, Any]])
@@ -83,26 +134,51 @@ async def create_prestamo(
     payload: Dict[str, Any],
     admin: Dict[str, Any] = Depends(require_admin)
 ):
-    """Registra un nuevo préstamo en mostrador. Requiere rol administrativo."""
+    """
+    Registra un nuevo préstamo en mostrador o interbibliotecario. Requiere rol administrativo.
+    Asigna automáticamente autorizado_por_id con el admin en sesión.
+    """
     try:
-        return await supabase_service.create_loan(payload)
+        admin_id = admin.get("id") or admin.get("sub")
+        res = await supabase_service.create_loan(payload, authorized_by_admin_id=admin_id)
+        invalidate_siabuc_cache()
+        return res
+    except ValueError as ve:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(ve))
     except HTTPException:
         raise
     except Exception as e:
+        import traceback
+        print(f"[ERROR create_prestamo] {type(e).__name__}: {e}")
+        traceback.print_exc()
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Error al registrar el préstamo en el sistema."
+            detail=f"Error al registrar el préstamo en el sistema. ({type(e).__name__}: {str(e)[:200]})"
         )
 
 @router.post("/libros")
 async def create_libro(
-    payload: Dict[str, Any],
+    payload: BookCreateSchema,
     admin: Dict[str, Any] = Depends(require_admin)
 ):
-    """Registra un nuevo libro completo en Supabase. Requiere rol administrativo."""
+    """
+    Registra un nuevo libro completo en Supabase con validaciones estrictas Pydantic.
+    Requiere rol administrativo.
+    Garantiza HTTP 422 ante desbordamiento de campos y HTTP 409 ante duplicidad de ISBN.
+    """
     try:
-        return await supabase_service.create_book(payload)
+        res = await supabase_service.create_book(payload.model_dump())
+        invalidate_siabuc_cache()
+        return res
+    except HTTPException:
+        raise
     except Exception as e:
+        err_msg = str(e)
+        if "23505" in err_msg or "duplicate key" in err_msg or "registrado" in err_msg:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="El código ISBN ya se encuentra registrado en el acervo"
+            )
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Error al registrar el título en el catálogo."
@@ -137,6 +213,7 @@ async def delete_libro(
                 status_code=status.HTTP_409_CONFLICT,
                 detail=result.get("message") or "No es posible eliminar el libro porque cuenta con ejemplares en préstamo activo."
             )
+        invalidate_siabuc_cache()
         return {
             "deleted": True,
             "id": clean_id,
@@ -215,6 +292,7 @@ async def delete_prestamo(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail=f"No se encontró el préstamo con ID {clean_id}."
             )
+        invalidate_siabuc_cache()
         return {
             "deleted": True,
             "id": clean_id,
@@ -231,20 +309,21 @@ async def delete_prestamo(
 @router.patch("/libros/{book_id}")
 async def patch_libro(
     book_id: str,
-    payload: Dict[str, Any],
+    payload: BookUpdateSchema,
     admin: Dict[str, Any] = Depends(require_admin)
 ):
     """
-    Actualiza la información de un libro en Supabase.
+    Actualiza la información de un libro en Supabase con validaciones Pydantic.
     Requiere rol administrativo (ADMINISTRATIVE / ADMIN / SUPERADMIN).
     """
     clean_id = str(book_id).strip()
     if not clean_id:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="ID de libro inválido.")
     try:
-        result = await supabase_service.update_book(clean_id, payload)
+        result = await supabase_service.update_book(clean_id, payload.model_dump(exclude_unset=True))
         if result.get("status") == "not_found":
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"No se encontró el libro con ID {clean_id}.")
+        invalidate_siabuc_cache()
         return {"updated": True, "id": clean_id, "data": result.get("data")}
     except HTTPException:
         raise
@@ -291,6 +370,7 @@ async def patch_prestamo(
         result = await supabase_service.update_loan(clean_id, payload)
         if result.get("status") == "not_found":
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=f"No se encontró el préstamo con ID {clean_id}.")
+        invalidate_siabuc_cache()
         return {"updated": True, "id": clean_id, "data": result.get("data")}
     except HTTPException:
         raise

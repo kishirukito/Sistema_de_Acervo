@@ -97,12 +97,23 @@ class SupabaseService:
         }
 
     async def get_users(self) -> List[Dict[str, Any]]:
-        # Include telefono
-        url = f"{self.base_url}/usuarios?select=id,rol,email,nombre_completo,matricula_o_nomina,carrera_o_dependencia,vigencia_hasta,estado,created_at,telefono,prestamos(id,estado)&order=nombre_completo.asc"
+        url = (
+            f"{self.base_url}/usuarios?select="
+            "id,rol,email,nombre_completo,matricula_o_nomina,dependencia_o_area,carrera_id,vigencia_hasta,estado,created_at,telefono,"
+            "carreras(id,nivel,nombre),"
+            "prestamos:prestamos!prestamos_usuario_id_fkey(id,estado)"
+            "&order=nombre_completo.asc"
+        )
         async with httpx.AsyncClient() as client:
             resp = await client.get(url, headers=self.headers, timeout=10.0)
-            if resp.status_code == 400: # in case telefono is not yet added in DB
-                fallback_url = f"{self.base_url}/usuarios?select=id,rol,email,nombre_completo,matricula_o_nomina,carrera_o_dependencia,vigencia_hasta,estado,created_at,prestamos(id,estado)&order=nombre_completo.asc"
+            if resp.status_code == 400:
+                # Fallback if relationship or phone isn't available
+                fallback_url = (
+                    f"{self.base_url}/usuarios?select="
+                    "id,rol,email,nombre_completo,matricula_o_nomina,dependencia_o_area,carrera_id,vigencia_hasta,estado,created_at,"
+                    "carreras(id,nivel,nombre)"
+                    "&order=nombre_completo.asc"
+                )
                 resp = await client.get(fallback_url, headers=self.headers, timeout=10.0)
             resp.raise_for_status()
             return resp.json()
@@ -110,9 +121,13 @@ class SupabaseService:
     async def get_loans(self) -> List[Dict[str, Any]]:
         url = (
             f"{self.base_url}/prestamos?select="
-            "id,usuario_id,ejemplar_id,tipo_prestamo,fecha_prestamo,fecha_limite_devolucion,fecha_devolucion_real,estado,notas,"
-            "usuarios(nombre_completo,email,rol,carrera_o_dependencia,telefono),"
-            "ejemplares(codigo_inventario,ubicacion_estante,libros(titulo,isbn,libro_autores(autores(nombre))))"
+            "id,usuario_id,ejemplar_id,tipo_prestamo_id,fecha_prestamo,fecha_limite_devolucion,fecha_devolucion_real,estado,notas,renovaciones_count,"
+            "institucion_id,folio_oficio,responsable_externo_nombre,responsable_externo_cargo,responsable_externo_contacto,autorizado_por_id,"
+            "tipos_prestamo(id,clave,nombre,dias_plazo_default,requiere_convenio),"
+            "usuarios:usuarios!prestamos_usuario_id_fkey(id,nombre_completo,email,rol,dependencia_o_area,carrera_id,telefono,carreras(id,nivel,nombre)),"
+            "instituciones_convenio(id,nombre,nombre_biblioteca,clave_convenio,responsable_titular,responsable_email,responsable_telefono),"
+            "autorizado_por:usuarios!prestamos_autorizado_por_id_fkey(id,nombre_completo,email),"
+            "ejemplares(id,codigo_inventario,ubicacion_estante,libros(id,titulo,isbn,portada_url,libro_autores(autores(nombre))))"
             "&order=fecha_prestamo.desc"
         )
         async with httpx.AsyncClient() as client:
@@ -120,9 +135,12 @@ class SupabaseService:
             if resp.status_code == 400:
                 fallback_url = (
                     f"{self.base_url}/prestamos?select="
-                    "id,usuario_id,ejemplar_id,tipo_prestamo,fecha_prestamo,fecha_limite_devolucion,fecha_devolucion_real,estado,notas,"
-                    "usuarios(nombre_completo,email,rol,carrera_o_dependencia),"
-                    "ejemplares(codigo_inventario,ubicacion_estante,libros(titulo,isbn,libro_autores(autores(nombre))))"
+                    "id,usuario_id,ejemplar_id,tipo_prestamo_id,fecha_prestamo,fecha_limite_devolucion,fecha_devolucion_real,estado,notas,renovaciones_count,"
+                    "institucion_id,folio_oficio,responsable_externo_nombre,responsable_externo_cargo,responsable_externo_contacto,autorizado_por_id,"
+                    "tipos_prestamo(id,clave,nombre,dias_plazo_default,requiere_convenio),"
+                    "usuarios:usuarios!prestamos_usuario_id_fkey(id,nombre_completo,email,rol,dependencia_o_area,carrera_id,carreras(id,nivel,nombre)),"
+                    "instituciones_convenio(id,nombre,nombre_biblioteca),"
+                    "ejemplares(id,codigo_inventario,ubicacion_estante,libros(id,titulo,isbn,portada_url,libro_autores(autores(nombre))))"
                     "&order=fecha_prestamo.desc"
                 )
                 resp = await client.get(fallback_url, headers=self.headers, timeout=10.0)
@@ -134,18 +152,25 @@ class SupabaseService:
         clean_id = str(loan_id).strip()
         url = (
             f"{self.base_url}/prestamos?id=eq.{clean_id}&select="
-            "id,usuario_id,ejemplar_id,tipo_prestamo,fecha_prestamo,fecha_limite_devolucion,fecha_devolucion_real,estado,notas,"
-            "usuarios(nombre_completo,email,rol,carrera_o_dependencia,telefono),"
-            "ejemplares(codigo_inventario,ubicacion_estante,libros(titulo,isbn,libro_autores(autores(nombre))))"
+            "id,usuario_id,ejemplar_id,tipo_prestamo_id,fecha_prestamo,fecha_limite_devolucion,fecha_devolucion_real,estado,notas,renovaciones_count,"
+            "institucion_id,folio_oficio,responsable_externo_nombre,responsable_externo_cargo,responsable_externo_contacto,autorizado_por_id,"
+            "tipos_prestamo(id,clave,nombre,dias_plazo_default,requiere_convenio),"
+            "usuarios:usuarios!prestamos_usuario_id_fkey(id,nombre_completo,email,rol,dependencia_o_area,carrera_id,telefono,carreras(id,nivel,nombre)),"
+            "instituciones_convenio(id,nombre,nombre_biblioteca,clave_convenio,responsable_titular,responsable_email,responsable_telefono),"
+            "autorizado_por:usuarios!prestamos_autorizado_por_id_fkey(id,nombre_completo,email),"
+            "ejemplares(id,codigo_inventario,ubicacion_estante,libros(id,titulo,isbn,portada_url,libro_autores(autores(nombre))))"
         )
         async with httpx.AsyncClient() as client:
             resp = await client.get(url, headers=self.headers, timeout=10.0)
             if resp.status_code == 400:
                 fallback_url = (
                     f"{self.base_url}/prestamos?id=eq.{clean_id}&select="
-                    "id,usuario_id,ejemplar_id,tipo_prestamo,fecha_prestamo,fecha_limite_devolucion,fecha_devolucion_real,estado,notas,"
-                    "usuarios(nombre_completo,email,rol,carrera_o_dependencia),"
-                    "ejemplares(codigo_inventario,ubicacion_estante,libros(titulo,isbn,libro_autores(autores(nombre))))"
+                    "id,usuario_id,ejemplar_id,tipo_prestamo_id,fecha_prestamo,fecha_limite_devolucion,fecha_devolucion_real,estado,notas,renovaciones_count,"
+                    "institucion_id,folio_oficio,responsable_externo_nombre,responsable_externo_cargo,responsable_externo_contacto,autorizado_por_id,"
+                    "tipos_prestamo(id,clave,nombre,dias_plazo_default,requiere_convenio),"
+                    "usuarios:usuarios!prestamos_usuario_id_fkey(id,nombre_completo,email,rol,dependencia_o_area,carrera_id,carreras(id,nivel,nombre)),"
+                    "instituciones_convenio(id,nombre,nombre_biblioteca),"
+                    "ejemplares(id,codigo_inventario,ubicacion_estante,libros(id,titulo,isbn,portada_url,libro_autores(autores(nombre))))"
                 )
                 resp = await client.get(fallback_url, headers=self.headers, timeout=10.0)
             if resp.is_success:
@@ -159,7 +184,8 @@ class SupabaseService:
         clean_uid = str(user_id).strip()
         url = (
             f"{self.base_url}/prestamos?usuario_id=eq.{clean_uid}&select="
-            "id,usuario_id,ejemplar_id,tipo_prestamo,fecha_prestamo,fecha_limite_devolucion,fecha_devolucion_real,estado,notas,"
+            "id,usuario_id,ejemplar_id,tipo_prestamo_id,fecha_prestamo,fecha_limite_devolucion,fecha_devolucion_real,estado,notas,renovaciones_count,"
+            "tipos_prestamo(id,clave,nombre,dias_plazo_default,requiere_convenio),"
             "ejemplares(codigo_inventario,ubicacion_estante,libros(id,titulo,isbn,portada_url,libro_autores(orden,autores(nombre))))"
             "&order=fecha_prestamo.desc"
         )
@@ -172,6 +198,10 @@ class SupabaseService:
             for r in rows:
                 ejemplar = r.get("ejemplares") or {}
                 libro = ejemplar.get("libros") or {}
+                tipo_info = r.get("tipos_prestamo") or {}
+                tipo_clave = tipo_info.get("clave") or "domicilio"
+                tipo_nombre = tipo_info.get("nombre") or ("Préstamo a Domicilio" if tipo_clave == "domicilio" else "Préstamo en Sala")
+
                 autores = []
                 for la in (libro.get("libro_autores") or []):
                     if isinstance(la, dict) and la.get("autores") and la["autores"].get("nombre"):
@@ -189,12 +219,16 @@ class SupabaseService:
                     "autor": ", ".join(autores) or "Autor desconocido",
                     "isbn": libro.get("isbn") or "",
                     "portada_url": libro.get("portada_url"),
-                    "tipo_prestamo": r.get("tipo_prestamo") or "domicilio",
+                    "tipo_prestamo_id": r.get("tipo_prestamo_id"),
+                    "tipo_prestamo": tipo_clave,
+                    "tipo_prestamo_nombre": tipo_nombre,
+                    "tipos_prestamo": tipo_info,
                     "fecha_prestamo": r.get("fecha_prestamo"),
                     "fecha_limite_devolucion": r.get("fecha_limite_devolucion"),
                     "fecha_devolucion_real": r.get("fecha_devolucion_real"),
                     "estado": r.get("estado") or "activo",
-                    "notas": r.get("notas") or ""
+                    "notas": r.get("notas") or "",
+                    "renovaciones_count": r.get("renovaciones_count") or 0
                 })
             return formatted
 
@@ -214,25 +248,141 @@ class SupabaseService:
             resp.raise_for_status()
             return resp.json()
 
-    async def create_loan(self, loan_data: Dict[str, Any]) -> Dict[str, Any]:
+    async def get_loan_types(self) -> List[Dict[str, Any]]:
+        """Consulta los tipos de préstamo activos del sistema."""
+        url = f"{self.base_url}/tipos_prestamo?activo=eq.true&select=id,clave,nombre,descripcion,dias_plazo_default,requiere_convenio,activo&order=dias_plazo_default.asc"
+        async with httpx.AsyncClient() as client:
+            resp = await client.get(url, headers=self.headers, timeout=10.0)
+            resp.raise_for_status()
+            return resp.json()
+
+    async def get_carreras(self) -> List[Dict[str, Any]]:
+        """Consulta las carreras activas de la UNIPOLI ordenadas por nivel y nombre."""
+        url = f"{self.base_url}/carreras?activa=eq.true&select=id,nivel,nombre,activa&order=nivel.asc,nombre.asc"
+        async with httpx.AsyncClient() as client:
+            resp = await client.get(url, headers=self.headers, timeout=10.0)
+            resp.raise_for_status()
+            return resp.json()
+
+    async def get_instituciones(self) -> List[Dict[str, Any]]:
+        """Consulta las instituciones en convenio activas."""
+        url = f"{self.base_url}/instituciones_convenio?activa=eq.true&select=id,nombre,nombre_biblioteca,clave_convenio,responsable_titular,responsable_email,responsable_telefono,direccion,activa,created_at&order=nombre.asc"
+        async with httpx.AsyncClient() as client:
+            resp = await client.get(url, headers=self.headers, timeout=10.0)
+            resp.raise_for_status()
+            return resp.json()
+
+    async def create_institucion(self, payload: Dict[str, Any]) -> Dict[str, Any]:
+        """Registra una nueva institución / biblioteca en convenio."""
+        url = f"{self.base_url}/instituciones_convenio"
+        clean = {
+            "nombre": str(payload.get("nombre", "")).strip(),
+            "nombre_biblioteca": str(payload.get("nombre_biblioteca", "")).strip() or None,
+            "clave_convenio": str(payload.get("clave_convenio", "")).strip() or None,
+            "responsable_titular": str(payload.get("responsable_titular", "")).strip() or None,
+            "responsable_email": str(payload.get("responsable_email", "")).strip() or None,
+            "responsable_telefono": str(payload.get("responsable_telefono", "")).strip() or None,
+            "direccion": str(payload.get("direccion", "")).strip() or None,
+            "activa": payload.get("activa", True)
+        }
+        if not clean["nombre"]:
+            raise ValueError("El nombre de la institución es obligatorio.")
+
+        async with httpx.AsyncClient() as client:
+            resp = await client.post(url, headers=self.headers, json=clean, timeout=10.0)
+            resp.raise_for_status()
+            res = resp.json()
+            return res[0] if isinstance(res, list) and res else res
+
+    async def create_loan(self, loan_data: Dict[str, Any], authorized_by_admin_id: Optional[str] = None) -> Dict[str, Any]:
         url = f"{self.base_url}/prestamos"
         clean_payload = dict(loan_data)
         
-        # Validar y normalizar fechas al formato ISO 8601 UTC timestamptz
-        if "fecha_prestamo" in clean_payload and clean_payload["fecha_prestamo"]:
-            clean_payload["fecha_prestamo"] = validate_and_normalize_timestamptz(
-                clean_payload["fecha_prestamo"], "fecha_prestamo"
-            )
-        if "fecha_limite_devolucion" in clean_payload and clean_payload["fecha_limite_devolucion"]:
-            clean_payload["fecha_limite_devolucion"] = validate_and_normalize_timestamptz(
-                clean_payload["fecha_limite_devolucion"], "fecha_limite_devolucion"
-            )
-        if "fecha_devolucion_real" in clean_payload and clean_payload["fecha_devolucion_real"]:
-            clean_payload["fecha_devolucion_real"] = validate_and_normalize_timestamptz(
-                clean_payload["fecha_devolucion_real"], "fecha_devolucion_real"
-            )
+        # 1. Obtener o resolver tipo_prestamo_id
+        tipo_prestamo_id = clean_payload.get("tipo_prestamo_id")
+        tipo_clave = str(clean_payload.get("tipo_prestamo") or clean_payload.get("tipo") or "").lower().strip()
+        
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            # Si no viene tipo_prestamo_id pero viene clave ("domicilio", "sala", "interbibliotecario"), resolver ID
+            tipos_map = {}
+            r_tipos = await client.get(f"{self.base_url}/tipos_prestamo?select=id,clave,requiere_convenio,dias_plazo_default", headers=self.headers)
+            if r_tipos.is_success:
+                for t in r_tipos.json():
+                    tipos_map[t["id"]] = t
+                    tipos_map[t["clave"].lower()] = t
 
-        async with httpx.AsyncClient() as client:
+            current_tipo = None
+            if tipo_prestamo_id and tipo_prestamo_id in tipos_map:
+                current_tipo = tipos_map[tipo_prestamo_id]
+            elif tipo_clave and tipo_clave in tipos_map:
+                current_tipo = tipos_map[tipo_clave]
+                clean_payload["tipo_prestamo_id"] = current_tipo["id"]
+            
+            # Remover clave antigua si existe en el payload
+            clean_payload.pop("tipo_prestamo", None)
+            clean_payload.pop("tipo", None)
+
+            if not clean_payload.get("tipo_prestamo_id"):
+                # Default a tipo 'domicilio' si existe
+                if "domicilio" in tipos_map:
+                    clean_payload["tipo_prestamo_id"] = tipos_map["domicilio"]["id"]
+                    current_tipo = tipos_map["domicilio"]
+                else:
+                    raise ValueError("tipo_prestamo_id no válido o no especificado.")
+
+            clave_actual = (current_tipo.get("clave") if current_tipo else "").lower()
+            requiere_convenio = current_tipo.get("requiere_convenio", False) if current_tipo else False
+
+            # Validaciones según modalidad
+            if clave_actual == "interbibliotecario" or requiere_convenio:
+                # Exige institucion_id y responsable_externo_nombre
+                if not clean_payload.get("institucion_id"):
+                    raise ValueError("El préstamo interbibliotecario requiere seleccionar una institución en convenio ('institucion_id').")
+                if not clean_payload.get("responsable_externo_nombre") or not str(clean_payload.get("responsable_externo_nombre")).strip():
+                    raise ValueError("El préstamo interbibliotecario requiere registrar el nombre del responsable externo ('responsable_externo_nombre').")
+                
+                # Asignar automáticamente autorizado_por_id desde el token admin
+                if authorized_by_admin_id:
+                    clean_payload["autorizado_por_id"] = authorized_by_admin_id
+                
+                # usuario_id puede ser opcional o None en préstamos interbibliotecarios
+                if not clean_payload.get("usuario_id"):
+                    clean_payload["usuario_id"] = None
+            else:
+                # domicilio o sala
+                if not clean_payload.get("usuario_id"):
+                    raise ValueError("El préstamo requiere un usuario interno solicitante ('usuario_id').")
+                # Limpiar campos de convenio
+                clean_payload["institucion_id"] = None
+                clean_payload["responsable_externo_nombre"] = None
+                clean_payload["responsable_externo_cargo"] = None
+                clean_payload["responsable_externo_contacto"] = None
+                clean_payload["folio_oficio"] = None
+
+            # Calcular fechas automáticamente si no vienen en el payload
+            from datetime import datetime, timezone, timedelta
+            now_utc = datetime.now(timezone.utc)
+
+            if not clean_payload.get("fecha_prestamo"):
+                clean_payload["fecha_prestamo"] = now_utc.isoformat()
+            else:
+                clean_payload["fecha_prestamo"] = validate_and_normalize_timestamptz(
+                    clean_payload["fecha_prestamo"], "fecha_prestamo"
+                )
+
+            if not clean_payload.get("fecha_limite_devolucion"):
+                dias = int(current_tipo.get("dias_plazo_default", 7)) if current_tipo else 7
+                clean_payload["fecha_limite_devolucion"] = (now_utc + timedelta(days=dias)).isoformat()
+            else:
+                clean_payload["fecha_limite_devolucion"] = validate_and_normalize_timestamptz(
+                    clean_payload["fecha_limite_devolucion"], "fecha_limite_devolucion"
+                )
+
+            if "fecha_devolucion_real" in clean_payload and clean_payload["fecha_devolucion_real"]:
+                clean_payload["fecha_devolucion_real"] = validate_and_normalize_timestamptz(
+                    clean_payload["fecha_devolucion_real"], "fecha_devolucion_real"
+                )
+
             resp = await client.post(url, headers=self.headers, json=clean_payload, timeout=10.0)
             resp.raise_for_status()
             created = resp.json()
@@ -249,52 +399,106 @@ class SupabaseService:
     async def create_book(self, data: Dict[str, Any]) -> Dict[str, Any]:
         """
         Crea un libro completo con todas sus relaciones en Supabase:
-        - Editorial (editoriales)
-        - Autor(es) (autores y libro_autores)
-        - Libro (libros)
-        - Categoría temática (libro_temas)
-        - Ejemplares físicos (ejemplares)
-        - Resumen analítico IA (resumenes_ia)
-        Utiliza permisos de servicio para omitir restricciones RLS.
+        - RPC PostgreSQL directo (registrar_libro_completo) para latencia ultra-baja.
+        - Fallback consolidado en lote (Batch Inserts) si la función RPC no está presente.
+        - Validación explícita de unicidad de ISBN con HTTP 409 Conflict.
         """
         import re
+        import asyncio
+
+        isbn = str(data.get("isbn") or "").strip()
+        titulo = str(data.get("titulo") or data.get("title") or "").strip()
+        autores_raw = str(data.get("autor") or data.get("author") or "Autor Desconocido").strip()
+        editorial_nombre = str(data.get("editorial") or data.get("publisher") or "").strip()
+        
+        anio = data.get("anio_publicacion") or data.get("publishYear")
+        if anio:
+            try:
+                anio = int(anio)
+            except (ValueError, TypeError):
+                anio = 2026
+        else:
+            anio = 2026
+
+        edicion = str(data.get("edicion") or "1ra Edición").strip()
+        portada_url = data.get("portada_url") or data.get("coverUrl") or "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&q=80&w=400"
+        categoria = str(data.get("categoria") or data.get("category") or "000").strip()
+        
+        total_copias = data.get("ejemplares_iniciales") or data.get("total_copias") or data.get("totalCopies") or 1
+        try:
+            total_copias = int(total_copias)
+        except (ValueError, TypeError):
+            total_copias = 1
+        total_copias = max(1, min(total_copias, 50))
+
+        ubicacion = str(data.get("ubicacion_estante") or data.get("ubicacion") or data.get("location") or "Estante General").strip()
+        descripcion = str(data.get("descripcion") or data.get("description") or "").strip()
+
         async with httpx.AsyncClient(timeout=15.0) as client:
-            # 1. Resolver o crear Editorial
+            # -------------------------------------------------------------
+            # ESTRATEGIA 1: LLAMADA A FUNCIÓN RPC ATÓMICA EN POSTGRESQL
+            # -------------------------------------------------------------
+            rpc_url = f"{self.base_url}/rpc/registrar_libro_completo"
+            rpc_payload = {
+                "p_isbn": isbn,
+                "p_titulo": titulo,
+                "p_autor": autores_raw,
+                "p_editorial": editorial_nombre or None,
+                "p_anio_publicacion": anio,
+                "p_edicion": edicion,
+                "p_categoria": categoria,
+                "p_total_copias": total_copias,
+                "p_ubicacion_estante": ubicacion,
+                "p_portada_url": portada_url,
+                "p_descripcion": descripcion or None
+            }
+            try:
+                rpc_resp = await client.post(rpc_url, headers=self.headers, json=rpc_payload)
+                if rpc_resp.status_code in (200, 201):
+                    return rpc_resp.json()
+                
+                resp_text = rpc_resp.text
+                if rpc_resp.status_code in (400, 409) and ("23505" in resp_text or "duplicate key" in resp_text or "ya se encuentra registrado" in resp_text):
+                    raise HTTPException(
+                        status_code=status.HTTP_409_CONFLICT,
+                        detail="El código ISBN ya se encuentra registrado en el acervo"
+                    )
+            except HTTPException:
+                raise
+            except Exception:
+                pass  # Fallback a operaciones consolidadas REST
+
+            # -------------------------------------------------------------
+            # ESTRATEGIA 2: FALLBACK CONSOLIDADO REST CON OPERACIONES EN LOTE
+            # -------------------------------------------------------------
+            # A. Verificación preventiva de duplicidad de ISBN
+            chk_resp = await client.get(f"{self.base_url}/libros?isbn=eq.{isbn}&select=id", headers=self.headers)
+            if chk_resp.is_success and len(chk_resp.json()) > 0:
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail="El código ISBN ya se encuentra registrado en el acervo"
+                )
+
+            # B. Resolver Editorial
             editorial_id = None
-            editorial_nombre = (data.get("editorial") or data.get("publisher") or "").strip()
             if editorial_nombre:
                 ed_resp = await client.get(
                     f"{self.base_url}/editoriales?nombre=ilike.{editorial_nombre}&select=id",
                     headers=self.headers
                 )
                 ed_list = ed_resp.json() if ed_resp.is_success else []
-                if ed_list and len(ed_list) > 0:
+                if ed_list:
                     editorial_id = ed_list[0]["id"]
                 else:
                     new_ed = await client.post(
                         f"{self.base_url}/editoriales",
-                        headers=self.headers,
+                        headers={**self.headers, "Prefer": "return=representation"},
                         json={"nombre": editorial_nombre}
                     )
                     if new_ed.is_success and new_ed.json():
                         editorial_id = new_ed.json()[0]["id"]
 
-            # 2. Insertar Libro en tabla 'libros'
-            isbn = str(data.get("isbn") or "").strip()
-            titulo = str(data.get("titulo") or data.get("title") or "").strip()
-            anio = data.get("anio_publicacion") or data.get("publishYear")
-            if anio:
-                try:
-                    anio = int(anio)
-                except (ValueError, TypeError):
-                    anio = 2026
-            else:
-                anio = 2026
-
-            edicion = str(data.get("edicion") or "1ra Edición").strip()
-            portada_url = data.get("portada_url") or data.get("coverUrl") or "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&q=80&w=400"
-            categoria = str(data.get("categoria") or data.get("category") or "000").strip()
-
+            # C. Insertar Libro en tabla 'libros'
             libro_payload = {
                 "isbn": isbn,
                 "titulo": titulo,
@@ -308,34 +512,43 @@ class SupabaseService:
 
             libro_resp = await client.post(
                 f"{self.base_url}/libros",
-                headers=self.headers,
+                headers={**self.headers, "Prefer": "return=representation"},
                 json=libro_payload
             )
-            libro_resp.raise_for_status()
+            
+            resp_txt = libro_resp.text
+            if libro_resp.status_code == 409 or (libro_resp.status_code == 400 and ("23505" in resp_txt or "duplicate key" in resp_txt or "libros_isbn_key" in resp_txt)):
+                raise HTTPException(
+                    status_code=status.HTTP_409_CONFLICT,
+                    detail="El código ISBN ya se encuentra registrado en el acervo"
+                )
+            
+            if libro_resp.status_code >= 400:
+                raise HTTPException(
+                    status_code=libro_resp.status_code,
+                    detail=libro_resp.text or "Error al crear el registro del libro"
+                )
+
             created_libro = libro_resp.json()[0]
             libro_id = created_libro["id"]
 
-            # 3. Resolver o crear Autores y asociar en libro_autores
-            autores_raw = str(data.get("autor") or data.get("author") or "Autor Desconocido")
+            # D. Tareas secundarias en paralelo: Autores, Tema y Resumen IA
             autores_list = [a.strip() for a in re.split(r'[,;]', autores_raw) if a.strip()]
-            for idx, a_nombre in enumerate(autores_list):
+            
+            async def resolve_author(idx: int, a_nombre: str):
                 autor_id = None
-                a_resp = await client.get(
-                    f"{self.base_url}/autores?nombre=ilike.{a_nombre}&select=id",
-                    headers=self.headers
-                )
+                a_resp = await client.get(f"{self.base_url}/autores?nombre=ilike.{a_nombre}&select=id", headers=self.headers)
                 a_items = a_resp.json() if a_resp.is_success else []
-                if a_items and len(a_items) > 0:
+                if a_items:
                     autor_id = a_items[0]["id"]
                 else:
                     new_a = await client.post(
                         f"{self.base_url}/autores",
-                        headers=self.headers,
+                        headers={**self.headers, "Prefer": "return=representation"},
                         json={"nombre": a_nombre}
                     )
                     if new_a.is_success and new_a.json():
                         autor_id = new_a.json()[0]["id"]
-
                 if autor_id:
                     await client.post(
                         f"{self.base_url}/libro_autores",
@@ -343,64 +556,60 @@ class SupabaseService:
                         json={"libro_id": libro_id, "autor_id": autor_id, "orden": idx + 1}
                     )
 
-            # 4. Asociar Categoría / Tema en libro_temas
-            tema_resp = await client.get(
-                f"{self.base_url}/temas?nombre=ilike.*{categoria[:3]}*&select=id",
-                headers=self.headers
-            )
-            tema_items = tema_resp.json() if tema_resp.is_success else []
-            if tema_items and len(tema_items) > 0:
-                await client.post(
-                    f"{self.base_url}/libro_temas",
-                    headers=self.headers,
-                    json={"libro_id": libro_id, "tema_id": tema_items[0]["id"]}
-                )
+            async def link_tema():
+                tema_resp = await client.get(f"{self.base_url}/temas?nombre=ilike.*{categoria[:3]}*&select=id", headers=self.headers)
+                tema_items = tema_resp.json() if tema_resp.is_success else []
+                if tema_items:
+                    await client.post(
+                        f"{self.base_url}/libro_temas",
+                        headers=self.headers,
+                        json={"libro_id": libro_id, "tema_id": tema_items[0]["id"]}
+                    )
 
-            # 5. Generar Ejemplares Físicos
-            total_copias = data.get("total_copias") or data.get("totalCopies") or 1
-            try:
-                total_copias = int(total_copias)
-            except (ValueError, TypeError):
-                total_copias = 1
-            total_copias = max(1, min(total_copias, 20))
+            async def save_resumen():
+                if descripcion:
+                    await client.post(
+                        f"{self.base_url}/resumenes_ia",
+                        headers=self.headers,
+                        json={
+                            "libro_id": libro_id,
+                            "resumen_texto": descripcion,
+                            "palabras_clave": f"{titulo}, {autores_raw}, Acervo CIU",
+                            "modelo_usado": "llama3.2:3b"
+                        }
+                    )
 
-            ubicacion = str(data.get("ubicacion") or data.get("location") or "Estante A-1, Nivel 1").strip()
+            # E. Inserción de ejemplares en un solo BATCH POST (operación en bloque)
             clean_isbn = re.sub(r'[^A-Za-z0-9]', '', isbn)
             sufijo_isbn = clean_isbn[-4:] if len(clean_isbn) >= 4 else "001"
-
-            ejemplares_creados = []
+            ejemplares_batch = []
             for i in range(total_copias):
                 letra_copia = chr(65 + i) if i < 26 else str(i + 1)
                 cod_inv = f"CIU-{sufijo_isbn}-{letra_copia}"
+                ejemplares_batch.append({
+                    "libro_id": libro_id,
+                    "codigo_inventario": cod_inv,
+                    "ubicacion_estante": ubicacion,
+                    "estado": "disponible",
+                    "observaciones": f"Ejemplar {letra_copia} ingresado al acervo"
+                })
+
+            async def insert_ejemplares():
                 ej_resp = await client.post(
                     f"{self.base_url}/ejemplares",
-                    headers=self.headers,
-                    json={
-                        "libro_id": libro_id,
-                        "codigo_inventario": cod_inv,
-                        "ubicacion_estante": ubicacion,
-                        "estado": "disponible",
-                        "observaciones": f"Ejemplar {letra_copia} ingresado al acervo"
-                    }
+                    headers={**self.headers, "Prefer": "return=representation"},
+                    json=ejemplares_batch
                 )
-                if ej_resp.is_success and ej_resp.json():
-                    ejemplares_creados.append(ej_resp.json()[0])
+                return ej_resp.json() if ej_resp.is_success else []
 
-            # 6. Guardar Resumen IA si fue proporcionado
-            descripcion = (data.get("descripcion") or data.get("description") or "").strip()
-            if descripcion:
-                await client.post(
-                    f"{self.base_url}/resumenes_ia",
-                    headers=self.headers,
-                    json={
-                        "libro_id": libro_id,
-                        "resumen_texto": descripcion,
-                        "palabras_clave": f"{titulo}, {autores_raw}, Acervo CIU",
-                        "modelo_usado": "llama3.2:3b"
-                    }
-                )
+            # Ejecutar ejemplares, autores, temas y resumen concurrentemente
+            tasks = [insert_ejemplares(), link_tema(), save_resumen()]
+            for idx, a_nombre in enumerate(autores_list):
+                tasks.append(resolve_author(idx, a_nombre))
 
-            created_libro["ejemplares"] = ejemplares_creados
+            results = await asyncio.gather(*tasks, return_exceptions=True)
+            created_libro["ejemplares"] = results[0] if isinstance(results[0], list) else []
+
             return created_libro
 
     async def save_summary(self, libro_id: str, resumen_texto: str, palabras_clave: str, modelo_usado: str = "llama3.2:3b") -> Dict[str, Any]:
@@ -617,8 +826,13 @@ class SupabaseService:
                 payload["nombre_completo"] = str(updates.get("nombre_completo") or updates.get("fullName")).strip()
             if "telefono" in updates or "phone" in updates:
                 payload["telefono"] = updates.get("telefono") or updates.get("phone")
-            if "carrera_o_dependencia" in updates:
-                payload["carrera_o_dependencia"] = updates.get("carrera_o_dependencia")
+            if "dependencia_o_area" in updates or "departmentOrCareer" in updates:
+                payload["dependencia_o_area"] = updates.get("dependencia_o_area") or updates.get("departmentOrCareer")
+            elif "carrera_o_dependencia" in updates:
+                payload["dependencia_o_area"] = updates.get("carrera_o_dependencia")
+            if "carrera_id" in updates or "carreraId" in updates:
+                c_val = updates.get("carrera_id") if "carrera_id" in updates else updates.get("carreraId")
+                payload["carrera_id"] = str(c_val).strip() if c_val else None
             if "vigencia_hasta" in updates or "expiresAt" in updates:
                 raw_vig = updates.get("vigencia_hasta") or updates.get("expiresAt")
                 if raw_vig:

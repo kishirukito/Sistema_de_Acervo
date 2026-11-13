@@ -36,6 +36,9 @@ function mapPrestamoToLoan(row: any, index: number): Loan {
   const usuario = row.usuarios || {};
   const ejemplar = row.ejemplares || {};
   const libro = ejemplar.libros || {};
+  const tipoInfo = row.tipos_prestamo || {};
+  const instInfo = row.instituciones_convenio || {};
+  const authInfo = row.autorizado_por || {};
 
   let authorName = 'Autor desconocido';
   if (Array.isArray(libro.libro_autores) && libro.libro_autores.length > 0) {
@@ -43,7 +46,11 @@ function mapPrestamoToLoan(row: any, index: number): Loan {
     if (firstAuthor.autores?.nombre) authorName = firstAuthor.autores.nombre;
   }
 
-  const userName = usuario.nombre_completo || 'Usuario desconocido';
+  const isInter = tipoInfo.clave === 'interbibliotecario' || Boolean(row.institucion_id);
+  const userName = isInter
+    ? (instInfo.nombre || 'Institución Externa en Convenio')
+    : (usuario.nombre_completo || 'Usuario desconocido');
+
   const status = mapEstadoToStatus(row.estado, row.fecha_limite_devolucion, row.fecha_devolucion_real);
 
   let dueDateNote: string | undefined;
@@ -61,15 +68,23 @@ function mapPrestamoToLoan(row: any, index: number): Loan {
     }
   }
 
+  // Carrera del usuario si aplica
+  let userCareerName: string | undefined;
+  if (usuario.carreras && typeof usuario.carreras === 'object') {
+    userCareerName = `${usuario.carreras.nivel || ''} en ${usuario.carreras.nombre || ''}`.trim();
+  } else if (usuario.dependencia_o_area) {
+    userCareerName = usuario.dependencia_o_area;
+  }
+
   return {
     id: row.id,
     folio: `PR-${String(index + 1).padStart(3, '0')}`,
     userId: row.usuario_id || '',
     userName,
     userKind: 'NORMAL',
-    userCategory: 'STUDENT',
+    userCategory: isInter ? 'EXTERNAL' : 'STUDENT',
     userInitials: getInitials(userName),
-    userAvatarColor: AVATAR_COLORS[index % AVATAR_COLORS.length],
+    userAvatarColor: isInter ? '#7C3AED' : AVATAR_COLORS[index % AVATAR_COLORS.length],
     resourceId: ejemplar.codigo_inventario || row.ejemplar_id || '',
     resourceTitle: libro.titulo || 'Sin título',
     resourceAuthor: authorName,
@@ -78,9 +93,21 @@ function mapPrestamoToLoan(row: any, index: number): Loan {
     dueDateNote,
     returnDate: row.fecha_devolucion_real ? formatDate(row.fecha_devolucion_real) : undefined,
     status,
-    renewalCount: 0,
+    renewalCount: row.renovaciones_count || 0,
     renewalLimit: 2,
     notes: row.notas || undefined,
+    tipoPrestamoId: row.tipo_prestamo_id,
+    tipoPrestamoClave: tipoInfo.clave,
+    tipoPrestamoNombre: tipoInfo.nombre,
+    userCareerName,
+    institucionId: row.institucion_id,
+    institucionNombre: instInfo.nombre,
+    institucionBiblioteca: instInfo.nombre_biblioteca,
+    responsableExternoNombre: row.responsable_externo_nombre,
+    responsableExternoCargo: row.responsable_externo_cargo,
+    responsableExternoContacto: row.responsable_externo_contacto,
+    folioOficio: row.folio_oficio,
+    autorizadoPorNombre: authInfo.nombre_completo,
   };
 }
 
@@ -194,4 +221,70 @@ export async function updateAdminLoan(
   }
 
   return true;
+}
+
+export async function fetchLoanTypes(): Promise<any[]> {
+  try {
+    const token = localStorage.getItem('acervo_token');
+    const headers: Record<string, string> = {
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    };
+    const res = await fetch('/api/v1/data/tipos-prestamo', { headers });
+    if (res.ok) {
+      return await res.json();
+    }
+  } catch (err) {
+    console.warn('[LoansAdminService] fetchLoanTypes failed:', err);
+  }
+  return [];
+}
+
+export async function fetchInstituciones(): Promise<any[]> {
+  try {
+    const token = localStorage.getItem('acervo_token');
+    const headers: Record<string, string> = {
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    };
+    const res = await fetch('/api/v1/data/instituciones', { headers });
+    if (res.ok) {
+      return await res.json();
+    }
+  } catch (err) {
+    console.warn('[LoansAdminService] fetchInstituciones failed:', err);
+  }
+  return [];
+}
+
+export async function createInstitucion(payload: any): Promise<any> {
+  const token = localStorage.getItem('acervo_token');
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+  };
+  const res = await fetch('/api/v1/data/instituciones', {
+    method: 'POST',
+    headers,
+    body: JSON.stringify(payload),
+  });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error(err.detail || 'Error al registrar la institución');
+  }
+  return await res.json();
+}
+
+export async function fetchCarreras(): Promise<any[]> {
+  try {
+    const token = localStorage.getItem('acervo_token');
+    const headers: Record<string, string> = {
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    };
+    const res = await fetch('/api/v1/data/carreras', { headers });
+    if (res.ok) {
+      return await res.json();
+    }
+  } catch (err) {
+    console.warn('[LoansAdminService] fetchCarreras failed:', err);
+  }
+  return [];
 }

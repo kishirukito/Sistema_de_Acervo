@@ -67,9 +67,20 @@ export const LoansTable: React.FC<LoansTableProps> = ({
                       >
                         {loan.userInitials}
                       </div>
-                      <span className="loans-user-name" title={loan.userName}>
-                        {loan.userName}
-                      </span>
+                      <div className="loans-user-details" style={{ display: 'flex', flexDirection: 'column' }}>
+                        <span className="loans-user-name" title={loan.userName}>
+                          {loan.userName}
+                        </span>
+                        {loan.tipoPrestamoClave === 'interbibliotecario' ? (
+                          <span style={{ fontSize: '0.75rem', color: '#7C3AED', fontWeight: 600 }}>
+                            Convenio: {loan.responsableExternoNombre || 'Externo'} {loan.autorizadoPorNombre ? `(Autorizó: ${loan.autorizadoPorNombre})` : ''}
+                          </span>
+                        ) : loan.userCareerName ? (
+                          <span style={{ fontSize: '0.75rem', color: '#64748B' }}>
+                            {loan.userCareerName}
+                          </span>
+                        ) : null}
+                      </div>
                     </div>
                   </td>
 

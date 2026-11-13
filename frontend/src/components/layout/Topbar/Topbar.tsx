@@ -1,14 +1,15 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Bell, ChevronDown, Clock, BookOpen, CheckCircle2 } from 'lucide-react';
+import { Bell, ChevronDown, Clock, BookOpen, CheckCircle2, Menu } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../features/auth/AuthContext';
 import './Topbar.css';
 
 interface TopbarProps {
   title?: React.ReactNode;
+  onOpenMobileMenu?: () => void;
 }
 
-export const Topbar: React.FC<TopbarProps> = ({ title = 'Dashboard' }) => {
+export const Topbar: React.FC<TopbarProps> = ({ title = 'Dashboard', onOpenMobileMenu }) => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [showNotifications, setShowNotifications] = useState(false);
@@ -51,6 +52,16 @@ export const Topbar: React.FC<TopbarProps> = ({ title = 'Dashboard' }) => {
   return (
     <header className="app-topbar">
       <div className="app-topbar-left">
+        {onOpenMobileMenu && (
+          <button
+            type="button"
+            className="app-topbar-mobile-menu-btn"
+            onClick={onOpenMobileMenu}
+            aria-label="Abrir menú de navegación"
+          >
+            <Menu size={22} color="#1E3A5F" />
+          </button>
+        )}
         <h1 className="app-topbar-title">{title}</h1>
       </div>
 
