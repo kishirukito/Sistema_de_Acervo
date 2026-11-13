@@ -20,6 +20,7 @@ import {
   cancelBorrowRequest,
   formatSuggestedDate,
 } from '../../features/loans/requests.service';
+import { useRealtimeTable } from '../../hooks/useRealtimeTable';
 import { resolveCategory } from '../../constants';
 import { CustomSelect } from '../../components/ui/CustomSelect';
 import './UserRequestsPage.css';
@@ -143,8 +144,9 @@ export const UserRequestsPage: React.FC = () => {
 
   // Solicitudes cargadas desde el backend (Supabase)
   const [apiRequests, setApiRequests] = useState<BorrowRequest[]>([]);
+  const [realtimeAlert, setRealtimeAlert] = useState<string | null>(null);
 
-  useEffect(() => {
+  const fetchApiRequests = useCallback(() => {
     const token = localStorage.getItem('acervo_token');
     if (!token) return;
     fetch('/api/v1/data/solicitudes', { headers: { Authorization: `Bearer ${token}` } })
@@ -167,7 +169,30 @@ export const UserRequestsPage: React.FC = () => {
         setApiRequests(mapped);
       })
       .catch(() => {});
-  }, [cancelFeedback]);
+  }, []);
+
+  useEffect(() => {
+    fetchApiRequests();
+  }, [cancelFeedback, fetchApiRequests]);
+
+  // ── Realtime: cuando el admin cambia estado de una solicitud → notificar al alumno ──
+  const userId = (user as any)?.id ?? '';
+  useRealtimeTable('solicitudes_prestamo', {
+    enabled: Boolean(userId),
+    filter: userId ? `usuario_id=eq.${userId}` : undefined,
+    onUpdate: (row: any) => {
+      fetchApiRequests();
+      const estado = row.estado;
+      if (estado === 'APPROVED') {
+        setRealtimeAlert('✅ ¡Tu solicitud fue aprobada! Ya puedes pasar a recoger el libro.');
+      } else if (estado === 'REJECTED') {
+        setRealtimeAlert('❌ Tu solicitud fue rechazada. Consulta con la biblioteca para más información.');
+      } else if (estado === 'READY_FOR_PICKUP') {
+        setRealtimeAlert('📦 ¡Tu libro está listo para ser recogido en el mostrador!');
+      }
+      setTimeout(() => setRealtimeAlert(null), 6000);
+    },
+  });
 
   // Retrieve all user requests (merges API + localStorage, deduplicates by id)
   const allUserRequests = useMemo(() => {
@@ -326,6 +351,13 @@ export const UserRequestsPage: React.FC = () => {
 
   return (
     <div className="user-requests-page">
+      {/* Alerta en tiempo real de Supabase */}
+      {realtimeAlert && (
+        <div className="user-requests-realtime-alert" role="status" aria-live="polite">
+          <span>{realtimeAlert}</span>
+        </div>
+      )}
+
       {/* 1. Page Header */}
       <header className="user-requests-header">
         <div className="user-requests-header-info">

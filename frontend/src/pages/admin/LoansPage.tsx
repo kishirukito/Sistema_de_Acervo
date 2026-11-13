@@ -1,6 +1,6 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, SearchX, CheckCircle2, BookOpen, Clock } from 'lucide-react';
+import { Plus, SearchX, CheckCircle2, BookOpen, Clock, Bell } from 'lucide-react';
 import { LoansSummary } from '../../features/loans/components/LoansSummary';
 import { LoansFilters } from '../../features/loans/components/LoansFilters';
 import { LoansTable } from '../../features/loans/components/LoansTable';
@@ -21,6 +21,7 @@ import {
   approveBorrowRequest,
   rejectBorrowRequest,
 } from '../../features/loans/requests.service';
+import { useRealtimeTable } from '../../hooks/useRealtimeTable';
 import type { BorrowRequest } from '../../types';
 import type {
   Loan,
@@ -62,8 +63,9 @@ export const LoansPage: React.FC = () => {
   // Pestañas: 'LOANS' (Préstamos activos/registrados) o 'REQUESTS' (Solicitudes de alumnos)
   const [activeTab, setActiveTab] = useState<'LOANS' | 'REQUESTS'>('LOANS');
   const [borrowRequests, setBorrowRequests] = useState<BorrowRequest[]>([]);
+  const [newRequestsCount, setNewRequestsCount] = useState(0);
 
-  const loadRequests = async () => {
+  const loadRequests = useCallback(async () => {
     try {
       const token = localStorage.getItem('acervo_token');
       const headers: Record<string, string> = token
@@ -93,11 +95,36 @@ export const LoansPage: React.FC = () => {
       // fallback
     }
     setBorrowRequests(getAllBorrowRequests());
-  };
+  }, []);
 
   useEffect(() => {
     loadRequests();
-  }, []);
+  }, [loadRequests]);
+
+  // ── Realtime: nueva solicitud entra → recargar lista y notificar al admin ──
+  useRealtimeTable('solicitudes_prestamo', {
+    onInsert: () => {
+      loadRequests();
+      setNewRequestsCount((n) => n + 1);
+      showToast('📬 Nueva solicitud de préstamo recibida.');
+    },
+    onUpdate: () => {
+      // Recargamos si otra sesión cambia estado
+      loadRequests();
+    },
+  });
+
+  // ── Realtime: cambio en préstamos → actualizar KPIs ──
+  useRealtimeTable('prestamos', {
+    onInsert: () => {
+      fetchAdminLoans().then((loans) => { if (loans) setLoansList(loans); });
+      fetchLoansSummary().then((sum) => { if (sum) setLoansSummary(sum); });
+    },
+    onUpdate: () => {
+      fetchAdminLoans().then((loans) => { if (loans) setLoansList(loans); });
+      fetchLoansSummary().then((sum) => { if (sum) setLoansSummary(sum); });
+    },
+  });
 
   React.useEffect(() => {
     let active = true;
@@ -402,13 +429,19 @@ export const LoansPage: React.FC = () => {
         <button
           type="button"
           className={`loans-tab-button ${activeTab === 'REQUESTS' ? 'active' : ''}`}
-          onClick={() => setActiveTab('REQUESTS')}
+          onClick={() => { setActiveTab('REQUESTS'); setNewRequestsCount(0); }}
         >
           <Clock size={17} />
           <span>Solicitudes de alumnos</span>
           <span className={`loans-tab-badge ${borrowRequests.filter((r) => r.status === 'PENDING').length > 0 ? 'badge-highlight' : ''}`}>
             {borrowRequests.filter((r) => r.status === 'PENDING').length} pendientes
           </span>
+          {newRequestsCount > 0 && (
+            <span className="loans-tab-realtime-dot" title={`${newRequestsCount} nueva(s) desde que abriste esta pestaña`}>
+              <Bell size={12} />
+              {newRequestsCount}
+            </span>
+          )}
         </button>
       </div>
 
