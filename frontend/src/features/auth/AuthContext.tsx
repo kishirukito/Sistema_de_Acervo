@@ -10,6 +10,7 @@ interface AuthContextType {
   user: User | null;
   isAuthenticated: boolean;
   login: (emailOrUser: string | User) => Promise<User>;
+  updateCurrentUser: (updatedUser: Partial<User>) => void;
   loginAsAdmin: () => void;
   loginAsStudent: () => void;
   logout: () => void;
@@ -66,6 +67,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return authenticatedUser;
   };
 
+  const updateCurrentUser = (partial: Partial<User>) => {
+    setUser((prev) => {
+      if (!prev) return null;
+      const updated = { ...prev, ...partial };
+      saveMockSession(updated);
+      try {
+        localStorage.setItem('acervo_current_user', JSON.stringify(updated));
+      } catch {}
+      return updated;
+    });
+  };
+
   const loginAsAdmin = () => {
     const adminUser: User = {
       id: 'a0000000-0000-0000-0000-000000000001',
@@ -109,6 +122,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         user,
         isAuthenticated: Boolean(user),
         login,
+        updateCurrentUser,
         loginAsAdmin,
         loginAsStudent,
         logout,

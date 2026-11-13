@@ -1,6 +1,7 @@
 from fastapi import APIRouter, HTTPException, Depends, status
 import time
 import asyncio
+import httpx
 from app.services.supabase_service import supabase_service
 from app.services.vector_service import VectorService
 from app.core.security import get_current_user, require_admin
@@ -49,6 +50,49 @@ async def get_all_usuarios(admin: Dict[str, Any] = Depends(require_admin)):
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Error al consultar el catálogo de usuarios."
+        )
+
+@router.get("/usuarios/{user_id}")
+async def get_usuario_by_id(
+    user_id: str,
+    current_user: Dict[str, Any] = Depends(get_current_user)
+):
+    """
+    Obtiene los datos actualizados de un usuario por su ID.
+    - Los administradores pueden consultar cualquier usuario.
+    - Un usuario lector o alumno solo puede consultar su propio perfil.
+    """
+    clean_id = str(user_id).strip()
+    if not clean_id:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="ID de usuario inválido.")
+
+    user_role = str(current_user.get("rol") or "").lower()
+    user_kind = str(current_user.get("kind") or "").upper()
+    is_admin = user_role in ["admin", "superadmin"] or user_kind in ["ADMINISTRATIVE", "ADMIN", "SUPERADMIN"]
+
+    auth_id = str(current_user.get("id") or "").strip()
+    if not is_admin and auth_id != clean_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="No tienes autorización para consultar el perfil de otro usuario."
+        )
+
+    try:
+        url = f"{supabase_service.base_url}/usuarios?id=eq.{clean_id}&select=id,rol,email,nombre_completo,matricula_o_nomina,dependencia_o_area,carrera_id,estado,created_at,telefono,carreras(id,nivel,nombre)"
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            resp = await client.get(url, headers=supabase_service.headers)
+            if resp.status_code == 400:
+                fallback_url = f"{supabase_service.base_url}/usuarios?id=eq.{clean_id}&select=id,rol,email,nombre_completo,matricula_o_nomina,dependencia_o_area,carrera_id,estado,created_at,telefono"
+                resp = await client.get(fallback_url, headers=supabase_service.headers)
+            if not resp.is_success or not resp.json():
+                raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Usuario no encontrado.")
+            return resp.json()[0]
+    except HTTPException:
+        raise
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error interno al obtener usuario: {str(e)}"
         )
 
 @router.post("/usuarios")

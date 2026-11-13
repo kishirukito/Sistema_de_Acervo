@@ -16,6 +16,13 @@ export const PersonalInfoCard: React.FC<PersonalInfoCardProps> = ({
   const [phone, setPhone] = useState(profile.phone);
   const [errors, setErrors] = useState<ProfileFormErrors>({});
 
+  // Sincronizar inputs si el profile cambia externamente (ej. carga desde API / useAuth)
+  React.useEffect(() => {
+    setFullName(profile.fullName);
+    setEmail(profile.email);
+    setPhone(profile.phone);
+  }, [profile.fullName, profile.email, profile.phone]);
+
   const validate = (): boolean => {
     const newErrors: ProfileFormErrors = {};
 
@@ -29,8 +36,9 @@ export const PersonalInfoCard: React.FC<PersonalInfoCardProps> = ({
       newErrors.email = 'Ingresa un formato de correo válido';
     }
 
-    if (!phone.trim()) {
-      newErrors.phone = 'El teléfono es obligatorio';
+    // El teléfono es opcional, pero si se ingresa validamos formato básico
+    if (phone && phone.trim().length > 0 && phone.trim().length < 7) {
+      newErrors.phone = 'Ingresa un número telefónico válido';
     }
 
     setErrors(newErrors);
@@ -116,7 +124,7 @@ export const PersonalInfoCard: React.FC<PersonalInfoCardProps> = ({
                 className={`profile-input-field ${
                   errors.phone ? 'profile-input-field--error' : ''
                 }`}
-                placeholder="493 000 0000"
+                placeholder="Ej. 618 123 4567"
               />
             </div>
             {errors.phone && (

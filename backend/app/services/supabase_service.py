@@ -907,8 +907,12 @@ class SupabaseService:
 
             if "nombre_completo" in updates or "fullName" in updates:
                 payload["nombre_completo"] = str(updates.get("nombre_completo") or updates.get("fullName")).strip()
+            if "email" in updates:
+                payload["email"] = str(updates.get("email")).strip().lower()
             if "telefono" in updates or "phone" in updates:
                 payload["telefono"] = updates.get("telefono") or updates.get("phone")
+            if "avatar_url" in updates or "avatarUrl" in updates:
+                payload["avatar_url"] = updates.get("avatar_url") or updates.get("avatarUrl")
             if "dependencia_o_area" in updates or "departmentOrCareer" in updates:
                 payload["dependencia_o_area"] = updates.get("dependencia_o_area") or updates.get("departmentOrCareer")
             elif "carrera_o_dependencia" in updates:

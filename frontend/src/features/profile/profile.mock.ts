@@ -3,12 +3,12 @@ import type { UserProfileData } from './profile.types';
 export const PROFILE_STORAGE_KEY = 'sistema-acervo-user-profile';
 
 export const DEFAULT_MOCK_PROFILE: UserProfileData = {
-  id: 'usr-admin-camila',
-  fullName: 'Camila Flores',
-  email: 'camila.flores@biblioteca.com',
+  id: '',
+  fullName: 'Administrador General',
+  email: 'admin@upd.edu.mx',
   phone: '493 000 0000',
-  role: 'Administradora',
-  initials: 'CF',
+  role: 'Administrador',
+  initials: 'AG',
   createdAt: '2024-01-15T08:00:00Z',
 };
 

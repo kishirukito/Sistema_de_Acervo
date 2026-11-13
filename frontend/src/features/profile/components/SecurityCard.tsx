@@ -4,12 +4,15 @@ import type { PasswordFormErrors } from '../profile.types';
 
 interface SecurityCardProps {
   onPasswordUpdated: () => void;
+  userId?: string;
 }
 
 export const SecurityCard: React.FC<SecurityCardProps> = ({ onPasswordUpdated }) => {
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [serverError, setServerError] = useState<string | null>(null);
 
   const [showCurrent, setShowCurrent] = useState(false);
   const [showNew, setShowNew] = useState(false);
@@ -40,16 +43,48 @@ export const SecurityCard: React.FC<SecurityCardProps> = ({ onPasswordUpdated })
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setServerError(null);
     if (!validate()) return;
 
-    // Simulate password change success
-    setCurrentPassword('');
-    setNewPassword('');
-    setConfirmPassword('');
-    setErrors({});
-    onPasswordUpdated();
+    setIsSubmitting(true);
+    try {
+      const token = localStorage.getItem('acervo_token');
+      const headers: Record<string, string> = {
+        'Content-Type': 'application/json',
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      };
+
+      const res = await fetch('/api/v1/auth/password', {
+        method: 'PATCH',
+        headers,
+        body: JSON.stringify({
+          current_password: currentPassword,
+          new_password: newPassword,
+        }),
+      });
+
+      if (!res.ok) {
+        let msg = 'Error al actualizar la contraseña.';
+        try {
+          const data = await res.json();
+          if (data.detail) msg = data.detail;
+        } catch {}
+        setServerError(msg);
+        return;
+      }
+
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+      setErrors({});
+      onPasswordUpdated();
+    } catch (err: any) {
+      setServerError(err.message || 'Error de conexión al actualizar contraseña.');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -167,10 +202,27 @@ export const SecurityCard: React.FC<SecurityCardProps> = ({ onPasswordUpdated })
         </div>
 
         {/* Action Button */}
+        {serverError && (
+          <div
+            style={{
+              padding: '8px 12px',
+              backgroundColor: '#fef2f2',
+              border: '1px solid #fecaca',
+              borderRadius: '6px',
+              color: '#b91c1c',
+              fontSize: '0.85rem',
+              marginBottom: '12px',
+            }}
+            role="alert"
+          >
+            {serverError}
+          </div>
+        )}
+
         <div className="profile-actions-row">
-          <button type="submit" className="profile-btn-dark">
+          <button type="submit" className="profile-btn-dark" disabled={isSubmitting}>
             <Lock size={15} />
-            <span>Actualizar contraseña</span>
+            <span>{isSubmitting ? 'Actualizando...' : 'Actualizar contraseña'}</span>
           </button>
         </div>
       </form>
