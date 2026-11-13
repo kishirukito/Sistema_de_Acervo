@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback, useEffect } from 'react';
+import React, { useState, useMemo, useCallback } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import {
   Clock,
@@ -12,18 +12,24 @@ import {
   Infinity as InfinityIcon,
   Bookmark,
 } from 'lucide-react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from '../../features/auth/AuthContext';
 import { MOCK_BOOKS } from '../../mocks/data';
 import type { Book, BorrowRequest, RequestStatus } from '../../types';
 import {
-  getUserBorrowRequests,
   cancelBorrowRequest,
   formatSuggestedDate,
 } from '../../features/loans/requests.service';
-import { useRealtimeTable } from '../../hooks/useRealtimeTable';
+import {
+  fetchUserSolicitudes,
+  USER_SOLICITUDES_KEY,
+} from '../../features/loans/solicitudes.query';
 import { resolveCategory } from '../../constants';
 import { CustomSelect } from '../../components/ui/CustomSelect';
 import './UserRequestsPage.css';
+
+/** Polling interval for cross-session sync (admin changes visible to user). */
+const REQUESTS_POLL_INTERVAL_MS = 20_000;
 
 interface CoverVisualMetadata {
   gradient: string;
@@ -124,6 +130,7 @@ const PAGE_SIZE = 4;
 export const UserRequestsPage: React.FC = () => {
   const { user } = useAuth();
   const location = useLocation();
+  const queryClient = useQueryClient();
 
   const returnState = (location.state as {
     returnState?: {
@@ -140,79 +147,22 @@ export const UserRequestsPage: React.FC = () => {
 
   // Cancellation modal state
   const [cancellingRequest, setCancellingRequest] = useState<BorrowRequest | null>(null);
-  const [cancelFeedback, setCancelFeedback] = useState<string | null>(null);
 
-  // Solicitudes cargadas desde el backend (Supabase)
-  const [apiRequests, setApiRequests] = useState<BorrowRequest[]>([]);
-  const [realtimeAlert, setRealtimeAlert] = useState<string | null>(null);
-
-  const fetchApiRequests = useCallback(() => {
-    const token = localStorage.getItem('acervo_token');
-    if (!token) return;
-    fetch('/api/v1/data/solicitudes', { headers: { Authorization: `Bearer ${token}` } })
-      .then((r) => r.ok ? r.json() : [])
-      .then((data: any[]) => {
-        const mapped: BorrowRequest[] = data.map((s) => ({
-          supabaseId: s.id,
-          id: s.folio || s.id,
-          bookId: s.libro_id ?? '',
-          bookTitle: s.libros?.titulo ?? 'Sin título',
-          userId: s.usuario_id ?? '',
-          userName: s.usuarios?.nombre_completo ?? '',
-          userEmail: s.usuarios?.email ?? '',
-          requestDate: s.fecha_solicitud ?? s.created_at ?? '',
-          status: (s.estado as RequestStatus) ?? 'PENDING',
-          notes: s.notas ?? '',
-          pickupLocation: s.lugar_recogida ?? 'Mostrador Principal',
-          suggestedDate: s.fecha_sugerida ?? '',
-        }));
-        setApiRequests(mapped);
-      })
-      .catch(() => {});
-  }, []);
-
-  useEffect(() => {
-    fetchApiRequests();
-  }, [cancelFeedback, fetchApiRequests]);
-
-  // ── Realtime: cuando el admin cambia estado de una solicitud → notificar al alumno ──
-  const userId = (user as any)?.id ?? '';
-  useRealtimeTable('solicitudes_prestamo', {
-    enabled: Boolean(userId),
-    filter: userId ? `usuario_id=eq.${userId}` : undefined,
-    onUpdate: (row: any) => {
-      fetchApiRequests();
-      const estado = row.estado;
-      if (estado === 'APPROVED') {
-        setRealtimeAlert('✅ ¡Tu solicitud fue aprobada! Ya puedes pasar a recoger el libro.');
-      } else if (estado === 'REJECTED') {
-        setRealtimeAlert('❌ Tu solicitud fue rechazada. Consulta con la biblioteca para más información.');
-      } else if (estado === 'READY_FOR_PICKUP') {
-        setRealtimeAlert('📦 ¡Tu libro está listo para ser recogido en el mostrador!');
-      }
-      setTimeout(() => setRealtimeAlert(null), 6000);
-    },
+  // ── React Query: solicitudes del usuario con polling ──────────────────────
+  const { data: allUserRequests = [] } = useQuery<BorrowRequest[]>({
+    queryKey: [USER_SOLICITUDES_KEY, user?.id, user?.email],
+    queryFn: () => fetchUserSolicitudes(user?.id, user?.email),
+    // Polling activo solo cuando la pestaña está visible
+    refetchInterval: REQUESTS_POLL_INTERVAL_MS,
+    refetchIntervalInBackground: false,
+    // Revalida al recuperar foco o reconectar
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
+    // staleTime corto para reflejar cambios del admin oportunamente
+    staleTime: 10_000,
+    // No ejecutar sin usuario autenticado
+    enabled: Boolean(user?.id || user?.email),
   });
-
-  // ── Realtime: sanciones/multas → notificar al alumno en tiempo real ──
-  useRealtimeTable('sanciones_multas', {
-    enabled: Boolean(userId),
-    filter: userId ? `usuario_id=eq.${userId}` : undefined,
-    onInsert: (row: any) => {
-      const monto = row.monto ? `\$${Number(row.monto).toFixed(2)}` : '';
-      setRealtimeAlert(`⚠️ Se te aplicó una sanción${monto ? ` de ${monto}` : ''}. Revisa tu perfil para más detalles.`);
-      setTimeout(() => setRealtimeAlert(null), 8000);
-    },
-  });
-
-  // Retrieve all user requests (merges API + localStorage, deduplicates by id)
-  const allUserRequests = useMemo(() => {
-    const localReqs = getUserBorrowRequests(user);
-    // Merge: API tiene prioridad sobre localStorage para registros con mismo folio
-    const apiIds = new Set(apiRequests.map((r) => r.id));
-    const localOnly = localReqs.filter((r) => !apiIds.has(r.id));
-    return [...apiRequests, ...localOnly];
-  }, [user, cancelFeedback, apiRequests]);
 
   // Metric counts (calculated globally from all user requests)
   const metrics = useMemo(() => {
@@ -287,12 +237,12 @@ export const UserRequestsPage: React.FC = () => {
         });
       } catch (_) {}
     }
-    const result = cancelBorrowRequest(cancellingRequest.id, user);
-    if (result) {
-      setCancelFeedback(`La solicitud ${cancellingRequest.id} fue cancelada correctamente.`);
-    }
+    // Actualizar localStorage inmediatamente (misma sesión)
+    cancelBorrowRequest(cancellingRequest.id, user);
+    // Invalidar la query para recargar desde el backend y reflejar el cambio
+    queryClient.invalidateQueries({ queryKey: [USER_SOLICITUDES_KEY] });
     setCancellingRequest(null);
-  }, [cancellingRequest, user]);
+  }, [cancellingRequest, user, queryClient]);
 
   // Helper to render status badge
   const renderStatusBadge = (status: RequestStatus) => {
@@ -362,13 +312,6 @@ export const UserRequestsPage: React.FC = () => {
 
   return (
     <div className="user-requests-page">
-      {/* Alerta en tiempo real de Supabase */}
-      {realtimeAlert && (
-        <div className="user-requests-realtime-alert" role="status" aria-live="polite">
-          <span>{realtimeAlert}</span>
-        </div>
-      )}
-
       {/* 1. Page Header */}
       <header className="user-requests-header">
         <div className="user-requests-header-info">

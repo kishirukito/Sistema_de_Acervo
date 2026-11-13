@@ -547,10 +547,11 @@ export const UserCatalogPage: React.FC = () => {
               <X size={16} />
             </button>
           )}
-          <button type="submit" className="catalog-search-submit-btn user-catalog-search-submit-btn">
-            Buscar
-          </button>
         </div>
+
+        <button type="submit" className="catalog-search-submit-btn user-catalog-search-submit-btn">
+          Buscar
+        </button>
 
         <div className="catalog-search-scope-box user-catalog-search-scope-box">
           <label

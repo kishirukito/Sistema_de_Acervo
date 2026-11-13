@@ -1,6 +1,7 @@
-import React, { useState, useMemo, useEffect, useCallback } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, SearchX, CheckCircle2, BookOpen, Clock, Bell } from 'lucide-react';
+import { Plus, SearchX, CheckCircle2, BookOpen, Clock } from 'lucide-react';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { LoansSummary } from '../../features/loans/components/LoansSummary';
 import { LoansFilters } from '../../features/loans/components/LoansFilters';
 import { LoansTable } from '../../features/loans/components/LoansTable';
@@ -17,11 +18,13 @@ import {
 } from '../../features/loans/loans.mock';
 import { fetchAdminLoans, fetchLoansSummary, updateAdminLoan } from '../../services/api/loans-admin.service';
 import {
-  getAllBorrowRequests,
   approveBorrowRequest,
   rejectBorrowRequest,
 } from '../../features/loans/requests.service';
-import { useRealtimeTable } from '../../hooks/useRealtimeTable';
+import {
+  fetchAdminSolicitudes,
+  ADMIN_SOLICITUDES_KEY,
+} from '../../features/loans/solicitudes.query';
 import type { BorrowRequest } from '../../types';
 import type {
   Loan,
@@ -29,6 +32,9 @@ import type {
   LoansSummaryData,
 } from '../../features/loans/loans.types';
 import '../../features/loans/loans.css';
+
+/** Polling interval for new student requests (cross-session sync). */
+const ADMIN_REQUESTS_POLL_MS = 20_000;
 
 const INITIAL_SUMMARY: LoansSummaryData = {
   activeLoansCount: 0,
@@ -50,6 +56,7 @@ const INITIAL_FILTERS: LoansFilterState = {
 
 export const LoansPage: React.FC = () => {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [loansList, setLoansList] = useState<Loan[]>([]);
   const [loansSummary, setLoansSummary] = useState<LoansSummaryData>(INITIAL_SUMMARY);
   const [filters, setFilters] = useState<LoansFilterState>(INITIAL_FILTERS);
@@ -62,68 +69,16 @@ export const LoansPage: React.FC = () => {
   
   // Pestañas: 'LOANS' (Préstamos activos/registrados) o 'REQUESTS' (Solicitudes de alumnos)
   const [activeTab, setActiveTab] = useState<'LOANS' | 'REQUESTS'>('LOANS');
-  const [borrowRequests, setBorrowRequests] = useState<BorrowRequest[]>([]);
-  const [newRequestsCount, setNewRequestsCount] = useState(0);
 
-  const loadRequests = useCallback(async () => {
-    try {
-      const token = localStorage.getItem('acervo_token');
-      const headers: Record<string, string> = token
-        ? { Authorization: `Bearer ${token}` }
-        : {};
-      const res = await fetch('/api/v1/data/solicitudes', { headers });
-      if (res.ok) {
-        const data: any[] = await res.json();
-        const mapped: BorrowRequest[] = data.map((s: any) => ({
-          supabaseId: s.id,
-          id: s.folio || s.id,
-          bookId: s.libro_id ?? '',
-          bookTitle: s.libros?.titulo ?? 'Sin título',
-          userId: s.usuario_id ?? '',
-          userName: s.usuarios?.nombre_completo ?? 'Usuario',
-          userEmail: s.usuarios?.email ?? '',
-          requestDate: s.fecha_solicitud ?? s.created_at ?? '',
-          status: (s.estado as any) ?? 'PENDING',
-          notes: s.notas ?? '',
-          pickupLocation: s.lugar_recogida ?? 'Mostrador Principal',
-          suggestedDate: s.fecha_sugerida ?? '',
-        }));
-        setBorrowRequests(mapped);
-        return;
-      }
-    } catch (_) {
-      // fallback
-    }
-    setBorrowRequests(getAllBorrowRequests());
-  }, []);
-
-  useEffect(() => {
-    loadRequests();
-  }, [loadRequests]);
-
-  // ── Realtime: nueva solicitud entra → recargar lista y notificar al admin ──
-  useRealtimeTable('solicitudes_prestamo', {
-    onInsert: () => {
-      loadRequests();
-      setNewRequestsCount((n) => n + 1);
-      showToast('📬 Nueva solicitud de préstamo recibida.');
-    },
-    onUpdate: () => {
-      // Recargamos si otra sesión cambia estado
-      loadRequests();
-    },
-  });
-
-  // ── Realtime: cambio en préstamos → actualizar KPIs ──
-  useRealtimeTable('prestamos', {
-    onInsert: () => {
-      fetchAdminLoans().then((loans) => { if (loans) setLoansList(loans); });
-      fetchLoansSummary().then((sum) => { if (sum) setLoansSummary(sum); });
-    },
-    onUpdate: () => {
-      fetchAdminLoans().then((loans) => { if (loans) setLoansList(loans); });
-      fetchLoansSummary().then((sum) => { if (sum) setLoansSummary(sum); });
-    },
+  // ── React Query: solicitudes de alumnos con polling ───────────────────────
+  const { data: borrowRequests = [] } = useQuery<BorrowRequest[]>({
+    queryKey: [ADMIN_SOLICITUDES_KEY],
+    queryFn: fetchAdminSolicitudes,
+    refetchInterval: ADMIN_REQUESTS_POLL_MS,
+    refetchIntervalInBackground: false,
+    refetchOnWindowFocus: true,
+    refetchOnReconnect: true,
+    staleTime: 10_000,
   });
 
   React.useEffect(() => {
@@ -358,7 +313,8 @@ export const LoansPage: React.FC = () => {
 
     // 3. Marcar solicitud como Aprobada en localStorage (fallback)
     approveBorrowRequest(req.id);
-    await loadRequests();
+    // Invalidar ambas queries para que el lector también vea el cambio en su próxima revalidación
+    queryClient.invalidateQueries({ queryKey: [ADMIN_SOLICITUDES_KEY] });
     showToast(`Solicitud ${req.id} aprobada con éxito. El libro está listo para entrega.`);
   };
 
@@ -381,7 +337,8 @@ export const LoansPage: React.FC = () => {
     }
 
     rejectBorrowRequest(req.id, 'Rechazada por la biblioteca.');
-    await loadRequests();
+    // Invalidar query para reflejar el cambio inmediatamente
+    queryClient.invalidateQueries({ queryKey: [ADMIN_SOLICITUDES_KEY] });
     showToast(`Solicitud ${req.id} rechazada.`);
   };
 
@@ -429,19 +386,13 @@ export const LoansPage: React.FC = () => {
         <button
           type="button"
           className={`loans-tab-button ${activeTab === 'REQUESTS' ? 'active' : ''}`}
-          onClick={() => { setActiveTab('REQUESTS'); setNewRequestsCount(0); }}
+          onClick={() => setActiveTab('REQUESTS')}
         >
           <Clock size={17} />
           <span>Solicitudes de alumnos</span>
           <span className={`loans-tab-badge ${borrowRequests.filter((r) => r.status === 'PENDING').length > 0 ? 'badge-highlight' : ''}`}>
             {borrowRequests.filter((r) => r.status === 'PENDING').length} pendientes
           </span>
-          {newRequestsCount > 0 && (
-            <span className="loans-tab-realtime-dot" title={`${newRequestsCount} nueva(s) desde que abriste esta pestaña`}>
-              <Bell size={12} />
-              {newRequestsCount}
-            </span>
-          )}
         </button>
       </div>
 

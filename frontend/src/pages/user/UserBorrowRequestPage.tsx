@@ -11,6 +11,7 @@ import {
   Infinity as InfinityIcon,
   AlertCircle,
 } from 'lucide-react';
+import { useQueryClient } from '@tanstack/react-query';
 import { MOCK_BOOKS } from '../../mocks/data';
 import { booksService } from '../../services/api/books.service';
 import type { Book } from '../../types';
@@ -20,6 +21,7 @@ import {
   createBorrowRequest,
   formatSuggestedDate,
 } from '../../features/loans/requests.service';
+import { USER_SOLICITUDES_KEY } from '../../features/loans/solicitudes.query';
 import { EmptyState } from '../../components/ui/EmptyState';
 import { CustomSelect } from '../../components/ui/CustomSelect';
 import './UserBorrowRequestPage.css';
@@ -110,6 +112,7 @@ export const UserBorrowRequestPage: React.FC = () => {
   const { bookId } = useParams<{ bookId: string }>();
   const navigate = useNavigate();
   const { user } = useAuth();
+  const queryClient = useQueryClient();
 
   // Find book from shared data or async from Supabase
   const [book, setBook] = useState<Book | null>(() => {
@@ -203,6 +206,10 @@ export const UserBorrowRequestPage: React.FC = () => {
         suggestedDate: suggestedDateIso,
         notes: observations,
       });
+
+      // Invalidar el query del usuario para que al volver a Mis Solicitudes
+      // se recarguen los datos desde el servidor y aparezca la solicitud nueva.
+      queryClient.invalidateQueries({ queryKey: [USER_SOLICITUDES_KEY] });
 
       // Navigate to dedicated confirmation screen
       navigate(`/user/catalog/${book.id}/request/success/${created.id}`, {

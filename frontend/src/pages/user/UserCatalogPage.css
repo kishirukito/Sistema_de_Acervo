@@ -151,9 +151,9 @@
   color: #FFFFFF;
   font-weight: 600;
   font-size: 0.875rem;
-  height: 34px;
-  padding: 0 18px;
-  border-radius: 8px;
+  height: 44px;
+  padding: 0 20px;
+  border-radius: 10px;
   border: none;
   cursor: pointer;
   transition: background-color 0.15s ease, transform 0.1s ease;
@@ -162,6 +162,7 @@
   align-items: center;
   justify-content: center;
   white-space: nowrap;
+  align-self: stretch;
 }
 
 .catalog-search-submit-btn:hover,
@@ -1031,6 +1032,14 @@
     width: 100%;
   }
 
+  .catalog-search-submit-btn,
+  .user-catalog-search-submit-btn {
+    width: 100%;
+    height: 44px;
+    border-radius: 10px;
+    align-self: auto;
+  }
+
   .catalog-search-scope-box,
   .user-catalog-search-scope-box {
     width: 100%;
@@ -1059,6 +1068,14 @@
   .catalog-search-field-container,
   .user-catalog-search-field-container {
     width: 100%;
+  }
+
+  .catalog-search-submit-btn,
+  .user-catalog-search-submit-btn {
+    width: 100%;
+    height: 44px;
+    border-radius: 10px;
+    align-self: auto;
   }
 
   .catalog-search-scope-box,
@@ -1106,7 +1123,7 @@
   .user-catalog-search-submit-btn {
     padding: 0 12px;
     font-size: 0.8125rem;
-    height: 32px;
+    height: 44px;
   }
 
   .catalog-results-controls {

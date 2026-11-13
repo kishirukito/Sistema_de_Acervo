@@ -12,8 +12,13 @@ export const Providers: React.FC<ProvidersProps> = ({ children }) => {
       new QueryClient({
         defaultOptions: {
           queries: {
-            staleTime: 1000 * 60 * 5, // 5 minutes
+            // staleTime global: 5 minutos para datos que no son solicitudes.
+            // Las queries de solicitudes usan su propio staleTime (10s) declarado
+            // en su useQuery para ser más reactivas.
+            staleTime: 1000 * 60 * 5,
             retry: 1,
+            // Habilitar refetch al recuperar foco para toda la app.
+            // Las queries de solicitudes lo sobrescriben con refetchOnWindowFocus: true.
             refetchOnWindowFocus: false,
           },
         },
