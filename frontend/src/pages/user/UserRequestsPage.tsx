@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import {
   Clock,
@@ -141,10 +141,42 @@ export const UserRequestsPage: React.FC = () => {
   const [cancellingRequest, setCancellingRequest] = useState<BorrowRequest | null>(null);
   const [cancelFeedback, setCancelFeedback] = useState<string | null>(null);
 
-  // Retrieve all user requests (merges persisted and in-memory mock items)
+  // Solicitudes cargadas desde el backend (Supabase)
+  const [apiRequests, setApiRequests] = useState<BorrowRequest[]>([]);
+
+  useEffect(() => {
+    const token = localStorage.getItem('acervo_token');
+    if (!token) return;
+    fetch('/api/v1/data/solicitudes', { headers: { Authorization: `Bearer ${token}` } })
+      .then((r) => r.ok ? r.json() : [])
+      .then((data: any[]) => {
+        const mapped: BorrowRequest[] = data.map((s) => ({
+          supabaseId: s.id,
+          id: s.folio || s.id,
+          bookId: s.libro_id ?? '',
+          bookTitle: s.libros?.titulo ?? 'Sin título',
+          userId: s.usuario_id ?? '',
+          userName: s.usuarios?.nombre_completo ?? '',
+          userEmail: s.usuarios?.email ?? '',
+          requestDate: s.fecha_solicitud ?? s.created_at ?? '',
+          status: (s.estado as RequestStatus) ?? 'PENDING',
+          notes: s.notas ?? '',
+          pickupLocation: s.lugar_recogida ?? 'Mostrador Principal',
+          suggestedDate: s.fecha_sugerida ?? '',
+        }));
+        setApiRequests(mapped);
+      })
+      .catch(() => {});
+  }, [cancelFeedback]);
+
+  // Retrieve all user requests (merges API + localStorage, deduplicates by id)
   const allUserRequests = useMemo(() => {
-    return getUserBorrowRequests(user);
-  }, [user, cancelFeedback]);
+    const localReqs = getUserBorrowRequests(user);
+    // Merge: API tiene prioridad sobre localStorage para registros con mismo folio
+    const apiIds = new Set(apiRequests.map((r) => r.id));
+    const localOnly = localReqs.filter((r) => !apiIds.has(r.id));
+    return [...apiRequests, ...localOnly];
+  }, [user, cancelFeedback, apiRequests]);
 
   // Metric counts (calculated globally from all user requests)
   const metrics = useMemo(() => {
@@ -203,8 +235,22 @@ export const UserRequestsPage: React.FC = () => {
   };
 
   // Confirm cancellation
-  const handleConfirmCancel = useCallback(() => {
+  const handleConfirmCancel = useCallback(async () => {
     if (!cancellingRequest) return;
+    // Si tiene ID de Supabase, cancelar también en backend
+    if (cancellingRequest.supabaseId) {
+      try {
+        const token = localStorage.getItem('acervo_token');
+        await fetch(`/api/v1/data/solicitudes/${cancellingRequest.supabaseId}`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { Authorization: `Bearer ${token}` } : {}),
+          },
+          body: JSON.stringify({ estado: 'CANCELLED' }),
+        });
+      } catch (_) {}
+    }
     const result = cancelBorrowRequest(cancellingRequest.id, user);
     if (result) {
       setCancelFeedback(`La solicitud ${cancellingRequest.id} fue cancelada correctamente.`);
