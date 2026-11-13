@@ -31,6 +31,7 @@ import {
   invalidateAdminLoans,
   ADMIN_LOANS_KEY,
 } from '../../features/loans/admin-loans.query';
+import { ADMIN_RETURNS_KEY } from '../../features/returns/returns.query';
 import type { BorrowRequest } from '../../types';
 import type {
   Loan,
@@ -171,18 +172,14 @@ export const LoansPage: React.FC = () => {
 
     executeLoanReturn(loan.id, details);
 
-    // Invalidar caché de préstamos para reflejar el cambio
+    // Invalidar caché de préstamos y devoluciones para reflejar el cambio
+    // en ambos listados sin necesidad de recargar la página.
     invalidateAdminLoans(queryClient);
+    queryClient.invalidateQueries({ queryKey: [ADMIN_RETURNS_KEY] });
 
     setSelectedLoanForReturn(null);
-    showToast(`Préstamo ${loan.folio} devuelto exitosamente.`);
-    navigate(`/admin/returns/${loan.id}/success`, {
-      state: {
-        loanId: loan.id,
-        returnDate: formatDisplayDate(details.returnDate),
-        notes: details.notes,
-      },
-    });
+    showToast(`Devolución registrada correctamente. Préstamo ${loan.folio} cerrado.`);
+    // ✅ No se navega: el administrador permanece en Préstamos.
   };
 
   const handleRenewLoan = (loan: Loan) => {
