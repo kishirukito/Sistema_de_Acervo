@@ -57,6 +57,7 @@ export const UserHomePage: React.FC = () => {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [liveBooks, setLiveBooks] = useState<Book[]>([]);
+  const [coverErrors, setCoverErrors] = useState<Record<string, boolean>>({});
 
   useEffect(() => {
     let active = true;
@@ -212,44 +213,68 @@ export const UserHomePage: React.FC = () => {
         </div>
 
         <div className="reader-books-grid">
-          {liveBooks.map((book) => (
-            <article key={book.id} className="reader-book-card">
-              <div
-                className="reader-book-cover"
-                style={{
-                  background: 'linear-gradient(135deg, #1E3A8A 0%, #2563EB 55%, #60A5FA 100%)',
-                }}
-              >
-                <div className="reader-cover-tag">BIBLIOTECA</div>
-                <div className="reader-cover-art" aria-hidden="true">
-                  <Code size={34} className="reader-cover-icon" />
+          {liveBooks.map((book) => {
+            const hasCoverImg = Boolean(book.coverUrl) && !coverErrors[book.id];
+            const fullCategory = getCategoryFullLabel(book.category);
+
+            return (
+              <article key={book.id} className="reader-book-card">
+                <div className="reader-book-cover" aria-label={`Portada del libro ${book.title}`}>
+                  {hasCoverImg ? (
+                    <img
+                      src={book.coverUrl}
+                      alt={`Portada del libro ${book.title}`}
+                      className="reader-book-cover-img"
+                      onError={() => setCoverErrors((prev) => ({ ...prev, [book.id]: true }))}
+                    />
+                  ) : (
+                    <div
+                      className="reader-book-cover-fallback"
+                      style={{
+                        background: 'linear-gradient(135deg, #1E3A8A 0%, #2563EB 55%, #60A5FA 100%)',
+                      }}
+                    >
+                      <span className="reader-cover-tag">BIBLIOTECA</span>
+                      <div className="reader-cover-art" aria-hidden="true">
+                        <Code size={34} className="reader-cover-icon" />
+                      </div>
+                      <span className="reader-cover-title-overlay" title={book.title}>
+                        {book.title}
+                      </span>
+                    </div>
+                  )}
                 </div>
-                <div className="reader-cover-title-overlay">{book.title}</div>
-              </div>
 
-              <div className="reader-book-info">
-                <span className="reader-book-category">{getCategoryFullLabel(book.category)}</span>
-                <h4 className="reader-book-title">{book.title}</h4>
-                <p className="reader-book-author">{book.author}</p>
-
-                <div className="reader-book-availability">
-                  <span className="reader-availability-badge">
-                    <span className="reader-availability-dot" aria-hidden="true" />
-                    <span>{book.availableCopies > 0 ? `${book.availableCopies} disponible(s)` : 'Prestado'}</span>
+                <div className="reader-book-info">
+                  <span className="reader-book-category" title={fullCategory}>
+                    {fullCategory}
                   </span>
-                </div>
+                  <h4 className="reader-book-title" title={book.title}>
+                    {book.title}
+                  </h4>
+                  <p className="reader-book-author" title={book.author}>
+                    {book.author}
+                  </p>
 
-                <Link
-                  to={`/user/catalog/${book.id}`}
-                  state={{ from: '/user/home' }}
-                  className="reader-book-action-btn"
-                  aria-label={`Ver libro ${book.title}`}
-                >
-                  Ver libro
-                </Link>
-              </div>
-            </article>
-          ))}
+                  <div className="reader-book-availability">
+                    <span className="reader-availability-badge">
+                      <span className="reader-availability-dot" aria-hidden="true" />
+                      <span>{book.availableCopies > 0 ? `${book.availableCopies} disponible(s)` : 'Prestado'}</span>
+                    </span>
+                  </div>
+
+                  <Link
+                    to={`/user/catalog/${book.id}`}
+                    state={{ from: '/user/home' }}
+                    className="reader-book-action-btn"
+                    aria-label={`Ver libro ${book.title}`}
+                  >
+                    Ver libro
+                  </Link>
+                </div>
+              </article>
+            );
+          })}
         </div>
       </section>
 
@@ -272,24 +297,27 @@ export const UserHomePage: React.FC = () => {
           </div>
 
           <div className="reader-novedades-grid">
-            {liveBooks.slice(0, 3).map((book) => (
-              <Link
-                key={book.id}
-                to={`/user/catalog/${book.id}`}
-                state={{ from: '/user/home' }}
-                className="reader-novedad-card"
-                aria-label={`Ver novedad ${book.title}`}
-              >
-                <div className="reader-novedad-icon-box reader-novedad-icon--blue" aria-hidden="true">
-                  <BookOpen size={20} color="#FFFFFF" />
-                </div>
-                <div className="reader-novedad-info">
-                  <span className="reader-novedad-category">{getCategoryFullLabel(book.category)}</span>
-                  <h4 className="reader-novedad-title">{book.title}</h4>
-                  <p className="reader-novedad-author">{book.author}</p>
-                </div>
-              </Link>
-            ))}
+            {liveBooks.slice(0, 3).map((book) => {
+              const fullCategory = getCategoryFullLabel(book.category);
+              return (
+                <Link
+                  key={book.id}
+                  to={`/user/catalog/${book.id}`}
+                  state={{ from: '/user/home' }}
+                  className="reader-novedad-card"
+                  aria-label={`Ver novedad ${book.title}`}
+                >
+                  <div className="reader-novedad-icon-box reader-novedad-icon--blue" aria-hidden="true">
+                    <BookOpen size={20} color="#FFFFFF" />
+                  </div>
+                  <div className="reader-novedad-info">
+                    <span className="reader-novedad-category" title={fullCategory}>{fullCategory}</span>
+                    <h4 className="reader-novedad-title" title={book.title}>{book.title}</h4>
+                    <p className="reader-novedad-author" title={book.author}>{book.author}</p>
+                  </div>
+                </Link>
+              );
+            })}
           </div>
         </section>
 
