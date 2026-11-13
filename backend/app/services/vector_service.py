@@ -25,13 +25,34 @@ QUERY_STOP_WORDS = {
     "materia", "tema", "leer", "estudiar", "aprender"
 }
 
+COMMON_ACRONYMS = {
+    "poo": "programación orientada a objetos (POO)",
+    "oop": "object-oriented programming (OOP)",
+    "ia": "inteligencia artificial (IA)",
+    "ai": "artificial intelligence (AI)",
+    "bd": "bases de datos",
+    "db": "database bases de datos",
+    "redes": "redes de computadoras telecomunicaciones",
+    "so": "sistemas operativos",
+    "os": "operating systems sistemas operativos"
+}
+
 def extract_search_core(query: str) -> str:
-    """Extrae el núcleo temático de la consulta en lenguaje natural."""
-    words = re.findall(r'\b[a-zA-ZáéíóúÁÉÍÓÚñÑ0-9_+#\.]+\b', query.strip())
+    """Extrae y expande acrónimos del núcleo temático de la consulta."""
+    clean = query.strip()
+    words = re.findall(r'\b[a-zA-ZáéíóúÁÉÍÓÚñÑ0-9_+#\.]+\b', clean)
     meaningful = [w for w in words if w.lower() not in QUERY_STOP_WORDS]
-    if meaningful:
-        return " ".join(meaningful)
-    return query.strip()
+    base_core = " ".join(meaningful) if meaningful else clean
+
+    # Expansión semántica si coincide con un acrónimo o abreviatura conocida
+    lower_core = base_core.lower().strip()
+    if lower_core in COMMON_ACRONYMS:
+        return COMMON_ACRONYMS[lower_core]
+    for acr, expansion in COMMON_ACRONYMS.items():
+        if re.search(rf'\b{re.escape(acr)}\b', lower_core):
+            base_core = re.sub(rf'\b{re.escape(acr)}\b', expansion, base_core, flags=re.IGNORECASE)
+
+    return base_core
 
 def cosine_similarity(a: List[float], b: List[float]) -> float:
     if not a or not b or len(a) != len(b):
@@ -425,7 +446,7 @@ Responde ÚNICAMENTE en JSON con esta estructura exacta:
         return grounded
 
     @classmethod
-    async def smart_search(cls, query: str, top_k: int = 5, min_score: float = 0.55) -> Dict[str, Any]:
+    async def smart_search(cls, query: str, top_k: int = 5, min_score: float = 0.45) -> Dict[str, Any]:
         """
         Búsqueda Inteligente Semántica RAG en 3 fases:
         1. Similitud Coseno con nomic-embed-text.
