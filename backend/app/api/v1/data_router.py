@@ -591,3 +591,132 @@ async def patch_prestamo(
         raise
     except Exception:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Error interno al actualizar el préstamo.")
+
+# ==============================================================================
+# ENDPOINTS DE SOLICITUDES DE PRÉSTAMO (ALUMNOS Y ADMINISTRADORES)
+# ==============================================================================
+
+@router.get("/solicitudes")
+async def get_solicitudes(current_user: Dict[str, Any] = Depends(get_current_user)):
+    """
+    Obtiene las solicitudes de préstamo.
+    - Administrador: obtiene todas las solicitudes registradas con datos de usuario y libro.
+    - Lector / Alumno: obtiene únicamente sus propias solicitudes.
+    """
+    user_id = str(current_user.get("id") or "").strip()
+    user_rol = str(current_user.get("rol") or "").lower()
+    user_kind = str(current_user.get("kind") or "").upper()
+    is_admin = user_rol in ["admin", "personal"] or user_kind in ["ADMINISTRATIVE", "ADMIN"]
+
+    url = (
+        f"{settings.SUPABASE_URL}/rest/v1/solicitudes_prestamo?select="
+        "id,folio,usuario_id,libro_id,fecha_solicitud,fecha_sugerida,lugar_recogida,estado,notas,atendido_por_id,fecha_atencion,"
+        "usuarios(id,nombre_completo,email,matricula_o_nomina,carreras(nombre)),"
+        "libros(id,titulo,isbn,portada_url,libro_autores(autores(nombre)))"
+        "&order=fecha_solicitud.desc"
+    )
+    if not is_admin:
+        url += f"&usuario_id=eq.{user_id}"
+
+    headers = {
+        "apikey": settings.SUPABASE_SERVICE_ROLE_KEY,
+        "Authorization": f"Bearer {settings.SUPABASE_SERVICE_ROLE_KEY}"
+    }
+
+    async with httpx.AsyncClient(timeout=10.0) as client:
+        resp = await client.get(url, headers=headers)
+        if resp.status_code == 404 or resp.status_code == 400:
+            # En caso de que la tabla aún no esté creada en Supabase, retorna lista vacía limpia
+            return []
+        if not resp.is_success:
+            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Error al consultar solicitudes.")
+        return resp.json()
+
+@router.post("/solicitudes")
+async def create_solicitud(
+    payload: Dict[str, Any],
+    current_user: Dict[str, Any] = Depends(get_current_user)
+):
+    """
+    Crea una nueva solicitud de préstamo en Supabase.
+    Cualquier alumno o usuario autenticado puede solicitar un libro.
+    """
+    user_id = str(current_user.get("id") or "").strip()
+    libro_id = str(payload.get("libro_id") or payload.get("bookId") or "").strip()
+    if not libro_id:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="ID de libro requerido.")
+
+    # Generar folio correlativo simple con timestamp
+    import time
+    folio = f"SOL-{int(time.time())}"[-12:]
+
+    record = {
+        "folio": folio,
+        "usuario_id": user_id,
+        "libro_id": libro_id,
+        "fecha_sugerida": payload.get("fecha_sugerida") or payload.get("suggestedDate"),
+        "lugar_recogida": payload.get("lugar_recogida") or payload.get("pickupLocation") or "Mostrador Principal",
+        "notas": payload.get("notas") or payload.get("notes") or "",
+        "estado": "PENDING"
+    }
+
+    headers = {
+        "apikey": settings.SUPABASE_SERVICE_ROLE_KEY,
+        "Authorization": f"Bearer {settings.SUPABASE_SERVICE_ROLE_KEY}",
+        "Prefer": "return=representation"
+    }
+
+    async with httpx.AsyncClient(timeout=10.0) as client:
+        resp = await client.post(
+            f"{settings.SUPABASE_URL}/rest/v1/solicitudes_prestamo",
+            headers=headers,
+            json=record
+        )
+        if not resp.is_success:
+            # Retorna el error descriptivo o fallback
+            return {"success": False, "folio": folio, "message": "Solicitud recibida (modo contingencia)."}
+        created = resp.json()
+        return {"success": True, "data": created[0] if created else record}
+
+@router.patch("/solicitudes/{solicitud_id}")
+async def patch_solicitud(
+    solicitud_id: str,
+    payload: Dict[str, Any],
+    current_user: Dict[str, Any] = Depends(get_current_user)
+):
+    """
+    Actualiza el estado de una solicitud (Aprobada, Rechazada o Cancelada).
+    - Admins pueden aprobar o rechazar.
+    - Alumnos pueden cancelar sus propias solicitudes pendientes.
+    """
+    clean_id = str(solicitud_id).strip()
+    user_id = str(current_user.get("id") or "").strip()
+    user_rol = str(current_user.get("rol") or "").lower()
+    is_admin = user_rol in ["admin", "personal"]
+
+    nuevo_estado = payload.get("estado") or payload.get("status")
+    if not nuevo_estado:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Estado requerido.")
+
+    headers = {
+        "apikey": settings.SUPABASE_SERVICE_ROLE_KEY,
+        "Authorization": f"Bearer {settings.SUPABASE_SERVICE_ROLE_KEY}",
+        "Prefer": "return=representation"
+    }
+
+    update_payload: Dict[str, Any] = {"estado": nuevo_estado}
+    if is_admin:
+        update_payload["atendido_por_id"] = user_id
+        update_payload["fecha_atencion"] = datetime.now(timezone.utc).isoformat()
+    if "notas" in payload:
+        update_payload["notas"] = payload["notas"]
+
+    url = f"{settings.SUPABASE_URL}/rest/v1/solicitudes_prestamo?id=eq.{clean_id}"
+    if not is_admin:
+        url += f"&usuario_id=eq.{user_id}"
+
+    async with httpx.AsyncClient(timeout=10.0) as client:
+        resp = await client.patch(url, headers=headers, json=update_payload)
+        if not resp.is_success:
+            raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Error al actualizar la solicitud.")
+        return {"updated": True, "id": clean_id, "data": resp.json()}

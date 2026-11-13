@@ -153,6 +153,29 @@ export function createBorrowRequest(params: CreateBorrowRequestParams): BorrowRe
   };
 
   persistBorrowRequest(newRequest);
+
+  // Sincronización asíncrona transparente con el backend de Supabase
+  try {
+    const token = localStorage.getItem('acervo_token');
+    if (token) {
+      fetch('/api/v1/data/solicitudes', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          libro_id: params.bookId,
+          suggestedDate: params.suggestedDate,
+          pickupLocation: params.pickupLocation,
+          notes: params.notes,
+        }),
+      }).catch((e) => console.warn('[requests.service] Sync backend warning:', e));
+    }
+  } catch (err) {
+    console.warn('[requests.service] Error trigger sync:', err);
+  }
+
   return newRequest;
 }
 
