@@ -1,7 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import {
-  Tag,
+  Library,
   PlusCircle,
   Search,
   Pencil,
@@ -242,7 +242,7 @@ export const AdminCategoriesPage: React.FC = () => {
                   <td>
                     {t.tipo === 'categoria' ? (
                       <span className="badge badge--dewey">
-                        <Tag size={11} />
+                        <Library size={11} />
                         Dewey
                       </span>
                     ) : (

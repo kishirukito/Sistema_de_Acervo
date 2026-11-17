@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Tag } from 'lucide-react';
+import { X, Library } from 'lucide-react';
 import { Modal } from '../../components/ui/Modal';
 import { Input } from '../../components/ui/Input';
 import { Select } from '../../components/ui/Select';
@@ -135,7 +135,7 @@ export const CategoryFormModal: React.FC<CategoryFormModalProps> = ({
           ? `Modifica los datos de "${tema?.nombre}"`
           : 'Agrega una nueva categoría al catálogo del acervo'
       }
-      icon={<Tag size={18} />}
+      icon={<Library size={18} />}
       footer={
         <div style={{ display: 'flex', gap: 8, justifyContent: 'flex-end' }}>
           <Button type="button" variant="outline" onClick={onClose} disabled={isSubmitting}>
