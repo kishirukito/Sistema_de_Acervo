@@ -268,7 +268,7 @@ export const AdminCategoriesPage: React.FC = () => {
                   <td>
                     <div className="cat-actions">
                       <button
-                        className="cat-action-btn"
+                        className="cat-action-btn cat-action-btn--edit"
                         title="Editar"
                         onClick={() => handleOpenEdit(t)}
                         aria-label={`Editar ${t.nombre}`}

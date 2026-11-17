@@ -145,26 +145,52 @@
   border-color: #CBD5E1;
 }
 
-.cat-action-btn--danger:hover {
-  background: #FEF2F2;
+/* ── Botón Editar: Azul ── */
+.cat-action-btn--edit {
+  color: #2563EB;
+  background: #EFF6FF;
+  border-color: #BFDBFE;
+}
+.cat-action-btn--edit:hover {
+  background: #DBEAFE;
+  color: #1D4ED8;
+  border-color: #93C5FD;
+}
+
+/* ── Botón Eliminar: Rojo ── */
+.cat-action-btn--danger {
   color: #DC2626;
+  background: #FEF2F2;
+  border-color: #FECACA;
+}
+.cat-action-btn--danger:hover {
+  background: #FEE2E2;
+  color: #B91C1C;
   border-color: #FCA5A5;
 }
 
-.cat-action-btn--activate {
-  color: #16A34A;
-}
-.cat-action-btn--activate:hover {
-  background: #ECFDF5;
-  border-color: #86EFAC;
-}
-
+/* ── Botón Desactivar: Naranja ── */
 .cat-action-btn--deactivate {
   color: #D97706;
+  background: #FFFBEB;
+  border-color: #FDE68A;
 }
 .cat-action-btn--deactivate:hover {
-  background: #FFFBEB;
+  background: #FEF3C7;
+  color: #B45309;
   border-color: #FCD34D;
+}
+
+/* ── Botón Activar: Verde ── */
+.cat-action-btn--activate {
+  color: #16A34A;
+  background: #F0FDF4;
+  border-color: #BBF7D0;
+}
+.cat-action-btn--activate:hover {
+  background: #DCFCE7;
+  color: #15803D;
+  border-color: #86EFAC;
 }
 
 /* ── States: empty / error / loading ── */
