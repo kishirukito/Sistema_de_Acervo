@@ -5,14 +5,15 @@ import { MOCK_BOOKS } from '../../mocks/data';
 function mapSupabaseBookToBook(b: any): Book {
   const autores = b.libro_autores?.map((la: any) => la.autores?.nombre).filter(Boolean).join(', ') || 'Autor Desconocido';
   const editorial = b.editoriales?.nombre || 'Editorial Académica';
-  const ejemplares = b.ejemplares || [];
+  const ejemplaresRaw = Array.isArray(b.ejemplares) ? b.ejemplares : [];
+  const ejemplares = ejemplaresRaw.filter((e: any) => !e.fecha_baja && e.estado !== 'extraviado');
   const disponibles = ejemplares.filter((e: any) => e.estado === 'disponible').length;
   const resumen = b.resumenes_ia?.[0];
 
-  // Extract category from libro_temas
-  let category = '000';
-  if (Array.isArray(b.libro_temas) && b.libro_temas.length > 0) {
-    const firstTema = b.libro_temas[0]?.temas?.nombre;
+  // Extract category from clasificacion_dewey or libro_temas
+  let category = b.clasificacion_dewey || '000';
+  if ((!b.clasificacion_dewey || category === '000') && Array.isArray(b.libro_temas) && b.libro_temas.length > 0) {
+    const firstTema = b.libro_temas[0]?.temas?.codigo || b.libro_temas[0]?.temas?.nombre;
     if (firstTema) category = firstTema;
   }
 

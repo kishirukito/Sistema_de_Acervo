@@ -28,18 +28,20 @@ function mapLibroToResource(row: any): Resource {
   // Publisher from joined editorial
   const publisher = row.editoriales?.nombre || '';
 
-  // Count total & available copies from joined ejemplares
+  // Count total & available copies from joined ejemplares (excluding retired ones)
   let totalCopies = 0;
   let availableCopies = 0;
   let location = '';
-  if (Array.isArray(row.ejemplares)) {
-    totalCopies = row.ejemplares.length;
-    for (const ej of row.ejemplares) {
-      if (ej.estado === 'disponible') {
-        availableCopies++;
-        if (!location && ej.ubicacion_estante) {
-          location = ej.ubicacion_estante;
-        }
+  const activeEjemplares = Array.isArray(row.ejemplares)
+    ? row.ejemplares.filter((ej: any) => !ej.fecha_baja && ej.estado !== 'extraviado')
+    : [];
+
+  totalCopies = activeEjemplares.length;
+  for (const ej of activeEjemplares) {
+    if (ej.estado === 'disponible') {
+      availableCopies++;
+      if (!location && ej.ubicacion_estante) {
+        location = ej.ubicacion_estante;
       }
     }
   }
@@ -54,12 +56,13 @@ function mapLibroToResource(row: any): Resource {
     status = 'LOW_STOCK';
   }
 
-  // Get category code from temas (first tema) or fallback
-  let category = '000';
-  if (Array.isArray(row.libro_temas) && row.libro_temas.length > 0) {
+  // Get category code from clasificacion_dewey or temas
+  let category = row.clasificacion_dewey || '000';
+  if ((!row.clasificacion_dewey || category === '000') && Array.isArray(row.libro_temas) && row.libro_temas.length > 0) {
     const firstTema = row.libro_temas[0];
-    if (firstTema.temas?.nombre) {
-      // Try to resolve Dewey code from tema name
+    if (firstTema.temas?.codigo) {
+      category = firstTema.temas.codigo;
+    } else if (firstTema.temas?.nombre) {
       category = firstTema.temas.nombre;
     }
   }

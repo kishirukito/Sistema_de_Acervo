@@ -236,16 +236,16 @@ class SupabaseService:
     async def get_catalog(self) -> List[Dict[str, Any]]:
         url = (
             f"{self.base_url}/libros?select="
-            "id,isbn,titulo,anio_publicacion,edicion,portada_url,editorial_id,"
+            "id,isbn,titulo,anio_publicacion,edicion,portada_url,editorial_id,clasificacion_dewey,"
             "editoriales(nombre),"
             "libro_autores(orden,autores(nombre)),"
-            "libro_temas(temas(nombre)),"
-            "ejemplares(id,codigo_inventario,ubicacion_estante,estado),"
+            "libro_temas(temas(nombre,codigo)),"
+            "ejemplares(id,codigo_inventario,ubicacion_estante,estado,fecha_baja),"
             "resumenes_ia(resumen_texto,palabras_clave)"
             "&order=titulo.asc"
         )
-        async with httpx.AsyncClient() as client:
-            resp = await client.get(url, headers=self.headers, timeout=10.0)
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            resp = await client.get(url, headers=self.headers)
             resp.raise_for_status()
             return resp.json()
 
@@ -764,11 +764,17 @@ class SupabaseService:
 
     async def update_book(self, book_id: str, updates: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Actualiza los datos de un libro en Supabase y ajusta dinámicamente la cantidad de ejemplares.
-        Requiere rol administrativo.
+        Actualiza los datos de un libro en Supabase y todas sus relaciones:
+        - Metadatos en 'libros' (titulo, isbn, anio_publicacion, edicion, portada_url, editorial_id, clasificacion_dewey)
+        - Editorial en 'editoriales'
+        - Autores en 'autores' y tabla pivote 'libro_autores'
+        - Temas/Categorías en 'temas' y tabla pivote 'libro_temas'
+        - Descripción/Sinopsis en 'resumenes_ia'
+        - Ubicación en 'ejemplares'
+        - Ajuste inteligente de ejemplares sin violar restricciones referenciales
         """
-        check_url = f"{self.base_url}/libros?id=eq.{book_id}&select=id,titulo,isbn"
-        async with httpx.AsyncClient(timeout=10.0) as client:
+        check_url = f"{self.base_url}/libros?id=eq.{book_id}&select=id,titulo,isbn,editorial_id"
+        async with httpx.AsyncClient(timeout=15.0) as client:
             check_resp = await client.get(check_url, headers=self.headers)
             if not check_resp.is_success or not check_resp.json():
                 return {"status": "not_found"}
@@ -794,17 +800,137 @@ class SupabaseService:
             if "categoria" in updates or "category" in updates:
                 payload["clasificacion_dewey"] = str(updates.get("categoria") or updates.get("category"))[:10]
 
-            # 1. Actualizar metadatos del libro si hay cambios
+            # 1. Resolver y actualizar Editorial si viene en updates
+            editorial_nombre = str(updates.get("editorial") or updates.get("publisher") or "").strip()
+            if editorial_nombre:
+                ed_resp = await client.get(
+                    f"{self.base_url}/editoriales?nombre=ilike.{editorial_nombre}&select=id",
+                    headers=self.headers
+                )
+                ed_list = ed_resp.json() if ed_resp.is_success else []
+                if ed_list:
+                    payload["editorial_id"] = ed_list[0]["id"]
+                else:
+                    new_ed = await client.post(
+                        f"{self.base_url}/editoriales",
+                        headers={**self.headers, "Prefer": "return=representation"},
+                        json={"nombre": editorial_nombre}
+                    )
+                    if new_ed.is_success and new_ed.json():
+                        payload["editorial_id"] = new_ed.json()[0]["id"]
+
+            payload["updated_at"] = datetime.now(timezone.utc).isoformat()
+
+            # 2. Actualizar metadatos en tabla 'libros'
             updated_book_data = book_info
             if payload:
                 patch_url = f"{self.base_url}/libros?id=eq.{book_id}"
-                patch_resp = await client.patch(patch_url, headers=self.headers, json=payload)
+                patch_resp = await client.patch(
+                    patch_url,
+                    headers={**self.headers, "Prefer": "return=representation"},
+                    json=payload
+                )
                 patch_resp.raise_for_status()
                 updated_items = patch_resp.json()
                 if updated_items:
                     updated_book_data = updated_items[0]
 
-            # 2. Ajuste dinámico de la cantidad de ejemplares (public.ejemplares)
+            # 3. Actualizar Autores en 'libro_autores'
+            if "autor" in updates or "author" in updates:
+                autores_raw = str(updates.get("autor") or updates.get("author") or "").strip()
+                if autores_raw:
+                    autores_list = [a.strip() for a in re.split(r'[,;]', autores_raw) if a.strip()]
+                    author_ids = []
+                    for a_name in autores_list:
+                        a_resp = await client.get(
+                            f"{self.base_url}/autores?nombre=ilike.{a_name}&select=id",
+                            headers=self.headers
+                        )
+                        a_items = a_resp.json() if a_resp.is_success else []
+                        if a_items:
+                            author_ids.append(a_items[0]["id"])
+                        else:
+                            new_a = await client.post(
+                                f"{self.base_url}/autores",
+                                headers={**self.headers, "Prefer": "return=representation"},
+                                json={"nombre": a_name}
+                            )
+                            if new_a.is_success and new_a.json():
+                                author_ids.append(new_a.json()[0]["id"])
+
+                    if author_ids:
+                        del_la = await client.delete(f"{self.base_url}/libro_autores?libro_id=eq.{book_id}", headers=self.headers)
+                        del_la.raise_for_status()
+                        batch_la = [
+                            {"libro_id": book_id, "autor_id": a_id, "orden": idx + 1}
+                            for idx, a_id in enumerate(author_ids)
+                        ]
+                        add_la = await client.post(f"{self.base_url}/libro_autores", headers=self.headers, json=batch_la)
+                        add_la.raise_for_status()
+
+            # 4. Actualizar Tema / Categoría en 'libro_temas'
+            if "categoria" in updates or "category" in updates:
+                categoria = str(updates.get("categoria") or updates.get("category") or "").strip()
+                if categoria:
+                    tema_resp = await client.get(
+                        f"{self.base_url}/temas?codigo=eq.{categoria[:10]}&select=id",
+                        headers=self.headers
+                    )
+                    tema_items = tema_resp.json() if tema_resp.is_success else []
+                    if not tema_items:
+                        tema_resp = await client.get(
+                            f"{self.base_url}/temas?nombre=ilike.*{categoria[:3]}*&select=id",
+                            headers=self.headers
+                        )
+                        tema_items = tema_resp.json() if tema_resp.is_success else []
+
+                    if tema_items:
+                        tema_id = tema_items[0]["id"]
+                        await client.delete(f"{self.base_url}/libro_temas?libro_id=eq.{book_id}", headers=self.headers)
+                        await client.post(
+                            f"{self.base_url}/libro_temas",
+                            headers=self.headers,
+                            json={"libro_id": book_id, "tema_id": tema_id}
+                        )
+
+            # 5. Actualizar Descripción / Resumen IA en 'resumenes_ia'
+            if "descripcion" in updates or "description" in updates:
+                descripcion = str(updates.get("descripcion") or updates.get("description") or "").strip()
+                if descripcion:
+                    r_resp = await client.get(
+                        f"{self.base_url}/resumenes_ia?libro_id=eq.{book_id}&select=id",
+                        headers=self.headers
+                    )
+                    r_items = r_resp.json() if r_resp.is_success else []
+                    if r_items:
+                        r_id = r_items[0]["id"]
+                        await client.patch(
+                            f"{self.base_url}/resumenes_ia?id=eq.{r_id}",
+                            headers=self.headers,
+                            json={"resumen_texto": descripcion}
+                        )
+                    else:
+                        await client.post(
+                            f"{self.base_url}/resumenes_ia",
+                            headers=self.headers,
+                            json={
+                                "libro_id": book_id,
+                                "resumen_texto": descripcion,
+                                "palabras_clave": f"{payload.get('titulo', book_info.get('titulo', ''))}, Acervo CIU",
+                                "modelo_usado": "llama3.2:3b"
+                            }
+                        )
+
+            # 6. Actualizar ubicación en estante de ejemplares existentes
+            ubicacion = str(updates.get("ubicacion_estante") or updates.get("ubicacion") or updates.get("location") or "").strip()
+            if ubicacion:
+                await client.patch(
+                    f"{self.base_url}/ejemplares?libro_id=eq.{book_id}",
+                    headers=self.headers,
+                    json={"ubicacion_estante": ubicacion}
+                )
+
+            # 7. Ajuste dinámico de ejemplares (evitando conflicto 409 con préstamos)
             new_copies = None
             for key_cand in ("cantidad_ejemplares", "total_copias", "totalCopies"):
                 if key_cand in updates and updates[key_cand] is not None:
@@ -813,16 +939,19 @@ class SupabaseService:
 
             if new_copies is not None:
                 new_total = int(new_copies)
-                
-                # Consultar ejemplares existentes actuales
-                ej_url = f"{self.base_url}/ejemplares?libro_id=eq.{book_id}&select=id,codigo_inventario,estado&order=created_at.asc"
+
+                # Consultar ejemplares actuales (activos)
+                ej_url = f"{self.base_url}/ejemplares?libro_id=eq.{book_id}&select=id,codigo_inventario,estado,fecha_baja&order=created_at.asc"
                 ej_resp = await client.get(ej_url, headers=self.headers)
                 ej_resp.raise_for_status()
                 current_ejemplares = ej_resp.json()
-                current_count = len(current_ejemplares)
-                
-                prestados = [e for e in current_ejemplares if str(e.get("estado")).lower() in ["prestado", "en_prestamo"]]
-                disponibles = [e for e in current_ejemplares if str(e.get("estado")).lower() in ["disponible", "en_sala"]]
+
+                # Filtrar solo ejemplares activos (sin fecha_baja)
+                activos = [e for e in current_ejemplares if not e.get("fecha_baja")]
+                current_count = len(activos)
+
+                prestados = [e for e in activos if str(e.get("estado")).lower() in ["prestado", "en_prestamo"]]
+                disponibles = [e for e in activos if str(e.get("estado")).lower() in ["disponible", "en_sala"]]
                 prestados_count = len(prestados)
 
                 if new_total < prestados_count:
@@ -832,15 +961,17 @@ class SupabaseService:
                     )
 
                 if new_total > current_count:
-                    # Incrementar: Crear nuevos ejemplares en estado 'disponible'
+                    # Incrementar: Crear nuevos ejemplares
                     diff_to_add = new_total - current_count
                     new_rows = []
-                    ubicacion_default = updates.get("ubicacion_estante") or updates.get("location") or "Estante General"
-                    
+                    ubicacion_default = ubicacion or "Estante General"
+                    clean_suf = re.sub(r'[^A-Za-z0-9]', '', isbn_clean)
+                    sufijo_isbn = clean_suf[-4:] if len(clean_suf) >= 4 else "001"
+
                     for i in range(diff_to_add):
                         idx = current_count + i + 1
                         suffix = chr(65 + ((idx - 1) % 26)) if idx <= 26 else str(idx)
-                        codigo_inv = f"{isbn_clean[:12]}-{suffix}-{int(time.time()) % 10000}"
+                        codigo_inv = f"CIU-{sufijo_isbn}-{suffix}-{int(time.time()) % 10000}"
                         new_rows.append({
                             "libro_id": book_id,
                             "codigo_inventario": codigo_inv,
@@ -848,27 +979,53 @@ class SupabaseService:
                             "estado": "disponible",
                             "observaciones": "Ejemplar añadido en actualización de acervo"
                         })
-                    
+
                     add_url = f"{self.base_url}/ejemplares"
                     add_resp = await client.post(add_url, headers=self.headers, json=new_rows)
                     add_resp.raise_for_status()
 
                 elif new_total < current_count:
-                    # Reducir: Eliminar únicamente ejemplares en estado 'disponible'
+                    # Reducir ejemplares disponibles
                     diff_to_remove = current_count - new_total
                     if diff_to_remove > len(disponibles):
                         raise ValueError(
                             f"Solo hay {len(disponibles)} ejemplar(es) disponibles para retirar. "
                             f"Los demás se encuentran en préstamo activo."
                         )
-                    
-                    # Tomar los últimos disponibles para eliminar
-                    to_delete = disponibles[-diff_to_remove:]
-                    for ej_del in to_delete:
+
+                    # Consultar cuáles ejemplares tienen historial de préstamos
+                    prest_resp = await client.get(
+                        f"{self.base_url}/prestamos?select=ejemplar_id",
+                        headers=self.headers
+                    )
+                    used_ids = set(p["ejemplar_id"] for p in (prest_resp.json() if prest_resp.is_success else []) if p.get("ejemplar_id"))
+
+                    # Ordenar disponibles: primero los que NUNCA han tenido préstamos
+                    sin_historial = [e for e in disponibles if e["id"] not in used_ids]
+                    con_historial = [e for e in disponibles if e["id"] in used_ids]
+                    candidatos = sin_historial + con_historial
+                    to_remove = candidatos[-diff_to_remove:]
+
+                    now_iso = datetime.now(timezone.utc).isoformat()
+                    for ej_del in to_remove:
                         del_id = ej_del["id"]
-                        del_url = f"{self.base_url}/ejemplares?id=eq.{del_id}"
-                        del_r = await client.delete(del_url, headers=self.headers)
-                        del_r.raise_for_status()
+                        if del_id in used_ids:
+                            # Tiene historial de préstamos: NO hacer DELETE físico (daría 409)
+                            await client.patch(
+                                f"{self.base_url}/ejemplares?id=eq.{del_id}",
+                                headers=self.headers,
+                                json={
+                                    "estado": "mantenimiento",
+                                    "fecha_baja": now_iso,
+                                    "observaciones": "Ejemplar retirado del acervo en actualización"
+                                }
+                            )
+                        else:
+                            # Sin historial: se puede eliminar limpiamente
+                            await client.delete(
+                                f"{self.base_url}/ejemplares?id=eq.{del_id}",
+                                headers=self.headers
+                            )
 
             return {
                 "status": "success",
