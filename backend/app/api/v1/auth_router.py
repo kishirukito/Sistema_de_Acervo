@@ -58,8 +58,8 @@ async def login(req: LoginRequest):
     if user.get("estado") == "suspendido":
         raise HTTPException(status_code=403, detail="Tu cuenta está suspendida por infracciones o cargos pendientes. Contacta a administración.")
 
-    is_admin = user.get("rol") in ["admin", "personal"]
-    role = "ADMIN" if user.get("rol") == "admin" else ("LIBRARIAN" if user.get("rol") == "personal" else None)
+    is_admin = user.get("rol") in ["admin", "personal", "bibliotecario"]
+    role = "ADMIN" if user.get("rol") == "admin" else ("LIBRARIAN" if user.get("rol") in ["personal", "bibliotecario"] else None)
     
     dep = (user.get("dependencia_o_area") or "").lower()
     category = "STUDENT"

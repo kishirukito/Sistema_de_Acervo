@@ -226,22 +226,13 @@ export async function updateResource(id: string, updates: Partial<Resource>): Pr
     }
 
     const errData = await res.json().catch(() => ({}));
-    if (errData?.detail) {
-      throw new Error(errData.detail);
+    const detail = errData?.detail || errData?.message;
+    if (detail) {
+      throw new Error(typeof detail === 'string' ? detail : JSON.stringify(detail));
     }
 
-    // Direct fallback if backend unreachable
-    const { error } = await supabase
-      .from('libros')
-      .update({
-        isbn: updates.isbn,
-        titulo: updates.title,
-        anio_publicacion: updates.publicationYear,
-        portada_url: updates.coverUrl,
-      })
-      .eq('id', id);
+    throw new Error(`Error al guardar el libro (HTTP ${res.status})`);
 
-    return !error;
   } catch (err: any) {
     console.error('[CatalogService] Update failed:', err);
     throw err;
