@@ -11,6 +11,7 @@
  */
 
 import { resolveCategory } from '../../constants';
+import { supabase } from '../../services/api/supabase';
 
 export interface Tema {
   id: number;
@@ -68,63 +69,99 @@ async function parseErrorMessage(res: Response): Promise<string> {
   return `Error del servidor (${res.status}).`;
 }
 
-/**
- * Obtiene todos los temas/categorías con su conteo de libros asociados.
- * Lanza Error si la migración no se ha aplicado (campo activa/codigo ausente
- * en la respuesta) — el llamador decide cómo presentarlo.
- */
-export async function fetchCategories(): Promise<Tema[]> {
-  const res = await fetch('/api/v1/data/temas', {
-    headers: getAuthHeaders(),
-  });
+function mapRawTemaToTema(item: any): Tema {
+  let rawNombre = item.nombre ?? '';
+  let codigo = item.codigo ?? null;
+  let nombre = rawNombre;
+  let tipo = item.tipo ?? 'tema';
 
-  if (!res.ok) {
-    if (res.status === 404) {
-      throw new Error(
-        'Gestión de categorías no disponible — pendiente de migración.'
-      );
-    }
-    throw new Error(await parseErrorMessage(res));
-  }
-
-  const data = await res.json();
-
-  // Normaliza: si el backend aún no tiene el campo activa/codigo, no crashea.
-  return (Array.isArray(data) ? data : []).map((item: any) => {
-    let rawNombre = item.nombre ?? '';
-    let codigo = item.codigo ?? null;
-    let nombre = rawNombre;
-    let tipo = item.tipo ?? 'tema';
-
-    // Si codigo no viene pero el nombre trae el prefijo Dewey (ej: "000 — Ciencias...")
-    if (!codigo) {
-      const match = rawNombre.match(/^(\d{3})\s*[-—]\s*(.*)$/);
-      if (match) {
-        codigo = match[1];
-        nombre = match[2].trim();
+  // Si codigo no viene pero el nombre trae el prefijo Dewey (ej: "000 — Ciencias...")
+  if (!codigo) {
+    const match = rawNombre.match(/^(\d{3})\s*[-—]\s*(.*)$/);
+    if (match) {
+      codigo = match[1];
+      nombre = match[2].trim();
+      tipo = 'categoria';
+    } else {
+      const resolved = resolveCategory(rawNombre);
+      if (resolved) {
+        codigo = resolved.code;
+        nombre = resolved.name;
         tipo = 'categoria';
-      } else {
-        const resolved = resolveCategory(rawNombre);
-        if (resolved) {
-          codigo = resolved.code;
-          nombre = resolved.name;
-          tipo = 'categoria';
-        }
       }
     }
+  }
 
-    return {
-      id: item.id,
-      nombre,
-      codigo,
-      descripcion: item.descripcion ?? undefined,
-      activa: item.activa !== undefined ? Boolean(item.activa) : true,
-      tipo,
-      booksCount: typeof item.booksCount === 'number' ? item.booksCount
-        : typeof item.books_count === 'number' ? item.books_count
-        : undefined,
-    };
-  });
+  // Extraer el conteo de libros (soporta PostgREST array, backend proxy o número plano)
+  let booksCount = 0;
+  if (typeof item.booksCount === 'number') {
+    booksCount = item.booksCount;
+  } else if (typeof item.libros_count === 'number') {
+    booksCount = item.libros_count;
+  } else if (typeof item.books_count === 'number') {
+    booksCount = item.books_count;
+  } else if (Array.isArray(item.libro_temas) && item.libro_temas.length > 0) {
+    booksCount = Number(item.libro_temas[0]?.count ?? 0);
+  }
+
+  return {
+    id: item.id,
+    nombre,
+    codigo,
+    descripcion: item.descripcion ?? undefined,
+    activa: item.activa !== undefined ? Boolean(item.activa) : true,
+    tipo,
+    booksCount,
+  };
+}
+
+/**
+ * Obtiene todos los temas/categorías con su conteo de libros asociados.
+ * Intenta primero el backend FastAPI proxy (/api/v1/data/temas) y, si no
+ * responde o falla de red, consulta directamente Supabase con join a libro_temas.
+ */
+export async function fetchCategories(): Promise<Tema[]> {
+  try {
+    const res = await fetch('/api/v1/data/temas', {
+      headers: getAuthHeaders(),
+    });
+
+    if (res.ok) {
+      const data = await res.json();
+      if (Array.isArray(data) && data.length > 0) {
+        return data.map(mapRawTemaToTema);
+      }
+    }
+  } catch (err) {
+    console.warn('[CategoriesService] Backend proxy fetch failed, falling back to Supabase:', err);
+  }
+
+  // Fallback directo a Supabase
+  try {
+    // 1. Intentar query con campos post-migración
+    const { data: fullData, error: fullError } = await supabase
+      .from('temas')
+      .select('id, nombre, descripcion, activa, codigo, tipo, libro_temas(count)')
+      .order('nombre', { ascending: true });
+
+    if (!fullError && fullData) {
+      return fullData.map(mapRawTemaToTema);
+    }
+
+    // 2. Fallback si las columnas nuevas aún no existen en Supabase
+    const { data: fallbackData, error: fallbackError } = await supabase
+      .from('temas')
+      .select('id, nombre, descripcion, libro_temas(count)')
+      .order('nombre', { ascending: true });
+
+    if (!fallbackError && fallbackData) {
+      return fallbackData.map(mapRawTemaToTema);
+    }
+  } catch (err) {
+    console.error('[CategoriesService] Supabase fallback error:', err);
+  }
+
+  return [];
 }
 
 /** Crea un nuevo tema/categoría. */
