@@ -10,6 +10,7 @@ import {
   Home,
   Clock,
   BookmarkCheck,
+  Tag,
 } from 'lucide-react';
 
 export const APP_NAME = 'Sistema de Acervo';
@@ -37,6 +38,7 @@ export const STATUS_LABELS: Record<string, string> = {
 export const ADMIN_NAV_ITEMS = [
   { label: 'Dashboard', path: '/admin/dashboard', icon: LayoutDashboard },
   { label: 'Catálogo', path: '/admin/catalog', icon: BookOpen },
+  { label: 'Categorías', path: '/admin/categories', icon: Tag },
   { label: 'Usuarios', path: '/admin/users', icon: Users },
   { label: 'Préstamos', path: '/admin/loans', icon: BookMarked },
   { label: 'Devoluciones', path: '/admin/returns', icon: RotateCcw },

@@ -10,7 +10,8 @@ import { Input } from '../../components/ui/Input';
 import { Select } from '../../components/ui/Select';
 import { booksService } from '../../services/api/books.service';
 import { requestAISummary } from '../../services/api/ai.service';
-import { CATEGORY_SELECT_OPTIONS, BIBLIOGRAPHIC_CATEGORIES, resolveCategory } from '../../constants';
+import { BIBLIOGRAPHIC_CATEGORIES, resolveCategory } from '../../constants';
+import { useActiveCategoriesForSelect } from '../../features/categories/categories.query';
 
 const bookSchema = z.object({
   isbn: z.string().min(10, 'El ISBN debe tener al menos 10 caracteres'),
@@ -46,6 +47,7 @@ type BookFormData = z.infer<typeof bookSchema>;
 
 export const AdminNewBookPage: React.FC = () => {
   const navigate = useNavigate();
+  const categoryOptions = useActiveCategoriesForSelect();
   const [isGeneratingAI, setIsGeneratingAI] = useState(false);
   const [aiNotice, setAiNotice] = useState<string | null>(null);
   const [previewError, setPreviewError] = useState(false);
@@ -249,7 +251,7 @@ export const AdminNewBookPage: React.FC = () => {
 
               <Select
                 label="Categoría Temática"
-                options={CATEGORY_SELECT_OPTIONS}
+                options={categoryOptions}
                 error={errors.category?.message}
                 {...register('category')}
               />
