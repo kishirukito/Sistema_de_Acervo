@@ -18,12 +18,8 @@ import { MOCK_BOOKS } from '../../../mocks/data';
 import type { Resource, ResourceStatus } from '../catalog.types';
 import { requestAISummary } from '../../../services/api/ai.service';
 import { BIBLIOGRAPHIC_CATEGORIES, resolveCategory } from '../../../constants';
+import { useActiveCategoriesForSelect } from '../../categories/categories.query';
 import './EditResourceModal.css';
-
-const CATEGORY_OPTIONS = BIBLIOGRAPHIC_CATEGORIES.map((c) => ({
-  label: c.label,
-  value: c.code,
-}));
 
 const editResourceSchema = z.object({
   title: z.string().min(2, 'El título debe tener al menos 2 caracteres'),
@@ -64,6 +60,7 @@ export const EditResourceModal: React.FC<EditResourceModalProps> = ({
   const [aiNotice, setAiNotice] = useState<string | null>(null);
   const [coverUrl, setCoverUrl] = useState('');
   const [coverPreviewError, setCoverPreviewError] = useState(false);
+  const categoryOptions = useActiveCategoriesForSelect();
   const titleInputRef = useRef<HTMLInputElement>(null);
   const descTextareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -298,7 +295,7 @@ export const EditResourceModal: React.FC<EditResourceModalProps> = ({
             {/* Category */}
             <Select
               label="Categoría temática"
-              options={CATEGORY_OPTIONS}
+              options={categoryOptions}
               error={errors.category?.message}
               {...register('category')}
             />

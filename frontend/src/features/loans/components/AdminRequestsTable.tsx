@@ -9,15 +9,17 @@ import {
   Calendar,
   AlertCircle,
   Search,
+  Eye,
 } from 'lucide-react';
 import type { BorrowRequest } from '../../../types';
 import { formatSuggestedDate } from '../requests.service';
+import { RequestDetailModal } from './RequestDetailModal';
 import './AdminRequestsTable.css';
 
 interface AdminRequestsTableProps {
   requests: BorrowRequest[];
-  onApprove: (request: BorrowRequest) => void;
-  onReject: (request: BorrowRequest) => void;
+  onApprove: (request: BorrowRequest) => void | Promise<void>;
+  onReject: (request: BorrowRequest) => void | Promise<void>;
 }
 
 export const AdminRequestsTable: React.FC<AdminRequestsTableProps> = ({
@@ -27,6 +29,7 @@ export const AdminRequestsTable: React.FC<AdminRequestsTableProps> = ({
 }) => {
   const [filterQuery, setFilterQuery] = useState('');
   const [statusFilter, setStatusFilter] = useState<'ALL' | 'PENDING' | 'APPROVED' | 'REJECTED'>('ALL');
+  const [selectedRequest, setSelectedRequest] = useState<BorrowRequest | null>(null);
 
   const filteredRequests = requests.filter((req) => {
     if (statusFilter !== 'ALL' && req.status !== statusFilter) {
@@ -41,6 +44,21 @@ export const AdminRequestsTable: React.FC<AdminRequestsTableProps> = ({
     }
     return true;
   });
+
+  const handleApproveFromDetail = async (req: BorrowRequest) => {
+    await onApprove(req);
+    // Actualiza el objeto en el modal con el nuevo estado si la solicitud sigue en la lista
+    const updated = requests.find((r) => r.id === req.id);
+    if (updated) setSelectedRequest({ ...updated, status: 'APPROVED' });
+    else setSelectedRequest(null);
+  };
+
+  const handleRejectFromDetail = async (req: BorrowRequest) => {
+    await onReject(req);
+    const updated = requests.find((r) => r.id === req.id);
+    if (updated) setSelectedRequest({ ...updated, status: 'REJECTED' });
+    else setSelectedRequest(null);
+  };
 
   const getStatusBadge = (status: string) => {
     switch (status) {
@@ -203,11 +221,31 @@ export const AdminRequestsTable: React.FC<AdminRequestsTableProps> = ({
                           <XCircle size={16} />
                           <span>Rechazar</span>
                         </button>
+                        <button
+                          type="button"
+                          className="req-btn-detail"
+                          title="Ver detalles de la solicitud"
+                          onClick={(e) => { e.stopPropagation(); setSelectedRequest(req); }}
+                        >
+                          <Eye size={16} />
+                          <span>Ver detalles</span>
+                        </button>
                       </div>
                     ) : (
-                      <span className="req-actions-completed">
-                        {req.status === 'APPROVED' ? 'Préstamo gestionado' : 'Solicitud finalizada'}
-                      </span>
+                      <div className="req-actions-buttons">
+                        <span className="req-actions-completed">
+                          {req.status === 'APPROVED' ? 'Préstamo gestionado' : 'Solicitud finalizada'}
+                        </span>
+                        <button
+                          type="button"
+                          className="req-btn-detail"
+                          title="Ver detalles de la solicitud"
+                          onClick={(e) => { e.stopPropagation(); setSelectedRequest(req); }}
+                        >
+                          <Eye size={16} />
+                          <span>Ver detalles</span>
+                        </button>
+                      </div>
                     )}
                   </td>
                 </tr>
@@ -216,6 +254,14 @@ export const AdminRequestsTable: React.FC<AdminRequestsTableProps> = ({
           </table>
         </div>
       )}
+
+      {/* Modal de detalle de solicitud */}
+      <RequestDetailModal
+        request={selectedRequest}
+        onClose={() => setSelectedRequest(null)}
+        onApprove={handleApproveFromDetail}
+        onReject={handleRejectFromDetail}
+      />
     </div>
   );
 };

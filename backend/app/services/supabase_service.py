@@ -997,4 +997,287 @@ class SupabaseService:
                 "data": updated_items[0] if updated_items else payload
             }
 
+    # ===========================================================================
+    # GESTIÓN DE TEMAS (CATEGORÍAS DE LIBROS)
+    # ===========================================================================
+
+    async def get_temas(self) -> List[Dict[str, Any]]:
+        """
+        Obtiene todos los temas con conteo de libros asociados.
+        Usa un único join PostgREST para evitar N+1 queries.
+        Los campos `activa` y `codigo` son opcionales — se devuelven si ya
+        existen en la BD (post-migración); si no, se omiten gracefully.
+        """
+        # Intentamos la query completa con campos post-migración
+        url_full = (
+            f"{self.base_url}/temas"
+            "?select=id,nombre,descripcion,activa,codigo,libro_temas(count)"
+            "&order=nombre.asc"
+        )
+        url_fallback = (
+            f"{self.base_url}/temas"
+            "?select=id,nombre,descripcion,libro_temas(count)"
+            "&order=nombre.asc"
+        )
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            resp = await client.get(url_full, headers=self.headers)
+            if resp.status_code == 400:
+                # Columnas `activa`/`codigo` no existen aún — usar fallback
+                resp = await client.get(url_fallback, headers=self.headers)
+            resp.raise_for_status()
+            rows = resp.json()
+            result = []
+            for r in rows:
+                # PostgREST devuelve libro_temas como lista de {count: N}
+                raw_count = r.get("libro_temas")
+                if isinstance(raw_count, list) and raw_count:
+                    libros_count = raw_count[0].get("count", 0)
+                else:
+                    libros_count = 0
+
+                raw_nombre = r.get("nombre") or ""
+                codigo = r.get("codigo")
+                nombre = raw_nombre
+                tipo = r.get("tipo")
+
+                # Si el código viene vacío en la BD pero el nombre inicia con prefijo Dewey ("000 — ...")
+                if not codigo:
+                    m = re.match(r"^(\d{3})\s*[-—]\s*(.*)$", raw_nombre)
+                    if m:
+                        codigo = m.group(1)
+                        nombre = m.group(2).strip()
+                        if not tipo:
+                            tipo = "categoria"
+
+                item: Dict[str, Any] = {
+                    "id": r["id"],
+                    "nombre": nombre,
+                    "descripcion": r.get("descripcion"),
+                    "libros_count": int(libros_count),
+                    "tipo": tipo or ("categoria" if codigo else "tema"),
+                }
+                # Campos opcionales post-migración
+                if "activa" in r:
+                    item["activa"] = r["activa"]
+                item["codigo"] = codigo
+                result.append(item)
+            return result
+
+    async def create_tema(self, payload: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Crea un nuevo tema. Valida unicidad de nombre y, si existe el campo,
+        de código antes de insertar.
+        Lanza ValueError en caso de duplicado (409 debe manejarlo el router).
+        """
+        nombre = str(payload.get("nombre") or "").strip()
+        if not nombre:
+            raise ValueError("El nombre del tema es obligatorio.")
+        if len(nombre) > 100:
+            raise ValueError("El nombre del tema no puede superar los 100 caracteres.")
+
+        descripcion = (payload.get("descripcion") or "").strip() or None
+        codigo = str(payload.get("codigo") or "").strip() or None
+        if codigo and len(codigo) > 20:
+            raise ValueError("El código del tema no puede superar los 20 caracteres.")
+
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            # Verificar unicidad del nombre
+            check_nombre = await client.get(
+                f"{self.base_url}/temas?nombre=eq.{nombre}&select=id",
+                headers=self.headers
+            )
+            if check_nombre.is_success and check_nombre.json():
+                raise ValueError(f"Ya existe un tema con el nombre '{nombre}'.")
+
+            # Verificar unicidad del código (si se proporcionó y la col existe)
+            if codigo:
+                check_cod = await client.get(
+                    f"{self.base_url}/temas?codigo=eq.{codigo}&select=id",
+                    headers=self.headers
+                )
+                if check_cod.is_success and check_cod.json():
+                    raise ValueError(f"Ya existe un tema con el código '{codigo}'.")
+
+            row: Dict[str, Any] = {"nombre": nombre}
+            if descripcion is not None:
+                row["descripcion"] = descripcion
+
+            # Solo incluir `codigo` y `activa` si la migración los añadió
+            # Intentamos con ellos; si Supabase los rechaza, reintentamos sin ellos
+            if codigo:
+                row["codigo"] = codigo
+            # activa por defecto True (lo pone la BD con DEFAULT true)
+
+            resp = await client.post(
+                f"{self.base_url}/temas",
+                headers={**self.headers, "Prefer": "return=representation"},
+                json=row,
+                timeout=10.0
+            )
+            if resp.status_code == 400 and codigo:
+                # Puede que `codigo` aún no exista — reintentar sin él
+                row.pop("codigo", None)
+                resp = await client.post(
+                    f"{self.base_url}/temas",
+                    headers={**self.headers, "Prefer": "return=representation"},
+                    json=row,
+                    timeout=10.0
+                )
+            if resp.status_code in (409, 400):
+                body = resp.text.lower()
+                if "duplicate" in body or "unique" in body or "23505" in body:
+                    raise ValueError("Nombre o código de tema duplicado.")
+            resp.raise_for_status()
+            created = resp.json()
+            return created[0] if isinstance(created, list) and created else created
+
+    async def update_tema(self, tema_id: int, payload: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Actualiza un tema existente. El ID nunca cambia.
+        Campos actualizables: nombre, descripcion, codigo.
+        """
+        check_url = f"{self.base_url}/temas?id=eq.{tema_id}&select=id,nombre"
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            check_resp = await client.get(check_url, headers=self.headers)
+            if not check_resp.is_success or not check_resp.json():
+                return {"status": "not_found"}
+
+            updates: Dict[str, Any] = {}
+            if "nombre" in payload:
+                nombre = str(payload["nombre"]).strip()
+                if not nombre:
+                    raise ValueError("El nombre del tema no puede estar vacío.")
+                if len(nombre) > 100:
+                    raise ValueError("El nombre del tema no puede superar los 100 caracteres.")
+                # Verificar unicidad del nuevo nombre (distinto del propio)
+                dup = await client.get(
+                    f"{self.base_url}/temas?nombre=eq.{nombre}&id=neq.{tema_id}&select=id",
+                    headers=self.headers
+                )
+                if dup.is_success and dup.json():
+                    raise ValueError(f"Ya existe otro tema con el nombre '{nombre}'.")
+                updates["nombre"] = nombre
+
+            if "descripcion" in payload:
+                updates["descripcion"] = (payload["descripcion"] or "").strip() or None
+
+            if "codigo" in payload:
+                codigo = str(payload["codigo"] or "").strip() or None
+                if codigo:
+                    if len(codigo) > 20:
+                        raise ValueError("El código no puede superar los 20 caracteres.")
+                    dup_cod = await client.get(
+                        f"{self.base_url}/temas?codigo=eq.{codigo}&id=neq.{tema_id}&select=id",
+                        headers=self.headers
+                    )
+                    if dup_cod.is_success and dup_cod.json():
+                        raise ValueError(f"Ya existe otro tema con el código '{codigo}'.")
+                updates["codigo"] = codigo
+
+            if not updates:
+                current = check_resp.json()[0]
+                return {"status": "no_changes", "id": tema_id, "data": current}
+
+            patch_url = f"{self.base_url}/temas?id=eq.{tema_id}"
+            patch_resp = await client.patch(
+                patch_url,
+                headers={**self.headers, "Prefer": "return=representation"},
+                json=updates,
+                timeout=10.0
+            )
+            if patch_resp.status_code == 400:
+                # Columna `codigo` puede no existir aún — reintentar sin ella
+                updates.pop("codigo", None)
+                if updates:
+                    patch_resp = await client.patch(
+                        patch_url,
+                        headers={**self.headers, "Prefer": "return=representation"},
+                        json=updates,
+                        timeout=10.0
+                    )
+            patch_resp.raise_for_status()
+            updated = patch_resp.json()
+            return {
+                "status": "success",
+                "id": tema_id,
+                "data": updated[0] if isinstance(updated, list) and updated else updates
+            }
+
+    async def toggle_tema(self, tema_id: int, activa: bool) -> Dict[str, Any]:
+        """
+        Activa o desactiva un tema. Requiere que la columna `activa` exista
+        (post-migración). Si la columna no existe retorna un error descriptivo.
+        """
+        check_url = f"{self.base_url}/temas?id=eq.{tema_id}&select=id,nombre"
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            check_resp = await client.get(check_url, headers=self.headers)
+            if not check_resp.is_success or not check_resp.json():
+                return {"status": "not_found"}
+
+            patch_url = f"{self.base_url}/temas?id=eq.{tema_id}"
+            patch_resp = await client.patch(
+                patch_url,
+                headers={**self.headers, "Prefer": "return=representation"},
+                json={"activa": activa},
+                timeout=10.0
+            )
+            if patch_resp.status_code == 400:
+                return {
+                    "status": "error",
+                    "detail": "La columna 'activa' aún no existe en la tabla temas. Aplica la migración pendiente."
+                }
+            patch_resp.raise_for_status()
+            updated = patch_resp.json()
+            return {
+                "status": "success",
+                "id": tema_id,
+                "activa": activa,
+                "data": updated[0] if isinstance(updated, list) and updated else {"activa": activa}
+            }
+
+    async def delete_tema(self, tema_id: int) -> Dict[str, Any]:
+        """
+        Elimina un tema si no tiene libros asociados en libro_temas.
+        - Si no existe: retorna status='not_found'.
+        - Si tiene relaciones en libro_temas: retorna status='has_books'.
+        - Si está limpio: elimina y retorna status='success'.
+        """
+        check_url = f"{self.base_url}/temas?id=eq.{tema_id}&select=id,nombre,libro_temas(count)"
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            check_resp = await client.get(check_url, headers=self.headers)
+            if not check_resp.is_success:
+                raise Exception("Error al consultar el tema en Supabase.")
+            items = check_resp.json()
+            if not items:
+                return {"status": "not_found"}
+
+            tema = items[0]
+            raw_count = tema.get("libro_temas")
+            if isinstance(raw_count, list) and raw_count:
+                libro_count = int(raw_count[0].get("count", 0))
+            else:
+                libro_count = 0
+
+            if libro_count > 0:
+                return {
+                    "status": "has_books",
+                    "libro_count": libro_count,
+                    "message": (
+                        f"No es posible eliminar el tema '{tema.get('nombre')}' "
+                        f"porque tiene {libro_count} libro(s) asociado(s). "
+                        "Reasigna o elimina los libros primero."
+                    )
+                }
+
+            del_url = f"{self.base_url}/temas?id=eq.{tema_id}"
+            del_resp = await client.delete(del_url, headers=self.headers)
+            del_resp.raise_for_status()
+
+            return {
+                "status": "success",
+                "id": tema_id,
+                "nombre": tema.get("nombre")
+            }
+
 supabase_service = SupabaseService()
+

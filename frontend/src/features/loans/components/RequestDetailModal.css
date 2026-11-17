@@ -1,0 +1,237 @@
+/* RequestDetailModal.css */
+
+.req-detail-body {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  padding: 0.25rem 0;
+}
+
+/* Error banner */
+.req-detail-error-banner {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.75rem 1rem;
+  background: #fee2e2;
+  color: #991b1b;
+  border-radius: 8px;
+  font-size: 0.875rem;
+  font-weight: 500;
+}
+
+/* Sections */
+.req-detail-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.req-detail-section-title {
+  margin: 0;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #64748b;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+/* Grid de campos */
+.req-detail-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem 1.5rem;
+}
+
+@media (max-width: 540px) {
+  .req-detail-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.req-detail-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.req-detail-field--full {
+  grid-column: 1 / -1;
+}
+
+.req-detail-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #94a3b8;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.req-detail-value {
+  font-size: 0.9rem;
+  color: #1e293b;
+  font-weight: 500;
+}
+
+.req-detail-folio {
+  font-family: monospace;
+  font-size: 0.95rem;
+  color: #2563eb;
+  font-weight: 700;
+}
+
+.req-detail-notes {
+  font-size: 0.875rem;
+  color: #475569;
+  font-weight: 400;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 0.65rem 0.85rem;
+  line-height: 1.5;
+  white-space: pre-wrap;
+}
+
+/* Badge de estado */
+.req-detail-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.25rem 0.65rem;
+  border-radius: 9999px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  width: fit-content;
+}
+
+.req-detail-badge--pending  { background: #fef3c7; color: #d97706; }
+.req-detail-badge--approved { background: #dcfce7; color: #15803d; }
+.req-detail-badge--rejected { background: #fee2e2; color: #b91c1c; }
+.req-detail-badge--cancelled{ background: #f1f5f9; color: #64748b; }
+
+/* User card */
+.req-detail-user-card {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 0.9rem 1.1rem;
+}
+
+.req-detail-user-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: #eff6ff;
+  color: #2563eb;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.req-detail-user-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.req-detail-user-name {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.req-detail-user-email {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  font-size: 0.8125rem;
+  color: #475569;
+}
+
+.req-detail-user-id {
+  font-size: 0.75rem;
+  color: #94a3b8;
+}
+
+.req-detail-user-id code {
+  font-family: monospace;
+  background: #f1f5f9;
+  padding: 0.1rem 0.3rem;
+  border-radius: 4px;
+}
+
+/* Book card */
+.req-detail-book-card {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  background: #f8fafc;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  padding: 0.9rem 1.1rem;
+}
+
+.req-detail-book-cover {
+  width: 52px;
+  height: 68px;
+  border-radius: 6px;
+  background: #1e3a5f;
+  color: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.req-detail-book-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.3rem;
+}
+
+.req-detail-book-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: #0f172a;
+  line-height: 1.3;
+}
+
+.req-detail-book-id {
+  font-size: 0.75rem;
+  color: #94a3b8;
+}
+
+.req-detail-book-id code {
+  font-family: monospace;
+  background: #f1f5f9;
+  padding: 0.1rem 0.3rem;
+  border-radius: 4px;
+}
+
+/* Footer */
+.req-detail-footer {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+@media (max-width: 480px) {
+  .req-detail-footer {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  .req-detail-footer > * {
+    justify-content: center;
+  }
+}
