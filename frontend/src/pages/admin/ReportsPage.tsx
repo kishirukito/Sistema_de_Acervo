@@ -7,7 +7,6 @@ import {
   Package,
   Monitor,
   LayoutDashboard,
-  Download,
   Loader2,
   PlusCircle,
   AlertTriangle,
@@ -205,14 +204,7 @@ export const ReportsPage: React.FC = () => {
               <PlusCircle size={16} />
               <span>+ Capturar Registro</span>
             </button>
-            <button
-              onClick={handleExportReport}
-              className="reports-export-btn"
-              style={{ display: 'inline-flex', alignItems: 'center', gap: '8px' }}
-            >
-              <Download size={16} />
-              <span>Exportar SIABUC (CSV)</span>
-            </button>
+
           </div>
         </div>
       </div>
