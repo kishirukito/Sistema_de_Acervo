@@ -10,6 +10,8 @@
  *   muestre "pendiente de migración" sin crashear.
  */
 
+import { resolveCategory } from '../../constants';
+
 export interface Tema {
   id: number;
   nombre: string;
@@ -88,17 +90,41 @@ export async function fetchCategories(): Promise<Tema[]> {
   const data = await res.json();
 
   // Normaliza: si el backend aún no tiene el campo activa/codigo, no crashea.
-  return (Array.isArray(data) ? data : []).map((item: any) => ({
-    id: item.id,
-    nombre: item.nombre ?? '',
-    codigo: item.codigo ?? null,
-    descripcion: item.descripcion ?? undefined,
-    activa: item.activa !== undefined ? Boolean(item.activa) : true,
-    tipo: item.tipo ?? 'tema',
-    booksCount: typeof item.booksCount === 'number' ? item.booksCount
-      : typeof item.books_count === 'number' ? item.books_count
-      : undefined,
-  }));
+  return (Array.isArray(data) ? data : []).map((item: any) => {
+    let rawNombre = item.nombre ?? '';
+    let codigo = item.codigo ?? null;
+    let nombre = rawNombre;
+    let tipo = item.tipo ?? 'tema';
+
+    // Si codigo no viene pero el nombre trae el prefijo Dewey (ej: "000 — Ciencias...")
+    if (!codigo) {
+      const match = rawNombre.match(/^(\d{3})\s*[-—]\s*(.*)$/);
+      if (match) {
+        codigo = match[1];
+        nombre = match[2].trim();
+        tipo = 'categoria';
+      } else {
+        const resolved = resolveCategory(rawNombre);
+        if (resolved) {
+          codigo = resolved.code;
+          nombre = resolved.name;
+          tipo = 'categoria';
+        }
+      }
+    }
+
+    return {
+      id: item.id,
+      nombre,
+      codigo,
+      descripcion: item.descripcion ?? undefined,
+      activa: item.activa !== undefined ? Boolean(item.activa) : true,
+      tipo,
+      booksCount: typeof item.booksCount === 'number' ? item.booksCount
+        : typeof item.books_count === 'number' ? item.books_count
+        : undefined,
+    };
+  });
 }
 
 /** Crea un nuevo tema/categoría. */

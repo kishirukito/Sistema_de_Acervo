@@ -26,6 +26,16 @@ ALTER TABLE temas
   ADD COLUMN IF NOT EXISTS tipo VARCHAR(20) NOT NULL DEFAULT 'tema'
     CHECK (tipo IN ('categoria', 'tema'));
 
+-- 3.1 Normalizar registros Dewey que se hayan insertado previamente con el formato "XXX — Nombre"
+--     Extrae el código al campo `codigo`, limpia el `nombre` y asigna `tipo = 'categoria'`
+UPDATE temas
+SET
+  codigo = substring(nombre from '^([0-9]{3})\s*[-—]'),
+  nombre = trim(substring(nombre from '^[0-9]{3}\s*[-—]\s*(.*)$')),
+  tipo = 'categoria',
+  activa = true
+WHERE nombre ~ '^[0-9]{3}\s*[-—]';
+
 -- 4. Insertar las 10 categorías Dewey principales.
 --    ON CONFLICT (nombre) DO UPDATE: idempotente — si ya existe el registro
 --    por nombre, actualiza codigo/tipo/activa sin crear duplicados.

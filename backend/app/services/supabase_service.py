@@ -1034,17 +1034,32 @@ class SupabaseService:
                     libros_count = raw_count[0].get("count", 0)
                 else:
                     libros_count = 0
+
+                raw_nombre = r.get("nombre") or ""
+                codigo = r.get("codigo")
+                nombre = raw_nombre
+                tipo = r.get("tipo")
+
+                # Si el código viene vacío en la BD pero el nombre inicia con prefijo Dewey ("000 — ...")
+                if not codigo:
+                    m = re.match(r"^(\d{3})\s*[-—]\s*(.*)$", raw_nombre)
+                    if m:
+                        codigo = m.group(1)
+                        nombre = m.group(2).strip()
+                        if not tipo:
+                            tipo = "categoria"
+
                 item: Dict[str, Any] = {
                     "id": r["id"],
-                    "nombre": r["nombre"],
+                    "nombre": nombre,
                     "descripcion": r.get("descripcion"),
                     "libros_count": int(libros_count),
+                    "tipo": tipo or ("categoria" if codigo else "tema"),
                 }
                 # Campos opcionales post-migración
                 if "activa" in r:
                     item["activa"] = r["activa"]
-                if "codigo" in r:
-                    item["codigo"] = r["codigo"]
+                item["codigo"] = codigo
                 result.append(item)
             return result
 
