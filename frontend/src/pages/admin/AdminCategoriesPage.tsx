@@ -13,6 +13,7 @@ import {
   FolderOpen,
 } from 'lucide-react';
 import { Button } from '../../components/ui/Button';
+import { LoadingSpinner } from '../../components/ui/LoadingSpinner';
 import { Input } from '../../components/ui/Input';
 import { Select } from '../../components/ui/Select';
 import { useCategories, invalidateCategories } from '../../features/categories/categories.query';
@@ -176,9 +177,8 @@ export const AdminCategoriesPage: React.FC = () => {
 
       {/* Estados: cargando / error / vacío / tabla */}
       {isLoading && (
-        <div className="categories-state">
-          <Loader2 size={32} className="categories-state__icon" style={{ animation: 'spin 1s linear infinite' }} />
-          <p className="categories-state__desc">Cargando categorías…</p>
+        <div style={{ padding: '3rem 0' }}>
+          <LoadingSpinner center size="lg" text="Cargando categorías..." />
         </div>
       )}
 

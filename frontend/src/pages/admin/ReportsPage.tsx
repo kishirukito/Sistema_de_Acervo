@@ -7,7 +7,6 @@ import {
   Package,
   Monitor,
   LayoutDashboard,
-  Loader2,
   PlusCircle,
   AlertTriangle,
 } from 'lucide-react';
@@ -25,6 +24,7 @@ import { ProcesosTecnicosStatsView } from '../../features/reports/components/Pro
 import { InventarioStatsView } from '../../features/reports/components/InventarioStatsView';
 import { ServiciosStatsView } from '../../features/reports/components/ServiciosStatsView';
 import { ReportDataEntryModal } from '../../features/reports/components/ReportDataEntryModal';
+import { LoadingSpinner } from '../../components/ui/LoadingSpinner';
 
 import type { ReportsFilterState, QuickReportItem } from '../../features/reports/reports.types';
 import { fetchSiabucReports, DEFAULT_SIABUC_DATA } from '../../services/api/reports.service';
@@ -258,9 +258,8 @@ export const ReportsPage: React.FC = () => {
 
       {/* Loading state indicator */}
       {loading ? (
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '3rem 0', gap: '10px', color: '#6B7280' }}>
-          <Loader2 size={24} className="animate-spin" />
-          <span>Cargando estadísticas de la base de datos...</span>
+        <div style={{ padding: '3rem 0' }}>
+          <LoadingSpinner center size="lg" text="Cargando estadísticas de la base de datos..." />
         </div>
       ) : (
         <>

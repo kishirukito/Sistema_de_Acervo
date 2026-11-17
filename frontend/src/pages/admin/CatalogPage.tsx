@@ -7,6 +7,7 @@ import { CatalogPagination } from '../../features/catalog/components/CatalogPagi
 import { BookDetailModal } from '../../features/search/components/BookDetailModal';
 import { EditResourceModal } from '../../features/catalog/components/EditResourceModal';
 import { DeleteBookModal } from '../../features/catalog/components/DeleteBookModal';
+import { LoadingSpinner } from '../../components/ui/LoadingSpinner';
 import { MOCK_RESOURCES } from '../../features/catalog/catalog.mock';
 import { fetchCatalogResources, deleteResource, updateResource } from '../../services/api/catalog.service';
 import { useRealtimeTable } from '../../hooks/useRealtimeTable';
@@ -33,12 +34,11 @@ export const CatalogPage: React.FC = () => {
 
   // ── React Query: catálogo admin con caché ─────────────────────────────────
   // Regreso a la pantalla en < 2 min: datos visibles sin esperar red.
-  const { data: resourcesList = [] } = useQuery<Resource[]>({
+  const { data: resourcesList = [], isLoading } = useQuery<Resource[]>({
     queryKey: [ADMIN_CATALOG_KEY],
     queryFn: fetchCatalogResources,
     staleTime: 2 * 60 * 1000,
     refetchOnWindowFocus: false,
-    placeholderData: MOCK_RESOURCES as Resource[],
   });
 
   const invalidateCatalog = useCallback(() => {
@@ -233,7 +233,12 @@ export const CatalogPage: React.FC = () => {
         totalPages={totalPages}
       />
 
-      {hasResults && (
+      {/* Table / Results / Empty State */}
+      {isLoading ? (
+        <div style={{ padding: '3rem 0' }}>
+          <LoadingSpinner center size="lg" text="Cargando libros del acervo..." />
+        </div>
+      ) : hasResults ? (
         <div className="catalog-results-block">
           <ResourceTable
             resources={paginatedResources}
@@ -249,9 +254,7 @@ export const CatalogPage: React.FC = () => {
             onPageChange={(page) => setCurrentPage(page)}
           />
         </div>
-      )}
-
-      {!hasResults && (
+      ) : (
         <div className="catalog-empty-state" role="status">
           <div className="catalog-empty-icon">
             <SearchX size={28} />

@@ -1,6 +1,7 @@
 import React from 'react';
 import { useAuth } from '../../features/auth/AuthContext';
 import { MetricCard } from '../../features/dashboard/components/MetricCard';
+import { LoadingSpinner } from '../../components/ui/LoadingSpinner';
 import { QuickActions } from '../../features/dashboard/components/QuickActions';
 import {
   MonthlyLoansChart,
@@ -62,8 +63,8 @@ export const AdminDashboardPage: React.FC = () => {
       {/* 4 Metric Cards */}
       <section className="dashboard-metrics-grid" aria-label="Métricas generales">
         {metrics.length === 0 && isLoading ? (
-          <div style={{ gridColumn: '1 / -1', padding: '24px', textAlign: 'center', color: '#64748B' }}>
-            Cargando estadísticas en tiempo real...
+          <div style={{ gridColumn: '1 / -1', padding: '2.5rem 0' }}>
+            <LoadingSpinner center size="lg" text="Cargando estadísticas en tiempo real..." />
           </div>
         ) : (
           metrics.map((metric) => (

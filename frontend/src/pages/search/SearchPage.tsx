@@ -8,6 +8,7 @@ import { RecommendationsCard } from '../../features/search/components/Recommenda
 import { AIFooterNote } from '../../features/search/components/AIFooterNote';
 import { AISummaryModal } from '../../features/search/components/AISummaryModal';
 import { BookDetailModal } from '../../features/search/components/BookDetailModal';
+import { LoadingSpinner } from '../../components/ui/LoadingSpinner';
 import { searchBooks } from '../../services/api/search.service';
 import { requestAISuggestions, requestSmartSearch, requestIndexAcervo } from '../../services/api/ai.service';
 import { useAuth } from '../../features/auth/AuthContext';
@@ -448,23 +449,18 @@ export const SearchPage: React.FC = () => {
         {isSearching ? (
           <div
             style={{
-              display: 'flex',
-              flexDirection: 'column',
-              alignItems: 'center',
-              justifyContent: 'center',
               minHeight: '260px',
               width: '100%',
-              gap: '12px',
               backgroundColor: '#ffffff',
               borderRadius: '8px',
               border: '1px solid #e2e8f0',
-              padding: '2rem',
+              padding: '2.5rem 1rem',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
             }}
           >
-            <Loader2 size={32} className="search-spin-icon" style={{ color: '#0284c7' }} />
-            <p style={{ color: '#64748b', fontSize: '0.95rem', margin: 0 }}>
-              Consultando acervo con Búsqueda Inteligente RAG...
-            </p>
+            <LoadingSpinner center size="lg" text="Consultando acervo con Búsqueda Inteligente RAG..." />
           </div>
         ) : (
           <SearchResults
