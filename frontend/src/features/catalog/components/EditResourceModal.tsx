@@ -162,7 +162,7 @@ export const EditResourceModal: React.FC<EditResourceModalProps> = ({
     setShowDiscardConfirm(false);
   };
 
-  const onSubmit = (data: EditResourceFormData) => {
+  const onSubmit = async (data: EditResourceFormData) => {
     const diff = data.totalCopies - resource.totalCopies;
     const newAvailableCopies = Math.max(
       0,
@@ -198,7 +198,7 @@ export const EditResourceModal: React.FC<EditResourceModalProps> = ({
       coverInitials: data.title.trim().slice(0, 2).toUpperCase(),
     };
 
-    onSave(updatedResource);
+    await onSave(updatedResource);
     onClose();
   };
 

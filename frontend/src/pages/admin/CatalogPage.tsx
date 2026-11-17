@@ -42,7 +42,7 @@ export const CatalogPage: React.FC = () => {
   });
 
   const invalidateCatalog = useCallback(() => {
-    queryClient.invalidateQueries({ queryKey: [ADMIN_CATALOG_KEY] });
+    queryClient.invalidateQueries({ queryKey: [ADMIN_CATALOG_KEY], refetchType: 'active' });
   }, [queryClient]);
 
   // ── Realtime: invalidar caché cuando cambia un libro o ejemplar ──────────
