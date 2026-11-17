@@ -10,7 +10,6 @@
  *   muestre "pendiente de migración" sin crashear.
  */
 
-import { resolveCategory } from '../../constants';
 import { supabase } from '../../services/api/supabase';
 
 export interface Tema {
@@ -82,13 +81,6 @@ function mapRawTemaToTema(item: any): Tema {
       codigo = match[1];
       nombre = match[2].trim();
       tipo = 'categoria';
-    } else {
-      const resolved = resolveCategory(rawNombre);
-      if (resolved) {
-        codigo = resolved.code;
-        nombre = resolved.name;
-        tipo = 'categoria';
-      }
     }
   }
 
