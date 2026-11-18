@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useMemo } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -15,15 +15,12 @@ import {
 import { Modal } from '../../../components/ui/Modal';
 import { Input } from '../../../components/ui/Input';
 import { Select } from '../../../components/ui/Select';
-import { CustomSelect, type CustomSelectOption } from '../../../components/ui/CustomSelect';
 import { Button } from '../../../components/ui/Button';
 import type {
   ManagedUser,
   AdministrativeRole,
   NormalUserCategory,
-  Carrera,
 } from '../users.types';
-import { fetchCarreras } from '../../../services/api/loans-admin.service';
 import './RegisterUserModal.css';
 
 const registerUserSchema = z
@@ -46,6 +43,7 @@ const registerUserSchema = z
     category: z
       .enum(['STUDENT', 'TEACHER', 'GRADUATE', 'EXTERNAL', 'ROOM'])
       .optional(),
+    carreraTexto: z.string().trim().optional(),
     carreraId: z.string().optional(),
     dependenciaOArea: z.string().optional(),
     roomResponsibleName: z.string().trim().optional(),
@@ -153,14 +151,7 @@ export const RegisterUserModal: React.FC<RegisterUserModalProps> = ({
   onSuccess,
 }) => {
   const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
-  const [carrerasList, setCarrerasList] = useState<Carrera[]>([]);
   const fullNameRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    fetchCarreras().then((data) => {
-      if (Array.isArray(data)) setCarrerasList(data);
-    });
-  }, []);
 
   const isEdit = mode === 'edit';
 
@@ -181,37 +172,13 @@ export const RegisterUserModal: React.FC<RegisterUserModalProps> = ({
       email: '',
       phone: '',
       borrowerCode: '',
+      carreraTexto: '',
       roomResponsibleName: '',
     },
   });
 
   const selectedKind = useWatch({ control, name: 'kind' });
   const selectedCategory = useWatch({ control, name: 'category' });
-  const selectedCarreraId = useWatch({ control, name: 'carreraId' }) || '';
-
-  const carreraSelectOptions = useMemo<CustomSelectOption[]>(() => {
-    const opts: CustomSelectOption[] = [
-      { value: '', label: '-- Selecciona una carrera --' },
-    ];
-    ['TSU', 'Licenciatura', 'Ingeniería', 'Maestría'].forEach((nivel) => {
-      const deEsteNivel = carrerasList.filter((c) => c.nivel === nivel);
-      if (deEsteNivel.length > 0) {
-        opts.push({
-          value: `group-${nivel}`,
-          label: `Oferta Académica: ${nivel}`,
-          isHeader: true,
-          disabled: true,
-        });
-        deEsteNivel.forEach((c) => {
-          opts.push({
-            value: c.id,
-            label: c.nombre,
-          });
-        });
-      }
-    });
-    return opts;
-  }, [carrerasList]);
 
   // Reset form when modal opens or user/mode changes
   useEffect(() => {
@@ -225,6 +192,7 @@ export const RegisterUserModal: React.FC<RegisterUserModalProps> = ({
           email: user.email,
           phone: user.phone || '',
           borrowerCode: user.borrowerCode,
+          carreraTexto: user.carrera?.nombre || user.dependenciaOArea || '',
           carreraId: user.carreraId || '',
           dependenciaOArea: user.dependenciaOArea || '',
           roomResponsibleName:
@@ -241,6 +209,7 @@ export const RegisterUserModal: React.FC<RegisterUserModalProps> = ({
           email: '',
           phone: '',
           borrowerCode: '',
+          carreraTexto: '',
           carreraId: '',
           dependenciaOArea: '',
           roomResponsibleName: '',
@@ -292,7 +261,10 @@ export const RegisterUserModal: React.FC<RegisterUserModalProps> = ({
           avatarInitials: initials,
         };
       } else {
-        const foundCarrera = carrerasList.find((c) => c.id === data.carreraId);
+        const carreraNombre = data.carreraTexto?.trim() || '';
+        const carreraObj = carreraNombre
+          ? { id: user.carreraId || '', nivel: '', nombre: carreraNombre }
+          : null;
         updatedUser = {
           id: user.id,
           status: user.status,
@@ -307,9 +279,9 @@ export const RegisterUserModal: React.FC<RegisterUserModalProps> = ({
           phone: data.phone?.trim() || undefined,
           borrowerCode: data.borrowerCode.trim().toUpperCase(),
           avatarInitials: initials,
-          carreraId: data.carreraId || null,
-          carrera: foundCarrera || null,
-          dependenciaOArea: data.dependenciaOArea?.trim() || null,
+          carreraId: user.carreraId || null,
+          carrera: carreraObj,
+          dependenciaOArea: carreraNombre || data.dependenciaOArea?.trim() || null,
           roomResponsibleName:
             data.category === 'ROOM'
               ? data.roomResponsibleName?.trim() || undefined
@@ -342,7 +314,10 @@ export const RegisterUserModal: React.FC<RegisterUserModalProps> = ({
         avatarInitials: initials,
       };
     } else {
-      const foundCarrera = carrerasList.find((c) => c.id === data.carreraId);
+      const carreraNombre = data.carreraTexto?.trim() || '';
+      const carreraObj = carreraNombre
+        ? { id: '', nivel: '', nombre: carreraNombre }
+        : null;
       newUser = {
         id: `usr-${Date.now()}`,
         fullName: data.fullName.trim(),
@@ -354,9 +329,9 @@ export const RegisterUserModal: React.FC<RegisterUserModalProps> = ({
         createdAt: formattedDate,
         kind: 'NORMAL',
         category: data.category as NormalUserCategory,
-        carreraId: data.carreraId || null,
-        carrera: foundCarrera || null,
-        dependenciaOArea: data.dependenciaOArea?.trim() || null,
+        carreraId: null,
+        carrera: carreraObj,
+        dependenciaOArea: carreraNombre || data.dependenciaOArea?.trim() || null,
         roomResponsibleName:
           data.category === 'ROOM'
             ? data.roomResponsibleName?.trim()
@@ -545,18 +520,14 @@ export const RegisterUserModal: React.FC<RegisterUserModalProps> = ({
               />
             )}
 
-            {/* Selector de Carrera UNIPOLI agrupada por Nivel si es Estudiante */}
+            {/* Campo Carrera para Estudiante (texto libre) */}
             {selectedKind === 'NORMAL' && selectedCategory === 'STUDENT' && (
               <div className="register-user-field-group">
-                <CustomSelect
-                  label="Carrera universitaria (UNIPOLI)"
-                  value={selectedCarreraId}
-                  onChange={(val) => {
-                    setValue('carreraId', val, { shouldDirty: true, shouldValidate: true });
-                  }}
-                  options={carreraSelectOptions}
-                  placeholder="-- Selecciona una carrera --"
-                  error={errors.carreraId?.message}
+                <Input
+                  label="Carrera universitaria"
+                  placeholder="Ej. Ingeniería en Software, Biotecnología..."
+                  error={errors.carreraTexto?.message}
+                  {...register('carreraTexto')}
                 />
               </div>
             )}

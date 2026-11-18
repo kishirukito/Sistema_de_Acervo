@@ -199,39 +199,6 @@
   margin-top: 6px;
 }
 
-/* ==========================================================================
-   Carrera select — matches UI library Select component visual style
-   ========================================================================== */
-
-.register-user-carrera-select {
-  width: 100%;
-  box-sizing: border-box;
-  height: 2.5rem;
-  padding: 0 2.25rem 0 0.75rem;
-  font-size: 0.875rem;
-  font-family: inherit;
-  color: var(--color-text, #1F2937);
-  background-color: #FFFFFF;
-  border: 1px solid var(--color-border, #CBD5E1);
-  border-radius: var(--radius-sm, 6px);
-  outline: none;
-  appearance: none;
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 24 24' fill='none' stroke='%239CA3AF' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
-  background-repeat: no-repeat;
-  background-position: right 10px center;
-  cursor: pointer;
-  transition: border-color 0.15s ease, box-shadow 0.15s ease;
-}
-
-.register-user-carrera-select:focus {
-  border-color: var(--color-primary, #2F80ED);
-  box-shadow: 0 0 0 3px rgba(47, 128, 237, 0.12);
-}
-
-.register-user-carrera-select:hover:not(:focus) {
-  border-color: #94A3B8;
-}
-
 @media (max-width: 540px) {
   .register-user-discard-actions {
     flex-direction: column-reverse;
