@@ -170,11 +170,22 @@ async def post_usuario(
         return await supabase_service.create_user(user_row)
     except Exception as e:
         err_str = str(e)
-        # Detectar violación de unicidad (email o matricula duplicados)
-        if "duplicate" in err_str.lower() or "unique" in err_str.lower() or "23505" in err_str:
+        resp_text = ""
+        status_code = getattr(getattr(e, "response", None), "status_code", None)
+        if hasattr(e, "response") and hasattr(e.response, "text"):
+            resp_text = str(e.response.text).lower()
+
+        full_err = f"{err_str} {resp_text}".lower()
+        if status_code == 409 or "409" in err_str or "duplicate" in full_err or "unique" in full_err or "23505" in full_err:
+            if "email" in full_err:
+                detail = "Ya existe un usuario registrado con ese correo electrónico."
+            elif "matricula" in full_err or "borrower" in full_err:
+                detail = "Ya existe un usuario registrado con esa matrícula o código."
+            else:
+                detail = "Ya existe un usuario registrado con ese correo electrónico o matrícula/código."
             raise HTTPException(
                 status_code=status.HTTP_409_CONFLICT,
-                detail="Ya existe un usuario con ese correo electrónico o matrícula/nómina."
+                detail=detail
             )
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
