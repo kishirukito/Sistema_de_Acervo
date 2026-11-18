@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { X, DollarSign, Calendar, Monitor, AlertCircle, Save, Loader2 } from 'lucide-react';
 import type { CatalogosReportes } from '../reports.types';
 import {
@@ -7,6 +7,7 @@ import {
   createSesionComputo,
   updateEjemplarEstado,
 } from '../../../services/api/reports.service';
+import { CustomSelect, type CustomSelectOption } from '../../../components/ui/CustomSelect';
 import '../reports.css';
 
 interface Props {
@@ -54,6 +55,71 @@ export const ReportDataEntryModal: React.FC<Props> = ({
   const [bajaEjemplarId, setBajaEjemplarId] = useState(catalogos.ejemplares[0]?.id || '');
   const [bajaEstado, setBajaEstado] = useState('baja');
   const [bajaMotivo, setBajaMotivo] = useState('');
+
+  // Dropdown options
+  const usuariosFullOptions = useMemo<CustomSelectOption[]>(() => [
+    { value: '', label: '-- Seleccionar usuario --' },
+    ...catalogos.usuarios.map((u) => ({
+      value: u.id,
+      label: `${u.nombre} (${u.email})`,
+    })),
+  ], [catalogos.usuarios]);
+
+  const usuariosShortOptions = useMemo<CustomSelectOption[]>(() => [
+    { value: '', label: '-- Seleccionar usuario --' },
+    ...catalogos.usuarios.map((u) => ({
+      value: u.id,
+      label: u.nombre,
+    })),
+  ], [catalogos.usuarios]);
+
+  const sancionTipoOptions: CustomSelectOption[] = [
+    { value: 'multa', label: 'Multa económica' },
+    { value: 'amonestacion', label: 'Amonestación verbal / escrita' },
+    { value: 'suspension', label: 'Suspensión de servicio' },
+  ];
+
+  const sancionEstadoOptions: CustomSelectOption[] = [
+    { value: 'pendiente', label: 'Pendiente de cobro' },
+    { value: 'pagado', label: 'Pagado en caja' },
+    { value: 'condonado', label: 'Condonado / Justificado' },
+  ];
+
+  const espaciosOptions = useMemo<CustomSelectOption[]>(() =>
+    catalogos.espacios.map((esp) => ({
+      value: String(esp.id),
+      label: `${esp.nombre} (${esp.tipo})`,
+    })),
+    [catalogos.espacios]
+  );
+
+  const espacioEstadoOptions: CustomSelectOption[] = [
+    { value: 'concluida', label: 'Concluida (histórica)' },
+    { value: 'activa', label: 'Activa en este momento' },
+  ];
+
+  const equiposOptions = useMemo<CustomSelectOption[]>(() =>
+    catalogos.equipos.map((eq) => ({
+      value: String(eq.id),
+      label: `${eq.codigo} (${eq.ubicacion})`,
+    })),
+    [catalogos.equipos]
+  );
+
+  const ejemplaresOptions = useMemo<CustomSelectOption[]>(() => [
+    { value: '', label: '-- Seleccionar ejemplar --' },
+    ...catalogos.ejemplares.map((ej) => ({
+      value: ej.id,
+      label: `${ej.codigo} (actualmente: ${ej.estado})`,
+    })),
+  ], [catalogos.ejemplares]);
+
+  const bajaEstadoOptions: CustomSelectOption[] = [
+    { value: 'baja', label: 'Baja definitiva (deterioro o descarte)' },
+    { value: 'extraviado', label: 'Extraviado / No localizado' },
+    { value: 'mantenimiento', label: 'En reparación / Mantenimiento' },
+    { value: 'disponible', label: 'Reincorporar a Disponible' },
+  ];
 
   if (!isOpen) return null;
 
@@ -120,7 +186,7 @@ export const ReportDataEntryModal: React.FC<Props> = ({
           width: '100%',
           maxWidth: '560px',
           boxShadow: '0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04)',
-          overflow: 'hidden',
+          overflow: 'visible',
         }}
       >
         {/* Header */}
@@ -213,34 +279,23 @@ export const ReportDataEntryModal: React.FC<Props> = ({
             {activeTab === 'sancion' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                 <div className="rde-field">
-                  <label className="rde-label">Usuario sancionado:</label>
-                  <select
-                    className="rde-select"
+                  <CustomSelect
+                    label="Usuario sancionado:"
                     value={sancionUser}
-                    onChange={(e) => setSancionUser(e.target.value)}
-                    required
-                  >
-                    <option value="">-- Seleccionar usuario --</option>
-                    {catalogos.usuarios.map((u) => (
-                      <option key={u.id} value={u.id}>
-                        {u.nombre} ({u.email})
-                      </option>
-                    ))}
-                  </select>
+                    onChange={(val) => setSancionUser(val)}
+                    options={usuariosFullOptions}
+                    placeholder="-- Seleccionar usuario --"
+                  />
                 </div>
 
                 <div className="rde-grid-2">
                   <div className="rde-field">
-                    <label className="rde-label">Tipo de sanción:</label>
-                    <select
-                      className="rde-select"
+                    <CustomSelect
+                      label="Tipo de sanción:"
                       value={sancionTipo}
-                      onChange={(e) => setSancionTipo(e.target.value)}
-                    >
-                      <option value="multa">Multa económica</option>
-                      <option value="amonestacion">Amonestación verbal / escrita</option>
-                      <option value="suspension">Suspensión de servicio</option>
-                    </select>
+                      onChange={(val) => setSancionTipo(val)}
+                      options={sancionTipoOptions}
+                    />
                   </div>
 
                   <div className="rde-field">
@@ -258,16 +313,12 @@ export const ReportDataEntryModal: React.FC<Props> = ({
                 </div>
 
                 <div className="rde-field">
-                  <label className="rde-label">Estado de pago:</label>
-                  <select
-                    className="rde-select"
+                  <CustomSelect
+                    label="Estado de pago:"
                     value={sancionEstado}
-                    onChange={(e) => setSancionEstado(e.target.value)}
-                  >
-                    <option value="pendiente">Pendiente de cobro</option>
-                    <option value="pagado">Pagado en caja</option>
-                    <option value="condonado">Condonado / Justificado</option>
-                  </select>
+                    onChange={(val) => setSancionEstado(val)}
+                    options={sancionEstadoOptions}
+                  />
                 </div>
 
                 <div className="rde-field">
@@ -288,36 +339,23 @@ export const ReportDataEntryModal: React.FC<Props> = ({
             {activeTab === 'espacio' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                 <div className="rde-field">
-                  <label className="rde-label">Cubículo o Sala:</label>
-                  <select
-                    className="rde-select"
+                  <CustomSelect
+                    label="Cubículo o Sala:"
                     value={espacioId}
-                    onChange={(e) => setEspacioId(e.target.value)}
-                    required
-                  >
-                    {catalogos.espacios.map((esp) => (
-                      <option key={esp.id} value={esp.id}>
-                        {esp.nombre} ({esp.tipo})
-                      </option>
-                    ))}
-                  </select>
+                    onChange={(val) => setEspacioId(val)}
+                    options={espaciosOptions}
+                    placeholder="-- Seleccionar espacio --"
+                  />
                 </div>
 
                 <div className="rde-field">
-                  <label className="rde-label">Usuario solicitante:</label>
-                  <select
-                    className="rde-select"
+                  <CustomSelect
+                    label="Usuario solicitante:"
                     value={espacioUser}
-                    onChange={(e) => setEspacioUser(e.target.value)}
-                    required
-                  >
-                    <option value="">-- Seleccionar usuario --</option>
-                    {catalogos.usuarios.map((u) => (
-                      <option key={u.id} value={u.id}>
-                        {u.nombre}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={(val) => setEspacioUser(val)}
+                    options={usuariosShortOptions}
+                    placeholder="-- Seleccionar usuario --"
+                  />
                 </div>
 
                 <div className="rde-grid-2">
@@ -344,15 +382,12 @@ export const ReportDataEntryModal: React.FC<Props> = ({
                 </div>
 
                 <div className="rde-field">
-                  <label className="rde-label">Estado de la sesión:</label>
-                  <select
-                    className="rde-select"
+                  <CustomSelect
+                    label="Estado de la sesión:"
                     value={espacioEstado}
-                    onChange={(e) => setEspacioEstado(e.target.value)}
-                  >
-                    <option value="concluida">Concluida (histórica)</option>
-                    <option value="activa">Activa en este momento</option>
-                  </select>
+                    onChange={(val) => setEspacioEstado(val)}
+                    options={espacioEstadoOptions}
+                  />
                 </div>
               </div>
             )}
@@ -361,36 +396,23 @@ export const ReportDataEntryModal: React.FC<Props> = ({
             {activeTab === 'computo' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                 <div className="rde-field">
-                  <label className="rde-label">Equipo de cómputo:</label>
-                  <select
-                    className="rde-select"
+                  <CustomSelect
+                    label="Equipo de cómputo:"
                     value={computoEquipoId}
-                    onChange={(e) => setComputoEquipoId(e.target.value)}
-                    required
-                  >
-                    {catalogos.equipos.map((eq) => (
-                      <option key={eq.id} value={eq.id}>
-                        {eq.codigo} ({eq.ubicacion})
-                      </option>
-                    ))}
-                  </select>
+                    onChange={(val) => setComputoEquipoId(val)}
+                    options={equiposOptions}
+                    placeholder="-- Seleccionar equipo --"
+                  />
                 </div>
 
                 <div className="rde-field">
-                  <label className="rde-label">Usuario:</label>
-                  <select
-                    className="rde-select"
+                  <CustomSelect
+                    label="Usuario:"
                     value={computoUser}
-                    onChange={(e) => setComputoUser(e.target.value)}
-                    required
-                  >
-                    <option value="">-- Seleccionar usuario --</option>
-                    {catalogos.usuarios.map((u) => (
-                      <option key={u.id} value={u.id}>
-                        {u.nombre}
-                      </option>
-                    ))}
-                  </select>
+                    onChange={(val) => setComputoUser(val)}
+                    options={usuariosShortOptions}
+                    placeholder="-- Seleccionar usuario --"
+                  />
                 </div>
 
                 <div className="rde-field">
@@ -412,34 +434,22 @@ export const ReportDataEntryModal: React.FC<Props> = ({
             {activeTab === 'baja' && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
                 <div className="rde-field">
-                  <label className="rde-label">Ejemplar físico:</label>
-                  <select
-                    className="rde-select"
+                  <CustomSelect
+                    label="Ejemplar físico:"
                     value={bajaEjemplarId}
-                    onChange={(e) => setBajaEjemplarId(e.target.value)}
-                    required
-                  >
-                    <option value="">-- Seleccionar ejemplar --</option>
-                    {catalogos.ejemplares.map((ej) => (
-                      <option key={ej.id} value={ej.id}>
-                        {ej.codigo} (actualmente: {ej.estado})
-                      </option>
-                    ))}
-                  </select>
+                    onChange={(val) => setBajaEjemplarId(val)}
+                    options={ejemplaresOptions}
+                    placeholder="-- Seleccionar ejemplar --"
+                  />
                 </div>
 
                 <div className="rde-field">
-                  <label className="rde-label">Nuevo estado:</label>
-                  <select
-                    className="rde-select"
+                  <CustomSelect
+                    label="Nuevo estado:"
                     value={bajaEstado}
-                    onChange={(e) => setBajaEstado(e.target.value)}
-                  >
-                    <option value="baja">Baja definitiva (deterioro o descarte)</option>
-                    <option value="extraviado">Extraviado / No localizado</option>
-                    <option value="mantenimiento">En reparación / Mantenimiento</option>
-                    <option value="disponible">Reincorporar a Disponible</option>
-                  </select>
+                    onChange={(val) => setBajaEstado(val)}
+                    options={bajaEstadoOptions}
+                  />
                 </div>
 
                 <div className="rde-field">

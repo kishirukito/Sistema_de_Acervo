@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { useForm, useWatch } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { z } from 'zod';
@@ -15,6 +15,7 @@ import {
 import { Modal } from '../../../components/ui/Modal';
 import { Input } from '../../../components/ui/Input';
 import { Select } from '../../../components/ui/Select';
+import { CustomSelect, type CustomSelectOption } from '../../../components/ui/CustomSelect';
 import { Button } from '../../../components/ui/Button';
 import type {
   ManagedUser,
@@ -186,6 +187,31 @@ export const RegisterUserModal: React.FC<RegisterUserModalProps> = ({
 
   const selectedKind = useWatch({ control, name: 'kind' });
   const selectedCategory = useWatch({ control, name: 'category' });
+  const selectedCarreraId = useWatch({ control, name: 'carreraId' }) || '';
+
+  const carreraSelectOptions = useMemo<CustomSelectOption[]>(() => {
+    const opts: CustomSelectOption[] = [
+      { value: '', label: '-- Selecciona una carrera --' },
+    ];
+    ['TSU', 'Licenciatura', 'Ingeniería', 'Maestría'].forEach((nivel) => {
+      const deEsteNivel = carrerasList.filter((c) => c.nivel === nivel);
+      if (deEsteNivel.length > 0) {
+        opts.push({
+          value: `group-${nivel}`,
+          label: `Oferta Académica: ${nivel}`,
+          isHeader: true,
+          disabled: true,
+        });
+        deEsteNivel.forEach((c) => {
+          opts.push({
+            value: c.id,
+            label: c.nombre,
+          });
+        });
+      }
+    });
+    return opts;
+  }, [carrerasList]);
 
   // Reset form when modal opens or user/mode changes
   useEffect(() => {
@@ -521,29 +547,17 @@ export const RegisterUserModal: React.FC<RegisterUserModalProps> = ({
 
             {/* Selector de Carrera UNIPOLI agrupada por Nivel si es Estudiante */}
             {selectedKind === 'NORMAL' && selectedCategory === 'STUDENT' && (
-              <div className="register-user-field-group" style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                <label className="register-user-field-label" style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#334155' }}>
-                  Carrera universitaria (UNIPOLI)
-                </label>
-                <select
-                  className="register-user-carrera-select"
-                  {...register('carreraId')}
-                >
-                  <option value="">-- Selecciona una carrera --</option>
-                  {['TSU', 'Licenciatura', 'Ingeniería', 'Maestría'].map((nivel) => {
-                    const deEsteNivel = carrerasList.filter((c) => c.nivel === nivel);
-                    if (deEsteNivel.length === 0) return null;
-                    return (
-                      <optgroup key={nivel} label={`Oferta Académica: ${nivel}`}>
-                        {deEsteNivel.map((c) => (
-                          <option key={c.id} value={c.id}>
-                            {c.nombre}
-                          </option>
-                        ))}
-                      </optgroup>
-                    );
-                  })}
-                </select>
+              <div className="register-user-field-group">
+                <CustomSelect
+                  label="Carrera universitaria (UNIPOLI)"
+                  value={selectedCarreraId}
+                  onChange={(val) => {
+                    setValue('carreraId', val, { shouldDirty: true, shouldValidate: true });
+                  }}
+                  options={carreraSelectOptions}
+                  placeholder="-- Selecciona una carrera --"
+                  error={errors.carreraId?.message}
+                />
               </div>
             )}
 

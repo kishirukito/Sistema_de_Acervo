@@ -221,7 +221,7 @@
   padding: 6px;
   margin: 0;
   list-style: none;
-  z-index: 120;
+  z-index: 10000;
   max-height: 280px;
   overflow-y: auto;
   box-sizing: border-box;
@@ -340,4 +340,20 @@
   text-align: center;
   font-style: italic;
 }
+
+/* Category or Level Group Header */
+.custom-select-group-header {
+  padding: 8px 12px 4px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #1E3A5F;
+  background-color: #F8FAFC;
+  border-radius: 6px;
+  margin: 4px 0 2px;
+  user-select: none;
+  pointer-events: none;
+}
+
 

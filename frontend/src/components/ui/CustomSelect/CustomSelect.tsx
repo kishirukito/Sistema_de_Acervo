@@ -14,6 +14,8 @@ export interface CustomSelectOption {
   value: string;
   label: string;
   disabled?: boolean;
+  group?: string;
+  isHeader?: boolean;
 }
 
 export interface CustomSelectProps {
@@ -147,7 +149,7 @@ export const CustomSelect = forwardRef<HTMLButtonElement, CustomSelectProps>(
 
     const handleSelect = useCallback(
       (opt: CustomSelectOption) => {
-        if (opt.disabled) return;
+        if (opt.disabled || opt.isHeader) return;
         if (!isControlled) {
           setInternalValue(opt.value);
         }
@@ -162,6 +164,8 @@ export const CustomSelect = forwardRef<HTMLButtonElement, CustomSelectProps>(
     const handleKeyDown = (e: React.KeyboardEvent) => {
       if (disabled) return;
 
+      const isSelectable = (opt?: CustomSelectOption) => opt && !opt.disabled && !opt.isHeader;
+
       switch (e.key) {
         case 'ArrowDown': {
           e.preventDefault();
@@ -170,7 +174,7 @@ export const CustomSelect = forwardRef<HTMLButtonElement, CustomSelectProps>(
           } else {
             setFocusedIndex((prev) => {
               let next = prev + 1;
-              while (next < options.length && options[next]?.disabled) {
+              while (next < options.length && !isSelectable(options[next])) {
                 next++;
               }
               return next < options.length ? next : prev;
@@ -185,7 +189,7 @@ export const CustomSelect = forwardRef<HTMLButtonElement, CustomSelectProps>(
           } else {
             setFocusedIndex((prev) => {
               let next = prev - 1;
-              while (next >= 0 && options[next]?.disabled) {
+              while (next >= 0 && !isSelectable(options[next])) {
                 next--;
               }
               return next >= 0 ? next : prev;
@@ -196,7 +200,7 @@ export const CustomSelect = forwardRef<HTMLButtonElement, CustomSelectProps>(
         case 'Home': {
           if (isOpen) {
             e.preventDefault();
-            const firstEnabled = options.findIndex((opt) => !opt.disabled);
+            const firstEnabled = options.findIndex((opt) => isSelectable(opt));
             if (firstEnabled >= 0) setFocusedIndex(firstEnabled);
           }
           break;
@@ -205,7 +209,7 @@ export const CustomSelect = forwardRef<HTMLButtonElement, CustomSelectProps>(
           if (isOpen) {
             e.preventDefault();
             for (let i = options.length - 1; i >= 0; i--) {
-              if (!options[i].disabled) {
+              if (isSelectable(options[i])) {
                 setFocusedIndex(i);
                 break;
               }
@@ -218,7 +222,7 @@ export const CustomSelect = forwardRef<HTMLButtonElement, CustomSelectProps>(
           e.preventDefault();
           if (!isOpen) {
             setIsOpen(true);
-          } else if (focusedIndex >= 0 && options[focusedIndex]) {
+          } else if (focusedIndex >= 0 && options[focusedIndex] && isSelectable(options[focusedIndex])) {
             handleSelect(options[focusedIndex]);
           }
           break;
@@ -243,7 +247,7 @@ export const CustomSelect = forwardRef<HTMLButtonElement, CustomSelectProps>(
             const char = e.key.toLowerCase();
             const matchIndex = options.findIndex(
               (opt, idx) =>
-                !opt.disabled &&
+                isSelectable(opt) &&
                 idx > focusedIndex &&
                 opt.label.toLowerCase().startsWith(char)
             );
@@ -251,7 +255,7 @@ export const CustomSelect = forwardRef<HTMLButtonElement, CustomSelectProps>(
               setFocusedIndex(matchIndex);
             } else {
               const wrapIndex = options.findIndex(
-                (opt) => !opt.disabled && opt.label.toLowerCase().startsWith(char)
+                (opt) => isSelectable(opt) && opt.label.toLowerCase().startsWith(char)
               );
               if (wrapIndex >= 0) setFocusedIndex(wrapIndex);
             }
@@ -359,6 +363,19 @@ export const CustomSelect = forwardRef<HTMLButtonElement, CustomSelectProps>(
                 <li className="custom-select-empty">No hay opciones disponibles</li>
               ) : (
                 options.map((opt, idx) => {
+                  if (opt.isHeader) {
+                    return (
+                      <li
+                        key={`header-${opt.label}-${idx}`}
+                        className="custom-select-group-header"
+                        role="presentation"
+                        aria-hidden="true"
+                      >
+                        {opt.label}
+                      </li>
+                    );
+                  }
+
                   const isSelected = opt.value === currentValue;
                   const isFocused = idx === focusedIndex;
 

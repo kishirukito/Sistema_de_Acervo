@@ -1017,6 +1017,7 @@
 
 .siabuc-modal-dialog {
   animation: modalSlideUp 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  overflow: visible;
 }
 
 @keyframes modalSlideUp {
@@ -1037,8 +1038,9 @@
 /* Form body scroll container */
 .rde-form-body {
   padding: 1.5rem;
-  max-height: 60vh;
+  max-height: 68vh;
   overflow-y: auto;
+  overflow-x: visible;
   overscroll-behavior: contain;
 }
 
