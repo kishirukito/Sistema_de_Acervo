@@ -526,15 +526,7 @@ export const RegisterUserModal: React.FC<RegisterUserModalProps> = ({
                   Carrera universitaria (UNIPOLI)
                 </label>
                 <select
-                  className="register-loan-date-input"
-                  style={{
-                    height: '2.5rem',
-                    border: '1px solid #CBD5E1',
-                    borderRadius: '6px',
-                    padding: '0 0.75rem',
-                    fontSize: '0.875rem',
-                    backgroundColor: '#FFFFFF',
-                  }}
+                  className="register-user-carrera-select"
                   {...register('carreraId')}
                 >
                   <option value="">-- Selecciona una carrera --</option>

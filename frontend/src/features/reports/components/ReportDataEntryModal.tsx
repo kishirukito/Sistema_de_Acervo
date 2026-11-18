@@ -7,6 +7,7 @@ import {
   createSesionComputo,
   updateEjemplarEstado,
 } from '../../../services/api/reports.service';
+import '../reports.css';
 
 interface Props {
   isOpen: boolean;
@@ -199,348 +200,276 @@ export const ReportDataEntryModal: React.FC<Props> = ({
         </div>
 
         {/* Form Body */}
-        <form onSubmit={handleSubmit} style={{ padding: '1.5rem' }}>
-          {error && (
-            <div
-              style={{
-                backgroundColor: '#FEE2E2',
-                color: '#DC2626',
-                padding: '0.75rem',
-                borderRadius: '8px',
-                fontSize: '0.875rem',
-                marginBottom: '1rem',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px',
-              }}
-            >
-              <AlertCircle size={16} />
-              <span>{error}</span>
-            </div>
-          )}
-
-          {/* TAB 1: SANCIÓN */}
-          {activeTab === 'sancion' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#374151', marginBottom: '4px' }}>
-                  Usuario sancionado:
-                </label>
-                <select
-                  value={sancionUser}
-                  onChange={(e) => setSancionUser(e.target.value)}
-                  style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid #D1D5DB' }}
-                  required
-                >
-                  <option value="">-- Seleccionar usuario --</option>
-                  {catalogos.usuarios.map((u) => (
-                    <option key={u.id} value={u.id}>
-                      {u.nombre} ({u.email})
-                    </option>
-                  ))}
-                </select>
+        <form onSubmit={handleSubmit}>
+          <div className="rde-form-body">
+            {error && (
+              <div className="rde-error-banner" style={{ marginBottom: '1rem' }}>
+                <AlertCircle size={16} />
+                <span>{error}</span>
               </div>
+            )}
 
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#374151', marginBottom: '4px' }}>
-                    Tipo de sanción:
-                  </label>
+            {/* TAB 1: SANCIÓN */}
+            {activeTab === 'sancion' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                <div className="rde-field">
+                  <label className="rde-label">Usuario sancionado:</label>
                   <select
-                    value={sancionTipo}
-                    onChange={(e) => setSancionTipo(e.target.value)}
-                    style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid #D1D5DB' }}
+                    className="rde-select"
+                    value={sancionUser}
+                    onChange={(e) => setSancionUser(e.target.value)}
+                    required
                   >
-                    <option value="multa">Multa económica</option>
-                    <option value="amonestacion">Amonestación verbal / escrita</option>
-                    <option value="suspension">Suspensión de servicio</option>
+                    <option value="">-- Seleccionar usuario --</option>
+                    {catalogos.usuarios.map((u) => (
+                      <option key={u.id} value={u.id}>
+                        {u.nombre} ({u.email})
+                      </option>
+                    ))}
                   </select>
                 </div>
 
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#374151', marginBottom: '4px' }}>
-                    Monto ($ MXN):
-                  </label>
+                <div className="rde-grid-2">
+                  <div className="rde-field">
+                    <label className="rde-label">Tipo de sanción:</label>
+                    <select
+                      className="rde-select"
+                      value={sancionTipo}
+                      onChange={(e) => setSancionTipo(e.target.value)}
+                    >
+                      <option value="multa">Multa económica</option>
+                      <option value="amonestacion">Amonestación verbal / escrita</option>
+                      <option value="suspension">Suspensión de servicio</option>
+                    </select>
+                  </div>
+
+                  <div className="rde-field">
+                    <label className="rde-label">Monto ($ MXN):</label>
+                    <input
+                      className="rde-input"
+                      type="number"
+                      step="0.5"
+                      min="0"
+                      disabled={sancionTipo !== 'multa'}
+                      value={sancionMonto}
+                      onChange={(e) => setSancionMonto(e.target.value)}
+                    />
+                  </div>
+                </div>
+
+                <div className="rde-field">
+                  <label className="rde-label">Estado de pago:</label>
+                  <select
+                    className="rde-select"
+                    value={sancionEstado}
+                    onChange={(e) => setSancionEstado(e.target.value)}
+                  >
+                    <option value="pendiente">Pendiente de cobro</option>
+                    <option value="pagado">Pagado en caja</option>
+                    <option value="condonado">Condonado / Justificado</option>
+                  </select>
+                </div>
+
+                <div className="rde-field">
+                  <label className="rde-label">Motivo / Observación:</label>
+                  <textarea
+                    className="rde-textarea"
+                    value={sancionMotivo}
+                    onChange={(e) => setSancionMotivo(e.target.value)}
+                    placeholder="Ej. Retraso de 2 días en entrega de libro..."
+                    rows={2}
+                    required
+                  />
+                </div>
+              </div>
+            )}
+
+            {/* TAB 2: ESPACIO */}
+            {activeTab === 'espacio' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                <div className="rde-field">
+                  <label className="rde-label">Cubículo o Sala:</label>
+                  <select
+                    className="rde-select"
+                    value={espacioId}
+                    onChange={(e) => setEspacioId(e.target.value)}
+                    required
+                  >
+                    {catalogos.espacios.map((esp) => (
+                      <option key={esp.id} value={esp.id}>
+                        {esp.nombre} ({esp.tipo})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="rde-field">
+                  <label className="rde-label">Usuario solicitante:</label>
+                  <select
+                    className="rde-select"
+                    value={espacioUser}
+                    onChange={(e) => setEspacioUser(e.target.value)}
+                    required
+                  >
+                    <option value="">-- Seleccionar usuario --</option>
+                    {catalogos.usuarios.map((u) => (
+                      <option key={u.id} value={u.id}>
+                        {u.nombre}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="rde-grid-2">
+                  <div className="rde-field">
+                    <label className="rde-label">Hora de inicio:</label>
+                    <input
+                      className="rde-input"
+                      type="datetime-local"
+                      value={espacioInicio}
+                      onChange={(e) => setEspacioInicio(e.target.value)}
+                      required
+                    />
+                  </div>
+                  <div className="rde-field">
+                    <label className="rde-label">Hora de fin:</label>
+                    <input
+                      className="rde-input"
+                      type="datetime-local"
+                      value={espacioFin}
+                      onChange={(e) => setEspacioFin(e.target.value)}
+                      required
+                    />
+                  </div>
+                </div>
+
+                <div className="rde-field">
+                  <label className="rde-label">Estado de la sesión:</label>
+                  <select
+                    className="rde-select"
+                    value={espacioEstado}
+                    onChange={(e) => setEspacioEstado(e.target.value)}
+                  >
+                    <option value="concluida">Concluida (histórica)</option>
+                    <option value="activa">Activa en este momento</option>
+                  </select>
+                </div>
+              </div>
+            )}
+
+            {/* TAB 3: COMPUTO */}
+            {activeTab === 'computo' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                <div className="rde-field">
+                  <label className="rde-label">Equipo de cómputo:</label>
+                  <select
+                    className="rde-select"
+                    value={computoEquipoId}
+                    onChange={(e) => setComputoEquipoId(e.target.value)}
+                    required
+                  >
+                    {catalogos.equipos.map((eq) => (
+                      <option key={eq.id} value={eq.id}>
+                        {eq.codigo} ({eq.ubicacion})
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="rde-field">
+                  <label className="rde-label">Usuario:</label>
+                  <select
+                    className="rde-select"
+                    value={computoUser}
+                    onChange={(e) => setComputoUser(e.target.value)}
+                    required
+                  >
+                    <option value="">-- Seleccionar usuario --</option>
+                    {catalogos.usuarios.map((u) => (
+                      <option key={u.id} value={u.id}>
+                        {u.nombre}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div className="rde-field">
+                  <label className="rde-label">Duración de la sesión (minutos):</label>
                   <input
+                    className="rde-input"
                     type="number"
-                    step="0.5"
-                    min="0"
-                    disabled={sancionTipo !== 'multa'}
-                    value={sancionMonto}
-                    onChange={(e) => setSancionMonto(e.target.value)}
-                    style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid #D1D5DB' }}
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#374151', marginBottom: '4px' }}>
-                  Estado de pago:
-                </label>
-                <select
-                  value={sancionEstado}
-                  onChange={(e) => setSancionEstado(e.target.value)}
-                  style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid #D1D5DB' }}
-                >
-                  <option value="pendiente">Pendiente de cobro</option>
-                  <option value="pagado">Pagado en caja</option>
-                  <option value="condonado">Condonado / Justificado</option>
-                </select>
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#374151', marginBottom: '4px' }}>
-                  Motivo / Observación:
-                </label>
-                <textarea
-                  value={sancionMotivo}
-                  onChange={(e) => setSancionMotivo(e.target.value)}
-                  placeholder="Ej. Retraso de 2 días en entrega de libro..."
-                  rows={2}
-                  style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid #D1D5DB' }}
-                  required
-                />
-              </div>
-            </div>
-          )}
-
-          {/* TAB 2: ESPACIO */}
-          {activeTab === 'espacio' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#374151', marginBottom: '4px' }}>
-                  Cubículo o Sala:
-                </label>
-                <select
-                  value={espacioId}
-                  onChange={(e) => setEspacioId(e.target.value)}
-                  style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid #D1D5DB' }}
-                  required
-                >
-                  {catalogos.espacios.map((esp) => (
-                    <option key={esp.id} value={esp.id}>
-                      {esp.nombre} ({esp.tipo})
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#374151', marginBottom: '4px' }}>
-                  Usuario solicitante:
-                </label>
-                <select
-                  value={espacioUser}
-                  onChange={(e) => setEspacioUser(e.target.value)}
-                  style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid #D1D5DB' }}
-                  required
-                >
-                  <option value="">-- Seleccionar usuario --</option>
-                  {catalogos.usuarios.map((u) => (
-                    <option key={u.id} value={u.id}>
-                      {u.nombre}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#374151', marginBottom: '4px' }}>
-                    Hora de inicio:
-                  </label>
-                  <input
-                    type="datetime-local"
-                    value={espacioInicio}
-                    onChange={(e) => setEspacioInicio(e.target.value)}
-                    style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid #D1D5DB' }}
-                    required
-                  />
-                </div>
-                <div>
-                  <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#374151', marginBottom: '4px' }}>
-                    Hora de fin:
-                  </label>
-                  <input
-                    type="datetime-local"
-                    value={espacioFin}
-                    onChange={(e) => setEspacioFin(e.target.value)}
-                    style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid #D1D5DB' }}
+                    min="15"
+                    step="15"
+                    value={computoDuracion}
+                    onChange={(e) => setComputoDuracion(e.target.value)}
                     required
                   />
                 </div>
               </div>
+            )}
 
-              <div>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#374151', marginBottom: '4px' }}>
-                  Estado de la sesión:
-                </label>
-                <select
-                  value={espacioEstado}
-                  onChange={(e) => setEspacioEstado(e.target.value)}
-                  style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid #D1D5DB' }}
-                >
-                  <option value="concluida">Concluida (histórica)</option>
-                  <option value="activa">Activa en este momento</option>
-                </select>
-              </div>
-            </div>
-          )}
+            {/* TAB 4: BAJA/INVENTARIO */}
+            {activeTab === 'baja' && (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
+                <div className="rde-field">
+                  <label className="rde-label">Ejemplar físico:</label>
+                  <select
+                    className="rde-select"
+                    value={bajaEjemplarId}
+                    onChange={(e) => setBajaEjemplarId(e.target.value)}
+                    required
+                  >
+                    <option value="">-- Seleccionar ejemplar --</option>
+                    {catalogos.ejemplares.map((ej) => (
+                      <option key={ej.id} value={ej.id}>
+                        {ej.codigo} (actualmente: {ej.estado})
+                      </option>
+                    ))}
+                  </select>
+                </div>
 
-          {/* TAB 3: COMPUTO */}
-          {activeTab === 'computo' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#374151', marginBottom: '4px' }}>
-                  Equipo de cómputo:
-                </label>
-                <select
-                  value={computoEquipoId}
-                  onChange={(e) => setComputoEquipoId(e.target.value)}
-                  style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid #D1D5DB' }}
-                  required
-                >
-                  {catalogos.equipos.map((eq) => (
-                    <option key={eq.id} value={eq.id}>
-                      {eq.codigo} ({eq.ubicacion})
-                    </option>
-                  ))}
-                </select>
-              </div>
+                <div className="rde-field">
+                  <label className="rde-label">Nuevo estado:</label>
+                  <select
+                    className="rde-select"
+                    value={bajaEstado}
+                    onChange={(e) => setBajaEstado(e.target.value)}
+                  >
+                    <option value="baja">Baja definitiva (deterioro o descarte)</option>
+                    <option value="extraviado">Extraviado / No localizado</option>
+                    <option value="mantenimiento">En reparación / Mantenimiento</option>
+                    <option value="disponible">Reincorporar a Disponible</option>
+                  </select>
+                </div>
 
-              <div>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#374151', marginBottom: '4px' }}>
-                  Usuario:
-                </label>
-                <select
-                  value={computoUser}
-                  onChange={(e) => setComputoUser(e.target.value)}
-                  style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid #D1D5DB' }}
-                  required
-                >
-                  <option value="">-- Seleccionar usuario --</option>
-                  {catalogos.usuarios.map((u) => (
-                    <option key={u.id} value={u.id}>
-                      {u.nombre}
-                    </option>
-                  ))}
-                </select>
+                <div className="rde-field">
+                  <label className="rde-label">Observaciones / Dictamen:</label>
+                  <textarea
+                    className="rde-textarea"
+                    value={bajaMotivo}
+                    onChange={(e) => setBajaMotivo(e.target.value)}
+                    placeholder="Ej. Daño severo en encuadernación por humedad..."
+                    rows={2}
+                  />
+                </div>
               </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#374151', marginBottom: '4px' }}>
-                  Duración de la sesión (minutos de internet):
-                </label>
-                <input
-                  type="number"
-                  min="15"
-                  step="15"
-                  value={computoDuracion}
-                  onChange={(e) => setComputoDuracion(e.target.value)}
-                  style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid #D1D5DB' }}
-                  required
-                />
-              </div>
-            </div>
-          )}
-
-          {/* TAB 4: BAJA/INVENTARIO */}
-          {activeTab === 'baja' && (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-              <div>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#374151', marginBottom: '4px' }}>
-                  Ejemplar físico:
-                </label>
-                <select
-                  value={bajaEjemplarId}
-                  onChange={(e) => setBajaEjemplarId(e.target.value)}
-                  style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid #D1D5DB' }}
-                  required
-                >
-                  <option value="">-- Seleccionar ejemplar --</option>
-                  {catalogos.ejemplares.map((ej) => (
-                    <option key={ej.id} value={ej.id}>
-                      {ej.codigo} (actualmente: {ej.estado})
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#374151', marginBottom: '4px' }}>
-                  Nuevo estado:
-                </label>
-                <select
-                  value={bajaEstado}
-                  onChange={(e) => setBajaEstado(e.target.value)}
-                  style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid #D1D5DB' }}
-                >
-                  <option value="baja">Baja definitiva (deterioro o descarte)</option>
-                  <option value="extraviado">Extraviado / No localizado</option>
-                  <option value="mantenimiento">En reparación / Mantenimiento</option>
-                  <option value="disponible">Reincorporar a Disponible</option>
-                </select>
-              </div>
-
-              <div>
-                <label style={{ display: 'block', fontSize: '0.85rem', fontWeight: 600, color: '#374151', marginBottom: '4px' }}>
-                  Observaciones / Dictamen:
-                </label>
-                <textarea
-                  value={bajaMotivo}
-                  onChange={(e) => setBajaMotivo(e.target.value)}
-                  placeholder="Ej. Daño severo en encuadernación por humedad..."
-                  rows={2}
-                  style={{ width: '100%', padding: '0.5rem', borderRadius: '6px', border: '1px solid #D1D5DB' }}
-                />
-              </div>
-            </div>
-          )}
+            )}
+          </div>
 
           {/* Footer actions */}
-          <div
-            style={{
-              display: 'flex',
-              justifyContent: 'flex-end',
-              gap: '12px',
-              marginTop: '1.5rem',
-              paddingTop: '1rem',
-              borderTop: '1px solid #F3F4F6',
-            }}
-          >
+          <div className="rde-footer" style={{ padding: '0 1.5rem 1.25rem' }}>
             <button
               type="button"
+              className="rde-btn-cancel"
               onClick={onClose}
               disabled={loading}
-              style={{
-                padding: '0.5rem 1rem',
-                borderRadius: '6px',
-                border: '1px solid #D1D5DB',
-                backgroundColor: '#FFFFFF',
-                color: '#374151',
-                fontSize: '0.875rem',
-                fontWeight: 600,
-                cursor: 'pointer',
-              }}
             >
               Cancelar
             </button>
             <button
               type="submit"
+              className="rde-btn-save"
               disabled={loading}
-              style={{
-                display: 'inline-flex',
-                alignItems: 'center',
-                gap: '8px',
-                padding: '0.5rem 1.25rem',
-                borderRadius: '6px',
-                border: 'none',
-                backgroundColor: '#2563EB',
-                color: '#FFFFFF',
-                fontSize: '0.875rem',
-                fontWeight: 600,
-                cursor: 'pointer',
-              }}
             >
               {loading ? (
                 <>
