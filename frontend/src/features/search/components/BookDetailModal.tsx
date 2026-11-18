@@ -1,4 +1,5 @@
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 import {
   BookOpen,
   MapPin,
@@ -10,6 +11,7 @@ import {
   Barcode,
 } from 'lucide-react';
 import { Modal } from '../../../components/ui/Modal';
+import { useAuth } from '../../auth/AuthContext';
 import { MOCK_BOOKS } from '../../../mocks/data';
 import type { ResourceSearchResult } from '../search.types';
 import type { Resource } from '../../catalog/catalog.types';
@@ -29,7 +31,14 @@ export const BookDetailModal: React.FC<BookDetailModalProps> = ({
   resource,
   onClose,
 }) => {
+  const navigate = useNavigate();
+  const { user } = useAuth();
+
   if (!resource) return null;
+
+  const isAdmin =
+    user?.kind === 'ADMINISTRATIVE' ||
+    (typeof window !== 'undefined' && window.location.pathname.startsWith('/admin'));
 
   // Cross-reference with standard book mocks if additional metadata (publisher/description) is absent
   const matchedBook = MOCK_BOOKS.find(
@@ -82,6 +91,24 @@ export const BookDetailModal: React.FC<BookDetailModalProps> = ({
 
   const pages = 'pages' in resource && resource.pages ? resource.pages : null;
 
+  const handleActionClick = () => {
+    onClose();
+    if (isAdmin) {
+      navigate('/admin/loans/new', {
+        state: {
+          selectedResource: resource,
+          resource,
+        },
+      });
+    } else {
+      navigate(`/user/catalog/${resource.id}/request`, {
+        state: {
+          resource,
+        },
+      });
+    }
+  };
+
   return (
     <Modal
       open={Boolean(resource)}
@@ -92,14 +119,34 @@ export const BookDetailModal: React.FC<BookDetailModalProps> = ({
       icon={<BookOpen size={18} />}
       closeButtonAriaLabel="Cerrar ficha bibliográfica"
       footer={
-        <button
-          type="button"
-          onClick={onClose}
-          className="book-detail-close-btn"
-          aria-label="Cerrar ficha de libro"
-        >
-          Cerrar ficha
-        </button>
+        <div className="book-detail-modal-footer">
+          <button
+            type="button"
+            onClick={onClose}
+            className="book-detail-close-btn"
+            aria-label="Cerrar ficha de libro"
+          >
+            Cerrar ficha
+          </button>
+          <button
+            type="button"
+            onClick={handleActionClick}
+            disabled={availableCopies <= 0}
+            className={`book-detail-action-btn ${
+              availableCopies <= 0 ? 'book-detail-action-btn--disabled' : ''
+            }`}
+            aria-label={
+              availableCopies <= 0
+                ? 'Sin existencias disponibles para préstamo'
+                : isAdmin
+                ? 'Registrar préstamo de este libro'
+                : 'Solicitar préstamo de este libro'
+            }
+          >
+            <BookOpen size={16} aria-hidden="true" />
+            <span>{isAdmin ? 'Registrar préstamo' : 'Solicitar préstamo'}</span>
+          </button>
+        </div>
       }
     >
       <div className="book-detail-modal-body">

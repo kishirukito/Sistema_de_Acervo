@@ -1,6 +1,6 @@
 import React, { useState, useRef, useMemo, useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import {
   ArrowLeft,
   BookPlus,
@@ -46,6 +46,7 @@ import './AdminNewLoanPage.css';
 
 export const AdminNewLoanPage: React.FC = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const userSearchRef = useRef<HTMLInputElement>(null);
   const dateInputRef = useRef<HTMLInputElement>(null);
 
@@ -135,6 +136,44 @@ export const AdminNewLoanPage: React.FC = () => {
       isMounted = false;
     };
   }, []);
+
+  // Pre-seleccionar recurso recibido desde Ficha Bibliográfica / búsqueda
+  useEffect(() => {
+    const passed =
+      (location.state as any)?.selectedResource ||
+      (location.state as any)?.resource;
+    if (passed && !selectedResource) {
+      const found = resources.find(
+        (r) =>
+          r.id === passed.id ||
+          (passed.isbn && r.isbn && r.isbn.replace(/-/g, '') === passed.isbn.replace(/-/g, ''))
+      );
+      if (found) {
+        setSelectedResource(found);
+      } else {
+        const mapped: Resource = {
+          id: passed.id || `res-${Date.now()}`,
+          title: passed.title || 'Título no especificado',
+          author: passed.author || 'Autor no especificado',
+          category: passed.category || '000',
+          categoryLabel: passed.categoryLabel || passed.category || 'General',
+          isbn: passed.isbn || '',
+          availableCopies: passed.availableCopies ?? 1,
+          totalCopies: passed.totalCopies ?? 1,
+          status: (passed.availableCopies ?? 1) > 0 ? 'AVAILABLE' : 'UNAVAILABLE',
+          coverColor: passed.coverColor || '#2F80ED',
+          coverInitials:
+            passed.coverInitials ||
+            (passed.title ? passed.title.slice(0, 2).toUpperCase() : 'LI'),
+          location: passed.location || 'Estante B-3, Nivel 1',
+          publicationYear: passed.publicationYear || 2024,
+          publisher: passed.publisher || 'Editorial',
+          code: passed.code || 'LIB-001',
+        };
+        setSelectedResource(mapped);
+      }
+    }
+  }, [location.state, resources, selectedResource]);
 
   // Recalcular fecha límite cuando cambia el tipo de préstamo
   const handleTypeChange = (typeId: string) => {
