@@ -174,7 +174,7 @@ export const ProcesosTecnicosStatsView: React.FC<Props> = ({ data }) => {
               gap: '8px'
             }}>
               <CheckCircle size={16} />
-              <span>Conforme al estándar SIABUC, las altas netas reflejan registros bibliográficos validados con signatura topográfica asignada.</span>
+              <span>Las altas netas reflejan registros bibliográficos validados con signatura topográfica asignada.</span>
             </div>
           </div>
         </div>

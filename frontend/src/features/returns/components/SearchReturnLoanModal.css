@@ -326,3 +326,44 @@
   font-size: 0.75rem;
   color: #6B7280;
 }
+
+/* ==========================================================================
+   Responsive additions — Search Return Loan Modal
+   ========================================================================== */
+
+@media (max-width: 540px) {
+  .search-return-result-item {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .search-return-item-action {
+    align-self: flex-end;
+  }
+
+  .search-return-item-top {
+    flex-wrap: wrap;
+  }
+
+  .search-return-item-title {
+    white-space: normal;
+    overflow: visible;
+    text-overflow: unset;
+  }
+
+  .search-return-results-list {
+    max-height: 260px;
+  }
+
+  .search-return-footer {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+  }
+
+  .search-return-returned-banner {
+    flex-direction: column;
+    gap: 8px;
+  }
+}

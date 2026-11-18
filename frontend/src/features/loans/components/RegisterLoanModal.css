@@ -628,3 +628,46 @@
   gap: 8px;
   margin-top: 4px;
 }
+
+/* ==========================================================================
+   Responsive additions — Register Loan Modal
+   ========================================================================== */
+
+@media (max-width: 540px) {
+  .register-loan-results-list {
+    max-height: 160px;
+  }
+
+  .register-loan-user-row {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .register-loan-user-name-line {
+    flex-wrap: wrap;
+  }
+
+  .register-loan-user-meta-line {
+    flex-wrap: wrap;
+  }
+
+  .register-loan-resource-row {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .register-loan-dates-row {
+    flex-direction: column;
+    gap: 10px;
+  }
+
+  .register-loan-discard-card {
+    max-width: 100%;
+    padding: 1rem;
+  }
+
+  .register-loan-discard-actions {
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
+}

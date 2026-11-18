@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
-import { Sparkles, X, MapPin, RefreshCw } from 'lucide-react';
+import { Sparkles, X, MapPin, RefreshCw, CheckCircle2, AlertCircle } from 'lucide-react';
 import type { ResourceSearchResult } from '../search.types';
 import { requestAISummary } from '../../../services/api/ai.service';
+import './AISummaryModal.css';
 
 interface AISummaryModalProps {
   resource: ResourceSearchResult | null;
@@ -57,135 +58,129 @@ export const AISummaryModal: React.FC<AISummaryModalProps> = ({ resource, onClos
 
   return (
     <div
-      className="search-modal-backdrop"
+      className="ai-summary-backdrop"
       onClick={onClose}
       role="dialog"
       aria-modal="true"
       aria-labelledby="ai-summary-modal-title"
     >
-      <div className="search-modal" onClick={(e) => e.stopPropagation()}>
-        <div className="search-modal-header">
-          <div className="search-modal-title-group">
-            <div className="search-modal-icon-badge">
+      <div className="ai-summary-modal" onClick={(e) => e.stopPropagation()}>
+
+        {/* ── Header ────────────────────────────────────────────────── */}
+        <div className="ai-summary-header">
+          <div className="ai-summary-title-group">
+            <div className="ai-summary-icon-badge" aria-hidden="true">
               <Sparkles size={18} />
             </div>
-            <div>
-              <h3 id="ai-summary-modal-title" className="search-modal-title">
+            <div className="ai-summary-title-text">
+              <h3 id="ai-summary-modal-title" className="ai-summary-title">
                 Resumen Asistido por IA
               </h3>
-              <span style={{ fontSize: '0.75rem', color: '#6B7280' }}>
-                {resource.title}
-              </span>
+              <span className="ai-summary-subtitle">{resource.title}</span>
             </div>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="search-modal-close-btn"
+            className="ai-summary-close-btn"
             aria-label="Cerrar modal de resumen IA"
           >
             <X size={18} />
           </button>
         </div>
 
-        <div className="search-modal-body">
-          <div className="search-modal-ai-box">
-            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
-              <p style={{ margin: 0, fontWeight: 600, color: '#1E3A5F' }}>
-                Síntesis del contenido:
-              </p>
+        {/* ── Body ──────────────────────────────────────────────────── */}
+        <div className="ai-summary-body">
+
+          {/* Synopsis Box */}
+          <div className="ai-summary-synopsis-box">
+            <div className="ai-summary-synopsis-toolbar">
+              <p className="ai-summary-synopsis-label">Síntesis del contenido:</p>
               <button
                 type="button"
                 onClick={handleGenerateOrRefresh}
                 disabled={isGenerating}
-                style={{
-                  display: 'inline-flex',
-                  alignItems: 'center',
-                  gap: 5,
-                  fontSize: '0.75rem',
-                  fontWeight: 600,
-                  color: '#2F80ED',
-                  backgroundColor: '#FFFFFF',
-                  border: '1px solid #BFDBFE',
-                  borderRadius: '6px',
-                  padding: '3px 8px',
-                  cursor: isGenerating ? 'not-allowed' : 'pointer',
-                }}
+                className="ai-summary-refresh-btn"
+                aria-label={isGenerating ? 'Generando resumen...' : 'Generar o actualizar resumen con IA'}
               >
-                <RefreshCw size={12} style={{ animation: isGenerating ? 'spin 1s linear infinite' : 'none' }} />
+                <RefreshCw
+                  size={12}
+                  className={isGenerating ? 'ai-summary-refresh-icon--spinning' : undefined}
+                  aria-hidden="true"
+                />
                 {isGenerating ? 'Generando...' : 'Generar / Actualizar con IA'}
               </button>
             </div>
-            <p style={{ margin: 0 }}>{currentSummary}</p>
+
+            <p className={`ai-summary-synopsis-text${!currentSummary ? ' ai-summary-synopsis-empty' : ''}`}>
+              {currentSummary || 'Sin resumen disponible. Usa el botón para generar uno con IA.'}
+            </p>
+
             {notice && (
-              <p style={{ margin: '8px 0 0', fontSize: '0.75rem', color: notice.includes('éxito') || notice.includes('guardado') ? '#10B981' : '#F59E0B' }}>
+              <div
+                role="status"
+                className={`ai-summary-notice ${
+                  notice.includes('éxito') || notice.includes('guardado')
+                    ? 'ai-summary-notice--success'
+                    : 'ai-summary-notice--warning'
+                }`}
+              >
+                {notice.includes('éxito') || notice.includes('guardado') ? (
+                  <CheckCircle2 size={13} aria-hidden="true" />
+                ) : (
+                  <AlertCircle size={13} aria-hidden="true" />
+                )}
                 {notice}
-              </p>
+              </div>
             )}
           </div>
 
-          <div>
-            <span
-              style={{
-                fontSize: '0.75rem',
-                fontWeight: 700,
-                color: '#6B7280',
-                textTransform: 'uppercase',
-                letterSpacing: '0.04em',
-              }}
-            >
-              Temas clave detectados
-            </span>
-            <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginTop: '6px' }}>
-              {currentSubjects.map((sub) => (
-                <span
-                  key={sub}
-                  style={{
-                    backgroundColor: '#EFF6FF',
-                    color: '#2F80ED',
-                    fontSize: '0.75rem',
-                    fontWeight: 500,
-                    padding: '3px 8px',
-                    borderRadius: '6px',
-                  }}
-                >
-                  {sub}
-                </span>
-              ))}
-            </div>
+          {/* Tags / Subjects */}
+          <div className="ai-summary-tags-section">
+            <span className="ai-summary-tags-label">Temas clave detectados</span>
+            {currentSubjects.length > 0 ? (
+              <div className="ai-summary-tags-list">
+                {currentSubjects.map((sub) => (
+                  <span key={sub} className="ai-summary-tag">{sub}</span>
+                ))}
+              </div>
+            ) : (
+              <span className="ai-summary-tags-empty">Sin temas detectados.</span>
+            )}
           </div>
 
-          <div className="search-modal-meta-grid">
-            <div className="search-modal-meta-item">
-              <span className="search-modal-meta-label">Autor principal</span>
-              <span className="search-modal-meta-val">{resource.author}</span>
+          {/* Metadata Grid */}
+          <div className="ai-summary-meta-grid">
+            <div className="ai-summary-meta-item">
+              <span className="ai-summary-meta-label">Autor principal</span>
+              <span className="ai-summary-meta-val">{resource.author}</span>
             </div>
-            <div className="search-modal-meta-item">
-              <span className="search-modal-meta-label">Año de publicación</span>
-              <span className="search-modal-meta-val">{resource.publicationYear}</span>
+            <div className="ai-summary-meta-item">
+              <span className="ai-summary-meta-label">Año de publicación</span>
+              <span className="ai-summary-meta-val">{resource.publicationYear}</span>
             </div>
-            <div className="search-modal-meta-item">
-              <span className="search-modal-meta-label">Ubicación en biblioteca</span>
-              <span className="search-modal-meta-val" style={{ display: 'flex', alignItems: 'center', gap: 4 }}>
-                <MapPin size={12} color="#2F80ED" />
+            <div className="ai-summary-meta-item">
+              <span className="ai-summary-meta-label">Ubicación en biblioteca</span>
+              <span className="ai-summary-meta-val">
+                <MapPin size={12} aria-hidden="true" />
                 {resource.location}
               </span>
             </div>
-            <div className="search-modal-meta-item">
-              <span className="search-modal-meta-label">Disponibilidad actual</span>
-              <span className="search-modal-meta-val">
+            <div className="ai-summary-meta-item">
+              <span className="ai-summary-meta-label">Disponibilidad actual</span>
+              <span className="ai-summary-meta-val">
                 {resource.availableCopies} de {resource.totalCopies} copias
               </span>
             </div>
           </div>
         </div>
 
-        <div className="search-modal-footer">
+        {/* ── Footer ────────────────────────────────────────────────── */}
+        <div className="ai-summary-footer">
           <button
             type="button"
             onClick={onClose}
-            className="search-btn-outline"
-            style={{ height: '36px' }}
+            className="ai-summary-close-action-btn"
           >
             Cerrar
           </button>

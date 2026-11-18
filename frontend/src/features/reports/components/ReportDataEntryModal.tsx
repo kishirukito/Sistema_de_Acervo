@@ -134,7 +134,7 @@ export const ReportDataEntryModal: React.FC<Props> = ({
         >
           <div>
             <h3 style={{ margin: 0, fontSize: '1.15rem', fontWeight: 700, color: '#111827' }}>
-              Capturar Datos Estadísticos (SIABUC)
+              Capturar Datos Estadísticos
             </h3>
             <p style={{ margin: '4px 0 0', fontSize: '0.85rem', color: '#6B7280' }}>
               Ingreso directo de registros reales a la base de datos

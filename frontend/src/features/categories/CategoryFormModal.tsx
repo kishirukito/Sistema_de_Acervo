@@ -210,6 +210,15 @@ export const CategoryFormModal: React.FC<CategoryFormModalProps> = ({
                 color: 'var(--color-text)',
                 boxSizing: 'border-box',
                 resize: 'vertical',
+                transition: 'border-color 0.15s ease, box-shadow 0.15s ease',
+              }}
+              onFocus={(e) => {
+                e.target.style.borderColor = 'var(--color-primary, #2F80ED)';
+                e.target.style.boxShadow = '0 0 0 3px rgba(47, 128, 237, 0.12)';
+              }}
+              onBlur={(e) => {
+                e.target.style.borderColor = 'var(--color-border)';
+                e.target.style.boxShadow = 'none';
               }}
             />
           </div>

@@ -56,7 +56,7 @@ function mapLibroToResource(row: any): Resource {
     status = 'LOW_STOCK';
   }
 
-  // Get category code from clasificacion_dewey or temas
+  // Get category code from clasificacion_dewey or temas (first tema) or fallback
   let category = row.clasificacion_dewey || '000';
   if ((!row.clasificacion_dewey || category === '000') && Array.isArray(row.libro_temas) && row.libro_temas.length > 0) {
     const firstTema = row.libro_temas[0];

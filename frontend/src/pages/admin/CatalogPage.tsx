@@ -127,15 +127,21 @@ export const CatalogPage: React.FC = () => {
   };
 
   const handleSaveResource = async (updated: Resource) => {
+    // Actualización optimista inmediata en la caché para visualización instantánea en la tabla
+    queryClient.setQueryData<Resource[]>([ADMIN_CATALOG_KEY], (prev = []) =>
+      prev.map((item) => (item.id === updated.id ? updated : item))
+    );
+
     try {
       await updateResource(updated.id, updated);
 
-      // Invalidar caché → React Query re-fetch en background
+      // Invalidar caché → React Query re-fetch en background para mantener consistencia
       invalidateCatalog();
 
       setFeedbackToast(`El libro "${updated.title}" y sus ejemplares se actualizaron correctamente.`);
     } catch (err: any) {
       console.error('[CatalogPage] Error updating resource:', err);
+      invalidateCatalog();
       setFeedbackToast(err?.message || `Error al actualizar el libro "${updated.title}".`);
     }
 
@@ -145,9 +151,15 @@ export const CatalogPage: React.FC = () => {
   };
 
   const handleDeleteResource = async (target: Resource): Promise<boolean> => {
+    // Optimistic removal from table cache
+    queryClient.setQueryData<Resource[]>([ADMIN_CATALOG_KEY], (prev = []) =>
+      prev.filter((item) => item.id !== target.id)
+    );
+
     try {
       const result = await deleteResource(target.id);
       if (!result.success) {
+        invalidateCatalog();
         setFeedbackToast(`No se pudo eliminar el libro: ${result.error}`);
         setTimeout(() => setFeedbackToast(null), 5000);
         return false;

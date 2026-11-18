@@ -184,3 +184,29 @@
   outline: 2px solid var(--color-primary, #2F80ED);
   outline-offset: 2px;
 }
+
+/* ==========================================================================
+   Responsive additions — Book Detail Modal
+   ========================================================================== */
+
+@media (max-width: 480px) {
+  .book-detail-header-card {
+    flex-direction: column;
+    align-items: center;
+    text-align: center;
+  }
+
+  .book-detail-info {
+    align-items: center;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .book-detail-badges {
+    justify-content: center;
+  }
+
+  .book-detail-meta-grid {
+    grid-template-columns: 1fr;
+  }
+}
