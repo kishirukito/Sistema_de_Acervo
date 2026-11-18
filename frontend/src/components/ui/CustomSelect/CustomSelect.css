@@ -211,9 +211,9 @@
   position: absolute;
   top: calc(100% + 5px);
   left: 0;
+  width: 100%;
   min-width: 100%;
-  width: max-content;
-  max-width: min(440px, 92vw);
+  max-width: 100%;
   background-color: #FFFFFF;
   border: 1px solid #E2E8F0;
   border-radius: 12px;
@@ -224,6 +224,7 @@
   z-index: 10000;
   max-height: 280px;
   overflow-y: auto;
+  overflow-x: hidden;
   box-sizing: border-box;
   animation: customSelectFadeIn 0.16s cubic-bezier(0.16, 1, 0.3, 1);
   outline: none;
@@ -315,6 +316,8 @@
   flex: 1;
   min-width: 0;
   word-break: normal;
+  white-space: normal;
+  line-height: 1.35;
   text-align: left;
 }
 

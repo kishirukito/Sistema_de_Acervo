@@ -141,6 +141,7 @@ dialog.ui-modal-dialog::backdrop {
 .ui-modal-body {
   padding: 1.5rem;
   overflow-y: auto;
+  overflow-x: hidden;
   flex: 1 1 auto;
   font-family: var(--font-family-base, 'Inter', sans-serif);
   color: var(--color-text, #1F2937);

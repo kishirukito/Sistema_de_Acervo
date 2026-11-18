@@ -1040,7 +1040,7 @@
   padding: 1.5rem;
   max-height: 68vh;
   overflow-y: auto;
-  overflow-x: visible;
+  overflow-x: hidden;
   overscroll-behavior: contain;
 }
 
