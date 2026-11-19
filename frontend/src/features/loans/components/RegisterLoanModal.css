@@ -558,32 +558,22 @@
 .register-loan-discard-overlay {
   position: absolute;
   inset: -1rem;
-  background-color: rgba(15, 23, 42, 0.65);
-  backdrop-filter: blur(2px);
+  background-color: transparent;
   display: flex;
   align-items: center;
   justify-content: center;
   z-index: 50;
   border-radius: var(--radius-lg, 12px);
-  animation: registerLoanFadeIn 0.15s ease-out;
-}
-
-@keyframes registerLoanFadeIn {
-  from {
-    opacity: 0;
-  }
-  to {
-    opacity: 1;
-  }
 }
 
 .register-loan-discard-card {
   background-color: #FFFFFF;
+  border: 1px solid #E2E8F0;
   border-radius: var(--radius-md, 10px);
   padding: 1.25rem 1.4rem;
   max-width: 400px;
   width: 90%;
-  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.25);
+  box-shadow: 0 20px 30px -5px rgba(15, 23, 42, 0.2), 0 10px 15px -3px rgba(15, 23, 42, 0.1);
   display: flex;
   flex-direction: column;
   gap: 0.85rem;

@@ -136,28 +136,26 @@
 .register-user-discard-overlay {
   position: absolute;
   inset: 0;
-  background-color: rgba(15, 23, 42, 0.65);
-  backdrop-filter: blur(2px);
+  background-color: transparent;
   display: flex;
   align-items: center;
   justify-content: center;
   padding: 1.5rem;
   z-index: 50;
   border-radius: inherit;
-  animation: uiModalFadeIn 0.15s ease;
 }
 
 .register-user-discard-card {
   background: #FFFFFF;
+  border: 1px solid #E2E8F0;
   border-radius: 14px;
   padding: 1.5rem;
   max-width: 420px;
   width: 100%;
-  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.2);
+  box-shadow: 0 20px 30px -5px rgba(15, 23, 42, 0.2), 0 10px 15px -3px rgba(15, 23, 42, 0.1);
   display: flex;
   flex-direction: column;
   gap: 12px;
-  animation: uiModalScaleUp 0.15s ease;
 }
 
 .register-user-discard-header {
