@@ -167,13 +167,15 @@ export const AdminNewBookPage: React.FC = () => {
   const onSubmit = async (data: BookFormData) => {
     const resolvedCat = resolveCategory(data.category) || BIBLIOGRAPHIC_CATEGORIES[0];
     const cleanedCoverUrl = data.coverUrl ? data.coverUrl.trim() : undefined;
-    await booksService.create({
+    const createdBook = await booksService.create({
       ...data,
       coverUrl: cleanedCoverUrl || undefined,
       category: resolvedCat.code,
       availableCopies: data.totalCopies,
     });
-    navigate('/admin/catalog');
+    navigate(`/admin/catalog/${createdBook.id || 'new'}/success`, {
+      state: { book: createdBook },
+    });
   };
 
   return (

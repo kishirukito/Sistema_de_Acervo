@@ -11,6 +11,7 @@ import { LoginPage } from '../pages/auth/LoginPage';
 import { AdminDashboardPage } from '../pages/admin/AdminDashboardPage';
 import { AdminCatalogPage } from '../pages/admin/AdminCatalogPage';
 import { AdminNewBookPage } from '../pages/admin/AdminNewBookPage';
+import { BookSuccessPage } from '../pages/admin/BookSuccessPage';
 import { AdminCategoriesPage } from '../pages/admin/AdminCategoriesPage';
 import { AdminUsersPage } from '../pages/admin/AdminUsersPage';
 import { AdminLoansPage } from '../pages/admin/AdminLoansPage';
@@ -80,6 +81,14 @@ export const router = createBrowserRouter([
       {
         path: 'catalog/new',
         element: <AdminNewBookPage />,
+      },
+      {
+        path: 'catalog/:bookId/success',
+        element: <BookSuccessPage />,
+      },
+      {
+        path: 'catalog/success',
+        element: <BookSuccessPage />,
       },
       {
         path: 'categories',
