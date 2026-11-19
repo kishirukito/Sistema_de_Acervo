@@ -108,6 +108,39 @@ const PICKUP_LOCATIONS = [
   'Sala de lectura especializada',
 ];
 
+/**
+ * Retorna la fecha de hoy en formato YYYY-MM-DD.
+ */
+const getTodayIso = (): string => {
+  const d = new Date();
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const dayOfMonth = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${dayOfMonth}`;
+};
+
+/**
+ * Retorna la fecha del siguiente día hábil (lunes a viernes) en formato YYYY-MM-DD.
+ * Si hoy es viernes o sábado, avanza hasta el lunes siguiente.
+ */
+const getNextBusinessDayIso = (): string => {
+  const d = new Date();
+  const day = d.getDay(); // 0: domingo, 5: viernes, 6: sábado
+  let daysToAdd = 1;
+  if (day === 5) {
+    daysToAdd = 3; // Viernes -> Lunes
+  } else if (day === 6) {
+    daysToAdd = 2; // Sábado -> Lunes
+  } else {
+    daysToAdd = 1; // Domingo a Jueves -> Día siguiente
+  }
+  d.setDate(d.getDate() + daysToAdd);
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const dayOfMonth = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${dayOfMonth}`;
+};
+
 export const UserBorrowRequestPage: React.FC = () => {
   const { bookId } = useParams<{ bookId: string }>();
   const navigate = useNavigate();
@@ -144,7 +177,7 @@ export const UserBorrowRequestPage: React.FC = () => {
 
   // Form states
   const [pickupLocation, setPickupLocation] = useState(PICKUP_LOCATIONS[0]);
-  const [suggestedDateIso, setSuggestedDateIso] = useState('2026-10-06');
+  const [suggestedDateIso, setSuggestedDateIso] = useState<string>(getNextBusinessDayIso);
   const [observations, setObservations] = useState('');
   const [dateInputType, setDateInputType] = useState<'text' | 'date'>('text');
   const [dateError, setDateError] = useState<string | null>(null);
@@ -399,8 +432,9 @@ export const UserBorrowRequestPage: React.FC = () => {
                   Fecha sugerida para recoger
                 </label>
                 <div className="borrow-request-input-wrapper">
-                  <input
-                    id="suggested-date"
+                    <input
+                      id="suggested-date"
+                      min={getTodayIso()}
                     type={dateInputType}
                     className="borrow-request-input"
                     value={
