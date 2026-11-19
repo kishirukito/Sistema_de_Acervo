@@ -9,6 +9,7 @@
     "build": "npm --prefix frontend run build"
   },
   "devDependencies": {
-    "concurrently": "^9.1.2"
+    "concurrently": "^9.1.2",
+    "puppeteer-core": "^25.18.1"
   }
 }
