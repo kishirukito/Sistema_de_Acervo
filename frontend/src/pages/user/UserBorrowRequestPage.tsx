@@ -103,9 +103,7 @@ const getBookCoverVisual = (book: Book): CoverVisualMetadata => {
 };
 
 const PICKUP_LOCATIONS = [
-  'Biblioteca principal',
-  'Biblioteca campus norte',
-  'Sala de lectura especializada',
+  'Biblioteca principal (CIU)',
 ];
 
 /**

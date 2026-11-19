@@ -142,7 +142,7 @@ export const UserRequestSuccessPage: React.FC = () => {
       ? 'Rechazada'
       : resolvedRequest.status;
 
-  const pickupLocation = resolvedRequest.pickupLocation || 'Biblioteca principal';
+  const pickupLocation = resolvedRequest.pickupLocation || 'Biblioteca principal (CIU)';
   const formattedDate = formatSuggestedDate(
     resolvedRequest.suggestedDate || resolvedRequest.requestDate
   );

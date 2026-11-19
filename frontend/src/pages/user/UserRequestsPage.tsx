@@ -454,7 +454,7 @@ export const UserRequestsPage: React.FC = () => {
               const author = book?.author || 'Autor registrado en biblioteca';
               const coverVisual = getBookCoverVisual(book);
               const formattedDate = formatSuggestedDate(req.requestDate);
-              const pickupLocation = req.pickupLocation || 'Biblioteca principal';
+              const pickupLocation = req.pickupLocation || 'Biblioteca principal (CIU)';
               const hintText = getStatusHint(req);
               const bookTitle = req.bookTitle || book?.title || 'Libro sin título';
               const validBookId = req.bookId?.trim() || book?.id;
