@@ -142,15 +142,22 @@ export const AdminNewLoanPage: React.FC = () => {
     const passed =
       (location.state as any)?.selectedResource ||
       (location.state as any)?.resource;
-    if (passed && !selectedResource) {
+
+    if (passed) {
+      // Intentar encontrar el libro completo con sus ejemplares en la lista del catálogo
       const found = resources.find(
         (r) =>
           r.id === passed.id ||
-          (passed.isbn && r.isbn && r.isbn.replace(/-/g, '') === passed.isbn.replace(/-/g, ''))
+          (passed.isbn && r.isbn && r.isbn.replace(/-/g, '') === passed.isbn.replace(/-/g, '')) ||
+          (passed.title && r.title.trim().toLowerCase() === passed.title.trim().toLowerCase())
       );
+
       if (found) {
-        setSelectedResource(found);
-      } else {
+        // Si no teníamos recurso o el actual no tenía ejemplares vinculados, usamos el del catálogo
+        if (!selectedResource || !selectedResource.ejemplares || selectedResource.ejemplares.length === 0) {
+          setSelectedResource(found);
+        }
+      } else if (!selectedResource) {
         const mapped: Resource = {
           id: passed.id || `res-${Date.now()}`,
           title: passed.title || 'Título no especificado',
@@ -169,6 +176,7 @@ export const AdminNewLoanPage: React.FC = () => {
           publicationYear: passed.publicationYear || 2024,
           publisher: passed.publisher || 'Editorial',
           code: passed.code || 'LIB-001',
+          ejemplares: passed.ejemplares || [],
         };
         setSelectedResource(mapped);
       }
@@ -335,8 +343,24 @@ export const AdminNewLoanPage: React.FC = () => {
     setIsSubmitting(true);
 
     try {
-      // Find available physical copy (ejemplar)
-      const availableCopy = selectedResource.ejemplares?.find((ej) => ej.estado === 'disponible');
+      // Find available physical copy (ejemplar) or real book ID
+      let availableCopy = selectedResource.ejemplares?.find((ej) => ej.estado === 'disponible');
+      let bookIdToUse = selectedResource.id;
+
+      // Si no tenemos ejemplar o el ID parece de mock, verificar contra la lista real del catálogo
+      if (!availableCopy || bookIdToUse.startsWith('book-') || bookIdToUse.startsWith('res-')) {
+        const catalogMatch = resources.find(
+          (r) =>
+            r.id === selectedResource.id ||
+            (selectedResource.isbn && r.isbn && r.isbn.replace(/-/g, '') === selectedResource.isbn.replace(/-/g, '')) ||
+            r.title.trim().toLowerCase() === selectedResource.title.trim().toLowerCase()
+        );
+        if (catalogMatch) {
+          bookIdToUse = catalogMatch.id;
+          availableCopy = catalogMatch.ejemplares?.find((ej) => ej.estado === 'disponible') || availableCopy;
+        }
+      }
+
       const ejemplarId = availableCopy ? availableCopy.id : undefined;
 
       const token = localStorage.getItem('acervo_token');
@@ -345,9 +369,10 @@ export const AdminNewLoanPage: React.FC = () => {
         ...(token ? { Authorization: `Bearer ${token}` } : {}),
       };
 
-      // Payload adaptado según modalidad
+      // Payload adaptado según modalidad: enviamos ejemplar_id si lo tenemos, y libro_id para resolución en backend
       const payload: any = {
-        ejemplar_id: ejemplarId || selectedResource.id,
+        ejemplar_id: ejemplarId,
+        libro_id: bookIdToUse,
         tipo_prestamo_id: selectedLoanType?.id,
         fecha_prestamo: checkoutDate ? new Date(checkoutDate).toISOString() : new Date().toISOString(),
         fecha_limite_devolucion: dueDate ? new Date(dueDate).toISOString() : new Date(Date.now() + 7 * 86400000).toISOString(),

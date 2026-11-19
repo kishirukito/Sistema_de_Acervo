@@ -384,11 +384,77 @@ class SupabaseService:
                     clean_payload["fecha_devolucion_real"], "fecha_devolucion_real"
                 )
 
-            resp = await client.post(url, headers=self.headers, json=clean_payload, timeout=10.0)
-            resp.raise_for_status()
-            created = resp.json()
-            if isinstance(created, list) and len(created) > 0:
-                created = created[0]
+            # -------------------------------------------------------------
+            # Resolución y validación resiliente de ejemplar_id vs libro_id
+            # -------------------------------------------------------------
+            raw_ejemplar_id = clean_payload.get("ejemplar_id")
+            raw_libro_id = clean_payload.get("libro_id")
+            resolved_ejemplar_id = None
+
+            if raw_ejemplar_id:
+                # Verificar si existe directamente como ejemplar físico
+                chk_ej = await client.get(
+                    f"{self.base_url}/ejemplares?id=eq.{raw_ejemplar_id}&select=id,libro_id,estado",
+                    headers=self.headers
+                )
+                if chk_ej.is_success and len(chk_ej.json()) > 0:
+                    ej_data = chk_ej.json()[0]
+                    if ej_data.get("estado") == "disponible":
+                        resolved_ejemplar_id = ej_data["id"]
+                    else:
+                        # El ejemplar indicado no está disponible, intentar obtener otro del mismo libro
+                        raw_libro_id = ej_data.get("libro_id")
+                else:
+                    # No existe en ejemplares; podría ser que el cliente envió el ID del libro
+                    if not raw_libro_id:
+                        raw_libro_id = raw_ejemplar_id
+
+            if not resolved_ejemplar_id and raw_libro_id:
+                # Buscar un ejemplar con estado disponible para este libro
+                chk_disp = await client.get(
+                    f"{self.base_url}/ejemplares?libro_id=eq.{raw_libro_id}&estado=eq.disponible&select=id,codigo_inventario,estado&limit=1",
+                    headers=self.headers
+                )
+                if chk_disp.is_success and len(chk_disp.json()) > 0:
+                    resolved_ejemplar_id = chk_disp.json()[0]["id"]
+                else:
+                    # Consultar si el libro existe para dar un error claro y profesional
+                    chk_lib = await client.get(
+                        f"{self.base_url}/libros?id=eq.{raw_libro_id}&select=id,titulo",
+                        headers=self.headers
+                    )
+                    if chk_lib.is_success and len(chk_lib.json()) > 0:
+                        titulo_libro = chk_lib.json()[0].get("titulo", "este título")
+                        raise ValueError(f"No hay ejemplares disponibles para '{titulo_libro}'. Todas las copias están prestadas o no disponibles.")
+                    else:
+                        raise ValueError("El ejemplar o libro seleccionado no existe en el catálogo físico.")
+
+            if not resolved_ejemplar_id:
+                raise ValueError("No se pudo asignar un ejemplar físico válido y disponible para este préstamo.")
+
+            clean_payload["ejemplar_id"] = resolved_ejemplar_id
+            clean_payload.pop("libro_id", None)
+
+            # Inserción en Supabase con captura fina de conflictos HTTP 409
+            try:
+                resp = await client.post(url, headers=self.headers, json=clean_payload, timeout=10.0)
+                resp.raise_for_status()
+                created = resp.json()
+                if isinstance(created, list) and len(created) > 0:
+                    created = created[0]
+            except httpx.HTTPStatusError as hse:
+                err_text = ""
+                try:
+                    err_json = hse.response.json()
+                    err_text = err_json.get("message") or err_json.get("details") or str(err_json)
+                except Exception:
+                    err_text = hse.response.text or str(hse)
+
+                if "prestamos_ejemplar_id_fkey" in err_text:
+                    raise ValueError("El ejemplar especificado no existe en la base de datos de ejemplares.")
+                if "23505" in err_text:
+                    raise ValueError("Ya existe un préstamo activo para este ejemplar.")
+                raise ValueError(f"Error al registrar préstamo en base de datos: {err_text}")
 
             ejemplar_id = clean_payload.get("ejemplar_id")
             if ejemplar_id:
