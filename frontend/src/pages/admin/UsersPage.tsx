@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { Plus, SearchX, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Plus, SearchX, CheckCircle2, AlertCircle, FileSpreadsheet } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { UsersMetrics } from '../../features/users/components/UsersMetrics';
 import { UsersToolbar } from '../../features/users/components/UsersToolbar';
@@ -8,6 +8,7 @@ import { UsersPagination } from '../../features/users/components/UsersPagination
 import { RegisterUserModal } from '../../features/users/components/RegisterUserModal';
 import { UserDetailModal } from '../../features/users/components/UserDetailModal';
 import { UserStatusModal } from '../../features/users/components/UserStatusModal';
+import { BulkImportUsersModal } from '../../features/users/components/BulkImportUsersModal';
 import { LoadingSpinner } from '../../components/ui/LoadingSpinner';
 import { Button } from '../../components/ui/Button';
 import {
@@ -43,6 +44,7 @@ export const UsersPage: React.FC = () => {
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [toastType, setToastType] = useState<'success' | 'error'>('success');
   const [isRegisterModalOpen, setIsRegisterModalOpen] = useState<boolean>(false);
+  const [isBulkImportOpen, setIsBulkImportOpen] = useState<boolean>(false);
   const [selectedUserDetail, setSelectedUserDetail] = useState<ManagedUser | null>(null);
   const [editingUser, setEditingUser] = useState<ManagedUser | null>(null);
   const [statusTargetUser, setStatusTargetUser] = useState<ManagedUser | null>(null);
@@ -248,15 +250,40 @@ export const UsersPage: React.FC = () => {
           </p>
         </div>
 
-        <button
-          type="button"
-          onClick={handleOpenRegisterModal}
-          className="users-register-btn"
-          aria-label="Registrar un nuevo usuario"
-        >
-          <Plus size={18} />
-          <span>Registrar usuario</span>
-        </button>
+        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+          <button
+            type="button"
+            onClick={() => setIsBulkImportOpen(true)}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              padding: '0.625rem 1.125rem',
+              fontSize: '0.875rem',
+              fontWeight: 600,
+              color: 'var(--color-primary-dark, #1E3A5F)',
+              backgroundColor: '#FFFFFF',
+              border: '1px solid var(--color-border, #CBD5E1)',
+              borderRadius: 'var(--radius-md, 10px)',
+              cursor: 'pointer',
+              transition: 'all 0.15s ease',
+            }}
+            aria-label="Carga masiva de usuarios en Excel o CSV"
+          >
+            <FileSpreadsheet size={18} />
+            <span>Carga masiva</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={handleOpenRegisterModal}
+            className="users-register-btn"
+            aria-label="Registrar un nuevo usuario"
+          >
+            <Plus size={18} />
+            <span>Registrar usuario</span>
+          </button>
+        </div>
       </div>
 
       {/* KPI Summary Cards */}
@@ -350,6 +377,16 @@ export const UsersPage: React.FC = () => {
         user={statusTargetUser}
         onClose={() => setStatusTargetUser(null)}
         onConfirm={handleConfirmUserStatus}
+      />
+
+      {/* Bulk Import Users / Students Modal */}
+      <BulkImportUsersModal
+        open={isBulkImportOpen}
+        onClose={() => setIsBulkImportOpen(false)}
+        onSuccess={(count) => {
+          invalidateAdminUsers(queryClient);
+          showToast(`Se importaron ${count} usuarios exitosamente al sistema.`, 'success');
+        }}
       />
     </div>
   );

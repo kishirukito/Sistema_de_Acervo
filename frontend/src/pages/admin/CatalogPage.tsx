@@ -1,12 +1,13 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, SearchX, CheckCircle, X } from 'lucide-react';
+import { Plus, SearchX, CheckCircle, X, FileSpreadsheet } from 'lucide-react';
 import { CatalogToolbar } from '../../features/catalog/components/CatalogToolbar';
 import { ResourceTable } from '../../features/catalog/components/ResourceTable';
 import { CatalogPagination } from '../../features/catalog/components/CatalogPagination';
 import { BookDetailModal } from '../../features/search/components/BookDetailModal';
 import { EditResourceModal } from '../../features/catalog/components/EditResourceModal';
 import { DeleteBookModal } from '../../features/catalog/components/DeleteBookModal';
+import { BulkImportBooksModal } from '../../features/catalog/components/BulkImportBooksModal';
 import { LoadingSpinner } from '../../components/ui/LoadingSpinner';
 import { MOCK_RESOURCES } from '../../features/catalog/catalog.mock';
 import { fetchCatalogResources, deleteResource, updateResource } from '../../services/api/catalog.service';
@@ -59,6 +60,7 @@ export const CatalogPage: React.FC = () => {
   const [selectedResource, setSelectedResource] = useState<Resource | null>(null);
   const [editingResource, setEditingResource] = useState<Resource | null>(null);
   const [deletingResource, setDeletingResource] = useState<Resource | null>(null);
+  const [isBulkImportOpen, setIsBulkImportOpen] = useState<boolean>(false);
   const [feedbackToast, setFeedbackToast] = useState<string | null>(null);
   const itemsPerPage = 5;
 
@@ -208,14 +210,39 @@ export const CatalogPage: React.FC = () => {
           </p>
         </div>
 
-        <button
-          type="button"
-          className="catalog-add-btn"
-          onClick={() => navigate('/admin/catalog/new')}
-        >
-          <Plus size={18} />
-          <span>Agregar libro</span>
-        </button>
+        <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center' }}>
+          <button
+            type="button"
+            className="catalog-import-btn"
+            onClick={() => setIsBulkImportOpen(true)}
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '0.5rem',
+              padding: '0.625rem 1.125rem',
+              fontSize: '0.875rem',
+              fontWeight: 600,
+              color: 'var(--color-primary-dark, #1E3A5F)',
+              backgroundColor: '#FFFFFF',
+              border: '1px solid var(--color-border, #CBD5E1)',
+              borderRadius: 'var(--radius-md, 10px)',
+              cursor: 'pointer',
+              transition: 'all 0.15s ease',
+            }}
+          >
+            <FileSpreadsheet size={18} />
+            <span>Carga masiva</span>
+          </button>
+
+          <button
+            type="button"
+            className="catalog-add-btn"
+            onClick={() => navigate('/admin/catalog/new')}
+          >
+            <Plus size={18} />
+            <span>Agregar libro</span>
+          </button>
+        </div>
       </header>
 
       {/* Success feedback toast */}
@@ -303,6 +330,17 @@ export const CatalogPage: React.FC = () => {
         resource={deletingResource}
         onClose={() => setDeletingResource(null)}
         onConfirm={handleDeleteResource}
+      />
+
+      {/* Bulk Import Books Modal */}
+      <BulkImportBooksModal
+        open={isBulkImportOpen}
+        onClose={() => setIsBulkImportOpen(false)}
+        onSuccess={(count) => {
+          invalidateCatalog();
+          setFeedbackToast(`Se importaron ${count} libros exitosamente al catálogo.`);
+          setTimeout(() => setFeedbackToast(null), 5000);
+        }}
       />
     </div>
   );
