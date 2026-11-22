@@ -482,13 +482,24 @@ export const UserLoansPage: React.FC = () => {
             <p style={{ fontSize: '0.875rem', color: '#64748B', maxWidth: 420, margin: '0 0 16px 0' }}>
               {errorMsg}
             </p>
-            <button
-              type="button"
-              className="user-loans-tab-btn user-loans-tab-btn--active"
-              onClick={loadLoans}
-            >
-              Reintentar consulta
-            </button>
+            <div style={{ display: 'flex', gap: '10px', justifyContent: 'center', flexWrap: 'wrap' }}>
+              <button
+                type="button"
+                className="user-loans-tab-btn user-loans-tab-btn--active"
+                onClick={loadLoans}
+              >
+                Reintentar consulta
+              </button>
+              {errorMsg.toLowerCase().includes('sesión') && (
+                <Link
+                  to="/login"
+                  className="user-loans-tab-btn"
+                  style={{ textDecoration: 'none', display: 'inline-flex', alignItems: 'center' }}
+                >
+                  Iniciar sesión
+                </Link>
+              )}
+            </div>
           </div>
         ) : myLoans.length === 0 ? (
           <div className="user-loans-empty-container">
