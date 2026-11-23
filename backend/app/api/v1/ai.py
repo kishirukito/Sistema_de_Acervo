@@ -152,6 +152,7 @@ async def busqueda_inteligente(
 ):
     """
     Búsqueda Semántica en Lenguaje Natural con nomic-embed-text y Grounding anti-alucinaciones con llama3.2:3b.
+    Utiliza búsqueda híbrida (70% vectorial + 30% léxica) con umbral dinámico.
     Devuelve los libros reales coincidentes con disponibilidad en tiempo real y justificación fundamentada.
     """
     try:
@@ -162,4 +163,45 @@ async def busqueda_inteligente(
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail=f"Error al procesar la búsqueda inteligente: {str(e)}"
+        )
+
+
+@router.post("/busqueda-pgvector", response_model=SmartSearchResponse)
+async def busqueda_pgvector(
+    payload: SmartSearchRequest,
+    current_user: Dict[str, Any] = Depends(get_current_user)
+):
+    """
+    Búsqueda Semántica usando pgvector en Supabase con índice HNSW.
+    Requiere haber ejecutado el SQL de CREATE EXTENSION vector y la función RPC.
+    Si pgvector no está disponible, cae automáticamente al método en memoria.
+    """
+    try:
+        top_k = payload.top_k or 5
+        res = await VectorService.smart_search_pgvector(query=payload.query, top_k=top_k)
+        return res
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error al procesar la búsqueda pgvector: {str(e)}"
+        )
+
+
+@router.post("/migrar-embeddings")
+async def migrar_embeddings_pgvector(
+    admin: Dict[str, Any] = Depends(require_admin)
+):
+    """
+    Migra los embeddings del archivo JSON local (acervo_embeddings.json) a la columna
+    'embedding' de la tabla 'libros' en Supabase con pgvector.
+    Prerequisito: haber ejecutado el SQL de CREATE EXTENSION vector y ALTER TABLE en Supabase.
+    Requiere rol de administrador.
+    """
+    try:
+        resultado = await VectorService.migrate_embeddings_to_pgvector()
+        return resultado
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail=f"Error durante la migración de embeddings a pgvector: {str(e)}"
         )

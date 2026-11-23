@@ -1,3 +1,4 @@
+import json
 import httpx
 from collections import OrderedDict
 from typing import List, Dict, Any
@@ -36,62 +37,94 @@ class AIService:
     async def generate_book_summary(cls, titulo: str, autor: str, sinopsis_o_tema: str = "") -> Dict[str, Any]:
         """
         Genera un resumen analítico y extrae palabras clave para un libro
-        utilizando un modelo LLM local (por defecto Ollama).
+        utilizando un modelo LLM local (Ollama) con salida JSON estructurada.
+        Optimizado con temperatura baja (0.15) y repeat_penalty (1.15) para
+        minimizar alucinaciones y bucles repetitivos.
         """
-        prompt = (
-            f"Eres un bibliotecario y asistente académico experto. "
-            f"Genera un resumen conciso en español (máximo 120 palabras) y una lista de 5 palabras clave "
-            f"para el siguiente libro:\n"
+        system_prompt = (
+            "Eres un bibliotecario y asistente académico experto de una universidad. "
+            "Genera resúmenes bibliográficos concisos, precisos y en español. "
+            "Responde ÚNICAMENTE en formato JSON con esta estructura exacta:\n"
+            '{"resumen": "texto del resumen (máximo 120 palabras)", '
+            '"palabras_clave": ["palabra1", "palabra2", "palabra3", "palabra4", "palabra5"], '
+            '"nivel": "Introductorio|Intermedio|Avanzado"}'
+        )
+
+        user_prompt = (
+            f"Genera un resumen académico para el siguiente libro:\n"
             f"Título: {titulo}\n"
             f"Autor: {autor}\n"
-            f"Contexto/Materia: {sinopsis_o_tema or 'Ingeniería y Ciencias de la Computación'}\n\n"
-            f"Formato de respuesta:\n"
-            f"RESUMEN: [Tu resumen aquí]\n"
-            f"PALABRAS_CLAVE: [palabra1, palabra2, palabra3, palabra4, palabra5]"
+            f"Contexto/Materia: {sinopsis_o_tema or 'Ingeniería y Ciencias de la Computación'}"
         )
 
         try:
-            # Conexión al servidor local de Ollama con keep_alive=-1 para retención permanente
             keep_alive_val: Any = -1
             try:
                 keep_alive_val = int(settings.OLLAMA_KEEP_ALIVE)
             except Exception:
                 keep_alive_val = settings.OLLAMA_KEEP_ALIVE
 
-            async with httpx.AsyncClient(timeout=httpx.Timeout(30.0, connect=2.0)) as client:
+            async with httpx.AsyncClient(timeout=httpx.Timeout(45.0, connect=3.0)) as client:
                 response = await client.post(
-                    f"{settings.OLLAMA_BASE_URL}/api/generate",
+                    f"{settings.OLLAMA_BASE_URL}/api/chat",
                     json={
                         "model": settings.LOCAL_AI_MODEL,
-                        "prompt": prompt,
+                        "messages": [
+                            {"role": "system", "content": system_prompt},
+                            {"role": "user", "content": user_prompt}
+                        ],
                         "stream": False,
+                        "format": "json",
                         "keep_alive": keep_alive_val,
                         "options": {
-                            "temperature": 0.3,
-                            "top_p": 0.9
+                            "temperature": 0.15,
+                            "top_p": 0.9,
+                            "repeat_penalty": 1.15,
+                            "num_predict": 400
                         }
                     }
                 )
 
                 if response.status_code == 200:
                     data = response.json()
-                    raw_text = data.get("response", "").strip()
+                    raw_text = data.get("message", {}).get("content", "").strip()
 
-                    # Parsear la respuesta
-                    resumen_texto = raw_text
-                    palabras_clave = "Ingeniería, Software, Biblioteca, CIU"
+                    try:
+                        parsed = json.loads(raw_text)
+                        resumen_texto = str(parsed.get("resumen", "")).strip()
+                        palabras_raw = parsed.get("palabras_clave", [])
+                        if isinstance(palabras_raw, list):
+                            palabras_clave = ", ".join(str(p).strip() for p in palabras_raw if str(p).strip())
+                        else:
+                            palabras_clave = str(palabras_raw).strip()
 
-                    if "RESUMEN:" in raw_text and "PALABRAS_CLAVE:" in raw_text:
-                        parts = raw_text.split("PALABRAS_CLAVE:")
-                        resumen_texto = parts[0].replace("RESUMEN:", "").strip()
-                        palabras_clave = parts[1].strip()
+                        if not resumen_texto:
+                            raise ValueError("Resumen vacío en JSON")
 
-                    return {
-                        "resumen": resumen_texto,
-                        "palabras_clave": palabras_clave,
-                        "modelo": settings.LOCAL_AI_MODEL,
-                        "proveedor": "local_ollama"
-                    }
+                        return {
+                            "resumen": resumen_texto,
+                            "palabras_clave": palabras_clave or f"{titulo}, {autor}, Referencia Académica",
+                            "nivel": str(parsed.get("nivel", "Intermedio")),
+                            "modelo": settings.LOCAL_AI_MODEL,
+                            "proveedor": "local_ollama_json"
+                        }
+                    except (json.JSONDecodeError, ValueError):
+                        # Fallback: parsear formato RESUMEN:/PALABRAS_CLAVE: si el JSON falla
+                        resumen_texto = raw_text
+                        palabras_clave = "Ingeniería, Software, Biblioteca, CIU"
+                        if "RESUMEN:" in raw_text and "PALABRAS_CLAVE:" in raw_text:
+                            parts = raw_text.split("PALABRAS_CLAVE:")
+                            resumen_texto = parts[0].replace("RESUMEN:", "").strip()
+                            palabras_clave = parts[1].strip()
+                        elif "resumen" in raw_text.lower():
+                            resumen_texto = raw_text
+
+                        return {
+                            "resumen": resumen_texto,
+                            "palabras_clave": palabras_clave,
+                            "modelo": settings.LOCAL_AI_MODEL,
+                            "proveedor": "local_ollama"
+                        }
 
         except Exception as e:
             print(f"[LOCAL AI NOTICE] Modelo local no disponible en {settings.OLLAMA_BASE_URL} ({e}). Usando generador heurístico.")

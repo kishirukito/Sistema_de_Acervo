@@ -135,6 +135,58 @@ class VectorService:
             print(f"[VectorService] Error al guardar caché vectorial en disco: {e}")
 
     @classmethod
+    async def _ensure_book_has_synopsis(cls, book: Dict[str, Any]) -> str:
+        """
+        Verifica si el libro tiene sinopsis o resumen IA. Si no tiene ninguno,
+        genera automáticamente un resumen con AIService y lo devuelve.
+        Esto garantiza que el embedding se calcule sobre texto rico en contexto.
+        """
+        # Primero verificar si ya tiene resumen IA
+        if book.get("resumenes_ia") and isinstance(book["resumenes_ia"], list) and book["resumenes_ia"]:
+            resumen_ia = book["resumenes_ia"][0].get("resumen_texto", "").strip()
+            if resumen_ia:
+                return resumen_ia
+
+        # Verificar si tiene sinopsis directa
+        sinopsis = str(book.get("sinopsis", "")).strip()
+        if sinopsis and len(sinopsis) > 20:
+            return sinopsis
+
+        # No tiene contenido textual: generar resumen IA automáticamente
+        titulo = str(book.get("titulo", "")).strip()
+        if not titulo:
+            return ""
+
+        autores = []
+        if "libro_autores" in book and isinstance(book["libro_autores"], list):
+            for la in book["libro_autores"]:
+                if isinstance(la, dict) and "autores" in la and isinstance(la["autores"], dict):
+                    autores.append(la["autores"].get("nombre", ""))
+        autores_str = ", ".join(filter(None, autores)) or "Autor Desconocido"
+
+        temas = []
+        if "libro_temas" in book and isinstance(book["libro_temas"], list):
+            for lt in book["libro_temas"]:
+                if isinstance(lt, dict) and "temas" in lt and isinstance(lt["temas"], dict):
+                    temas.append(lt["temas"].get("nombre", ""))
+        temas_str = ", ".join(filter(None, temas)) or ""
+
+        try:
+            print(f"[VectorService] Auto-generando resumen IA para '{titulo}' (sin sinopsis previa)...")
+            summary_result = await AIService.generate_book_summary(
+                titulo=titulo,
+                autor=autores_str,
+                sinopsis_o_tema=temas_str
+            )
+            generated = summary_result.get("resumen", "")
+            if generated and summary_result.get("proveedor") != "local_fallback":
+                print(f"[VectorService] Resumen IA generado exitosamente para '{titulo}'.")
+            return generated
+        except Exception as e:
+            print(f"[VectorService] No se pudo auto-generar resumen para '{titulo}': {e}")
+            return ""
+
+    @classmethod
     async def index_single_book(cls, book_id: str) -> bool:
         """
         Indexa o actualiza el embedding de un libro específico consultando sus datos en Supabase.
@@ -156,6 +208,9 @@ class VectorService:
                 if res.status_code != 200 or not res.json():
                     return False
                 book = res.json()[0]
+
+            # Auto-generar sinopsis si el libro no tiene contenido textual
+            await cls._ensure_book_has_synopsis(book)
 
             semantic_text = build_book_semantic_text(book)
             embedding = await AIService.get_embeddings(semantic_text)
@@ -240,6 +295,9 @@ class VectorService:
             b_id = book.get("id")
             if not b_id:
                 continue
+
+            # Auto-generar sinopsis si el libro no tiene contenido textual
+            await cls._ensure_book_has_synopsis(book)
 
             semantic_text = build_book_semantic_text(book)
             embedding = await AIService.get_embeddings(semantic_text)
@@ -374,23 +432,27 @@ Responde ÚNICAMENTE en JSON con esta estructura exacta:
             except Exception:
                 keep_alive_val = settings.OLLAMA_KEEP_ALIVE
 
-            async with httpx.AsyncClient(timeout=25.0) as client:
+            async with httpx.AsyncClient(timeout=30.0) as client:
                 res = await client.post(
-                    f"{settings.OLLAMA_BASE_URL}/api/generate",
+                    f"{settings.OLLAMA_BASE_URL}/api/chat",
                     json={
                         "model": settings.LOCAL_AI_MODEL,
-                        "prompt": prompt,
+                        "messages": [
+                            {"role": "system", "content": "Eres el auditor bibliotecario del Sistema de Acervo Universitario. Evalúas la relevancia de libros candidatos frente a consultas de usuarios. Responde SIEMPRE en JSON."},
+                            {"role": "user", "content": prompt}
+                        ],
                         "stream": False,
                         "format": "json",
                         "keep_alive": keep_alive_val,
                         "options": {
-                            "temperature": 0.1,
-                            "top_p": 0.8
+                            "temperature": 0.0,
+                            "top_p": 0.8,
+                            "repeat_penalty": 1.1
                         }
                     }
                 )
                 if res.status_code == 200:
-                    raw = res.json().get("response", "")
+                    raw = res.json().get("message", {}).get("content", "")
                     parsed = json.loads(raw)
                     items = parsed.get("evaluaciones", [])
                     valid_items: Dict[str, Dict[str, Any]] = {}
@@ -443,15 +505,33 @@ Responde ÚNICAMENTE en JSON con esta estructura exacta:
 
         return grounded
 
-        return grounded
+    @classmethod
+    def _lexical_score(cls, query_words: List[str], book_data: Dict[str, Any]) -> float:
+        """
+        Calcula un puntaje léxico (0.0 - 1.0) basado en coincidencias directas
+        de palabras clave contra título, autores, temas y sinopsis del libro.
+        """
+        if not query_words:
+            return 0.0
+        searchable = (
+            str(book_data.get("titulo", "")) + " " +
+            " ".join(book_data.get("autores", [])) + " " +
+            " ".join(book_data.get("temas", [])) + " " +
+            str(book_data.get("sinopsis", "")) + " " +
+            str(book_data.get("isbn", ""))
+        ).lower()
+
+        matches = sum(1 for w in query_words if w in searchable)
+        return min(matches / max(len(query_words), 1), 1.0)
 
     @classmethod
-    async def smart_search(cls, query: str, top_k: int = 5, min_score: float = 0.45) -> Dict[str, Any]:
+    async def smart_search(cls, query: str, top_k: int = 5) -> Dict[str, Any]:
         """
-        Búsqueda Inteligente Semántica RAG en 3 fases:
-        1. Similitud Coseno con nomic-embed-text.
-        2. Umbral de relevancia calibrado.
-        3. Grounding y justificación con llama3.2:3b sin alucinaciones.
+        Búsqueda Inteligente Semántica RAG con recuperación híbrida:
+        1. Similitud Coseno con nomic-embed-text (70% del puntaje).
+        2. Coincidencia léxica directa en título/autor/temas/ISBN (30% del puntaje).
+        3. Umbral dinámico adaptado a la longitud de la consulta.
+        4. Grounding y justificación con llama3.2:3b sin alucinaciones.
         """
         clean_query = query.strip()
         if not clean_query:
@@ -494,15 +574,41 @@ Responde ÚNICAMENTE en JSON con esta estructura exacta:
                 "resultados": []
             }
 
-        # Calcular similitudes
+        # Umbral dinámico según longitud de la consulta
+        word_count = len(core_query.split())
+        if word_count <= 2:
+            min_score = 0.40  # Consultas cortas: umbral más permisivo
+        elif word_count >= 6:
+            min_score = 0.48  # Consultas largas: umbral más estricto
+        else:
+            min_score = 0.45  # Consultas normales: umbral base
+
+        # Preparar palabras de búsqueda léxica (sin stopwords)
+        lexical_words = [
+            w.lower().strip("?,.:;!\"'()[]")
+            for w in core_query.split()
+            if len(w) > 2 and w.lower() not in QUERY_STOP_WORDS
+        ]
+
+        # Calcular similitudes con modelo híbrido (vectorial 70% + léxico 30%)
         scored_candidates = []
+        VECTOR_WEIGHT = 0.70
+        LEXICAL_WEIGHT = 0.30
+
         for book_id, book_data in _VECTOR_INDEX.items():
             b_emb = book_data.get("embedding")
             if not b_emb:
                 continue
-            score = cosine_similarity(query_emb, b_emb)
-            if score >= min_score:
-                scored_candidates.append((score, book_data))
+
+            vector_score = cosine_similarity(query_emb, b_emb)
+            lexical_sc = cls._lexical_score(lexical_words, book_data)
+
+            # Puntaje combinado híbrido
+            hybrid_score = (vector_score * VECTOR_WEIGHT) + (lexical_sc * LEXICAL_WEIGHT)
+
+            # Aceptar si el puntaje híbrido supera el umbral O si hay match léxico fuerte
+            if hybrid_score >= min_score or (lexical_sc >= 0.5 and vector_score >= 0.30):
+                scored_candidates.append((hybrid_score, book_data))
 
         scored_candidates.sort(key=lambda x: x[0], reverse=True)
 
@@ -579,6 +685,241 @@ Responde ÚNICAMENTE en JSON con esta estructura exacta:
             "total_encontrados": len(resultados),
             "mensaje": f"Se encontraron {len(resultados)} libro(s) en el acervo que abordan tu búsqueda.",
             "resultados": resultados
+        }
+
+    # ==========================================================================
+    # FASE 3: Búsqueda con pgvector en Supabase (alternativa escalable)
+    # ==========================================================================
+
+    @classmethod
+    async def migrate_embeddings_to_pgvector(cls) -> Dict[str, Any]:
+        """
+        Migra los embeddings del índice en memoria (acervo_embeddings.json) a la columna
+        'embedding' de la tabla 'libros' en Supabase con pgvector.
+        Prerequisito: haber ejecutado el SQL de CREATE EXTENSION vector y ALTER TABLE.
+        """
+        if not _VECTOR_INDEX:
+            cls.load_index_from_disk()
+
+        if not _VECTOR_INDEX:
+            return {"migrados": 0, "error": "No hay embeddings en el índice local para migrar."}
+
+        headers = {
+            "apikey": settings.SUPABASE_SERVICE_ROLE_KEY,
+            "Authorization": f"Bearer {settings.SUPABASE_SERVICE_ROLE_KEY}",
+            "Content-Type": "application/json",
+            "Prefer": "return=minimal"
+        }
+
+        migrated = 0
+        errors = []
+
+        async with httpx.AsyncClient(timeout=15.0) as client:
+            for book_id, book_data in _VECTOR_INDEX.items():
+                embedding = book_data.get("embedding")
+                if not embedding:
+                    continue
+
+                try:
+                    # Formato pgvector: lista de floats como string "[0.1,0.2,...]"
+                    embedding_str = "[" + ",".join(str(v) for v in embedding) + "]"
+                    res = await client.patch(
+                        f"{settings.SUPABASE_URL}/rest/v1/libros?id=eq.{book_id}",
+                        headers=headers,
+                        json={"embedding": embedding_str}
+                    )
+                    if res.status_code in (200, 204):
+                        migrated += 1
+                    else:
+                        errors.append({"id": book_id, "status": res.status_code, "detail": res.text[:200]})
+                except Exception as e:
+                    errors.append({"id": book_id, "error": str(e)[:200]})
+
+        return {
+            "total_en_indice": len(_VECTOR_INDEX),
+            "migrados": migrated,
+            "errores": len(errors),
+            "detalle_errores": errors[:10] if errors else [],
+            "mensaje": f"Se migraron {migrated} de {len(_VECTOR_INDEX)} embeddings a pgvector en Supabase."
+        }
+
+    @classmethod
+    async def smart_search_pgvector(cls, query: str, top_k: int = 5) -> Dict[str, Any]:
+        """
+        Búsqueda semántica usando pgvector en Supabase (Fase 3).
+        Llama a la función RPC buscar_libros_semantico en PostgreSQL con índice HNSW.
+        Mantiene las fases de grounding anti-alucinaciones e inventario en tiempo real.
+        """
+        clean_query = query.strip()
+        if not clean_query:
+            return {
+                "query": query,
+                "total_encontrados": 0,
+                "mensaje": "Ingresa una consulta de búsqueda.",
+                "resultados": []
+            }
+
+        core_query = extract_search_core(clean_query)
+        query_text = f"search_query: {core_query}"
+        query_emb = await AIService.get_embeddings(query_text)
+        if not query_emb:
+            query_emb = await AIService.get_embeddings(f"search_query: {clean_query}")
+        if not query_emb:
+            # Fallback al método clásico en memoria si no se puede generar embedding
+            return await cls.smart_search(query, top_k)
+
+        # Umbral dinámico
+        word_count = len(core_query.split())
+        min_threshold = 0.40 if word_count <= 2 else 0.48 if word_count >= 6 else 0.45
+
+        headers = {
+            "apikey": settings.SUPABASE_SERVICE_ROLE_KEY,
+            "Authorization": f"Bearer {settings.SUPABASE_SERVICE_ROLE_KEY}",
+            "Content-Type": "application/json"
+        }
+
+        try:
+            async with httpx.AsyncClient(timeout=12.0) as client:
+                res = await client.post(
+                    f"{settings.SUPABASE_URL}/rest/v1/rpc/buscar_libros_semantico",
+                    headers=headers,
+                    json={
+                        "query_embedding": query_emb,
+                        "match_threshold": min_threshold,
+                        "match_count": top_k
+                    }
+                )
+
+                if res.status_code != 200 or not res.json():
+                    # Fallback al método en memoria si pgvector no está disponible
+                    print(f"[VectorService] pgvector RPC no disponible ({res.status_code}), usando búsqueda en memoria.")
+                    return await cls.smart_search(query, top_k)
+
+                pgvector_results = res.json()
+
+        except Exception as e:
+            print(f"[VectorService] Error en pgvector, fallback a búsqueda en memoria: {e}")
+            return await cls.smart_search(query, top_k)
+
+        if not pgvector_results:
+            return {
+                "query": query,
+                "total_encontrados": 0,
+                "mensaje": "Actualmente no contamos con libros en el acervo que aborden ese tema.",
+                "resultados": []
+            }
+
+        # Construir candidatos para grounding
+        candidate_ids = [r["id"] for r in pgvector_results]
+        candidate_scores = {r["id"]: r["similarity"] for r in pgvector_results}
+
+        # Obtener datos completos de los libros candidatos
+        ids_param = ",".join(candidate_ids)
+        books_url = (
+            f"{settings.SUPABASE_URL}/rest/v1/libros?id=in.({ids_param})"
+            f"&select=id,isbn,titulo,libro_autores(autores(nombre)),libro_temas(temas(nombre)),"
+            f"ejemplares(id,estado,ubicacion_estante),resumenes_ia(resumen_texto,palabras_clave)"
+        )
+        try:
+            async with httpx.AsyncClient(timeout=10.0) as client:
+                books_res = await client.get(books_url, headers=headers)
+                books_data = books_res.json() if books_res.status_code == 200 else []
+        except Exception:
+            books_data = []
+
+        if not books_data:
+            return await cls.smart_search(query, top_k)
+
+        # Preparar candidatos para grounding
+        top_candidates = []
+        for book in books_data:
+            autores = []
+            if "libro_autores" in book and isinstance(book["libro_autores"], list):
+                for la in book["libro_autores"]:
+                    if isinstance(la, dict) and "autores" in la and isinstance(la["autores"], dict):
+                        autores.append(la["autores"].get("nombre", ""))
+            temas = []
+            if "libro_temas" in book and isinstance(book["libro_temas"], list):
+                for lt in book["libro_temas"]:
+                    if isinstance(lt, dict) and "temas" in lt and isinstance(lt["temas"], dict):
+                        temas.append(lt["temas"].get("nombre", ""))
+
+            sinopsis = ""
+            if book.get("resumenes_ia") and isinstance(book["resumenes_ia"], list) and book["resumenes_ia"]:
+                sinopsis = book["resumenes_ia"][0].get("resumen_texto", "")
+
+            ubicacion = "Estantería general"
+            if book.get("ejemplares") and isinstance(book["ejemplares"], list):
+                for ej in book["ejemplares"]:
+                    if ej.get("ubicacion_estante"):
+                        ubicacion = ej["ubicacion_estante"]
+                        break
+
+            top_candidates.append({
+                "id": book["id"],
+                "titulo": book.get("titulo", ""),
+                "autores": autores,
+                "isbn": book.get("isbn", ""),
+                "ubicacion": ubicacion,
+                "temas": temas,
+                "sinopsis": sinopsis
+            })
+
+        # Grounding anti-alucinaciones
+        grounded_explanations = await cls.ground_with_llm(clean_query, top_candidates)
+
+        if not grounded_explanations:
+            return {
+                "query": query,
+                "total_encontrados": 0,
+                "mensaje": "Actualmente no contamos con libros en el acervo que aborden ese tema.",
+                "resultados": []
+            }
+
+        verified_books = [b for b in top_candidates if b["id"] in grounded_explanations]
+        verified_ids = [b["id"] for b in verified_books]
+        inventory = await cls.get_fresh_inventory(verified_ids)
+
+        resultados = []
+        for b in verified_books:
+            b_id = b["id"]
+            raw_score = candidate_scores.get(b_id, 0.5)
+            eval_info = grounded_explanations.get(b_id, {})
+            nivel = eval_info.get("nivel", "relacionado")
+            razon = eval_info.get("razon", f"Obra académica relacionada con '{clean_query}'.")
+
+            if nivel == "directo":
+                pct = round(min(max((raw_score - 0.45) / 0.35 * 30 + 70, 75.0), 98.5), 1)
+                level = "high" if pct >= 85 else "medium"
+            else:
+                pct = round(min(max((raw_score - 0.45) / 0.35 * 15 + 60, 60.0), 74.9), 1)
+                level = "standard"
+
+            inv = inventory.get(b_id, {"disponibles": 0, "totales": 0})
+
+            resultados.append({
+                "id": b_id,
+                "titulo": b["titulo"],
+                "autores": b.get("autores", []),
+                "isbn": b.get("isbn") or "S/I",
+                "ubicacion": b.get("ubicacion") or "Estantería general",
+                "temas": b.get("temas", []),
+                "sinopsis": b.get("sinopsis") or "Sinopsis académica disponible en sala.",
+                "ejemplares_disponibles": inv["disponibles"],
+                "total_ejemplares": inv["totales"],
+                "porcentaje_coincidencia": pct,
+                "match_level": level,
+                "explicacion": razon
+            })
+
+        resultados.sort(key=lambda x: x["porcentaje_coincidencia"], reverse=True)
+
+        return {
+            "query": query,
+            "total_encontrados": len(resultados),
+            "mensaje": f"Se encontraron {len(resultados)} libro(s) en el acervo que abordan tu búsqueda.",
+            "resultados": resultados,
+            "motor": "pgvector_hnsw"
         }
 
 # Cargar automáticamente al importar el módulo
