@@ -47,8 +47,8 @@ export const SearchPage: React.FC = () => {
   const isAdmin = user?.kind === 'ADMINISTRATIVE' || (user as any)?.rol === 'admin' || (user as any)?.role === 'ADMIN';
 
   // Initial search query
-  const [query, setQuery] = useState('POO');
-  const [activeSearchTerm, setActiveSearchTerm] = useState('POO');
+  const [query, setQuery] = useState('');
+  const [activeSearchTerm, setActiveSearchTerm] = useState('');
 
   // Filters state
   const [filters, setFilters] = useState<SearchFilterState>({
