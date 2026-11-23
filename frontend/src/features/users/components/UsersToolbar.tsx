@@ -10,6 +10,7 @@ interface UsersToolbarProps {
   totalFilteredCount: number;
   currentPage: number;
   totalPages: number;
+  availableGenerations?: number[];
 }
 
 export const UsersToolbar: React.FC<UsersToolbarProps> = ({
@@ -19,6 +20,7 @@ export const UsersToolbar: React.FC<UsersToolbarProps> = ({
   totalFilteredCount,
   currentPage,
   totalPages,
+  availableGenerations = [],
 }) => {
   return (
     <div className="users-toolbar-card">
@@ -28,13 +30,13 @@ export const UsersToolbar: React.FC<UsersToolbarProps> = ({
           <Search size={18} className="users-search-icon" aria-hidden="true" />
           <input
             type="text"
-            placeholder="Buscar por nombre, correo o teléfono"
+            placeholder="Buscar por nombre, matrícula, correo o teléfono..."
             value={filters.searchQuery}
             onChange={(e) =>
               onFilterChange({ ...filters, searchQuery: e.target.value })
             }
             className="users-search-input"
-            aria-label="Buscar por nombre, correo, teléfono o código"
+            aria-label="Buscar por nombre, matrícula, correo o teléfono"
           />
         </div>
 
@@ -43,6 +45,7 @@ export const UsersToolbar: React.FC<UsersToolbarProps> = ({
           filters={filters}
           onFilterChange={onFilterChange}
           onClearFilters={onClearFilters}
+          availableGenerations={availableGenerations}
         />
       </div>
 

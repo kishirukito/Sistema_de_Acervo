@@ -1,0 +1,505 @@
+/* GenerationConfigModal.css - Sistema de Acervo */
+
+.gen-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(15, 23, 42, 0.55);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+  padding: 1.25rem;
+  box-sizing: border-box;
+  animation: genModalFadeIn 0.2s ease-out;
+}
+
+@keyframes genModalFadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+.gen-modal-card {
+  background: #FFFFFF;
+  border-radius: 16px;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.15), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  width: 100%;
+  max-width: 760px;
+  max-height: 90vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.gen-modal-header {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1.25rem 1.75rem;
+  border-bottom: 1px solid #E2E8F0;
+  background-color: #F8FAFC;
+}
+
+.gen-modal-header-icon {
+  width: 44px;
+  height: 44px;
+  border-radius: 10px;
+  background-color: #EFF6FF;
+  color: #2563EB;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.gen-modal-header-text {
+  flex: 1;
+}
+
+.gen-modal-title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #1E293B;
+  margin: 0 0 2px 0;
+}
+
+.gen-modal-subtitle {
+  font-size: 0.8125rem;
+  color: #64748B;
+  margin: 0;
+}
+
+.gen-modal-close-btn {
+  background: transparent;
+  border: none;
+  color: #94A3B8;
+  padding: 6px;
+  border-radius: 8px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.15s ease;
+}
+
+.gen-modal-close-btn:hover:not(:disabled) {
+  background-color: #E2E8F0;
+  color: #334155;
+}
+
+.gen-modal-body {
+  padding: 1.5rem 1.75rem;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  box-sizing: border-box;
+}
+
+.gen-selector-group {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.gen-field-label {
+  font-size: 0.84375rem;
+  font-weight: 600;
+  color: #334155;
+}
+
+.gen-empty-notice {
+  font-size: 0.84375rem;
+  color: #64748B;
+  margin: 0;
+  padding: 0.75rem;
+  background: #F1F5F9;
+  border-radius: 8px;
+}
+
+/* KPI Cards Grid */
+.gen-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 0.875rem;
+}
+
+.gen-kpi-card {
+  background: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  border-radius: 10px;
+  padding: 0.875rem 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.gen-kpi-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.gen-kpi-icon--total {
+  background: #F1F5F9;
+  color: #475569;
+}
+
+.gen-kpi-icon--eligible {
+  background: #EFF6FF;
+  color: #2563EB;
+}
+
+.gen-kpi-icon--protected {
+  background: #FEE2E2;
+  color: #DC2626;
+}
+
+.gen-kpi-value {
+  display: block;
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #0F172A;
+  line-height: 1.2;
+}
+
+.gen-kpi-label {
+  display: block;
+  font-size: 0.75rem;
+  color: #64748B;
+  font-weight: 500;
+}
+
+/* Alert Cards */
+.gen-alert-card {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 0.875rem 1rem;
+  border-radius: 10px;
+  font-size: 0.8125rem;
+  line-height: 1.45;
+}
+
+.gen-alert-card strong {
+  display: block;
+  font-size: 0.875rem;
+  margin-bottom: 2px;
+}
+
+.gen-alert-card p {
+  margin: 0;
+}
+
+.gen-alert-icon {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.gen-alert-card--info {
+  background-color: #EFF6FF;
+  border: 1px solid #BFDBFE;
+  color: #1E40AF;
+}
+
+.gen-alert-card--neutral {
+  background-color: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  color: #475569;
+}
+
+.gen-alert-card--ready {
+  background-color: #F0FDF4;
+  border: 1px solid #BBF7D0;
+  color: #166534;
+}
+
+/* Student List Preview */
+.gen-preview-section {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.gen-preview-title {
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: #475569;
+}
+
+.gen-preview-table-wrap {
+  max-height: 200px;
+  overflow-y: auto;
+  border: 1px solid #E2E8F0;
+  border-radius: 8px;
+}
+
+.gen-preview-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.78125rem;
+  text-align: left;
+}
+
+.gen-preview-table th {
+  background: #F8FAFC;
+  color: #475569;
+  font-weight: 600;
+  padding: 8px 10px;
+  border-bottom: 1px solid #E2E8F0;
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+.gen-preview-table td {
+  padding: 8px 10px;
+  border-bottom: 1px solid #F1F5F9;
+  color: #334155;
+}
+
+.gen-status-pill {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 12px;
+  font-size: 0.6875rem;
+  font-weight: 600;
+}
+
+.gen-status-pill--active {
+  background: #DCFCE7;
+  color: #166534;
+}
+
+.gen-status-pill--inactive {
+  background: #F1F5F9;
+  color: #64748B;
+}
+
+.gen-loans-tag {
+  font-size: 0.75rem;
+  font-weight: 500;
+}
+
+.gen-loans-tag--debt {
+  color: #DC2626;
+  font-weight: 700;
+}
+
+.gen-eligibility-badge {
+  display: inline-block;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-size: 0.71875rem;
+  font-weight: 600;
+}
+
+.gen-eligibility-badge--eligible {
+  background: #DBEAFE;
+  color: #1E40AF;
+}
+
+.gen-eligibility-badge--protected {
+  background: #FEE2E2;
+  color: #991B1B;
+}
+
+.gen-eligibility-badge--neutral {
+  background: #F1F5F9;
+  color: #64748B;
+}
+
+/* Modal Actions */
+.gen-modal-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  padding-top: 0.5rem;
+}
+
+/* Confirmation Screen */
+.gen-confirm-step {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.gen-confirm-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  background-color: #FFFBEB;
+  border: 1px solid #FDE68A;
+  border-radius: 12px;
+  padding: 1rem 1.25rem;
+}
+
+.gen-confirm-warn-icon {
+  color: #D97706;
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.gen-confirm-heading {
+  font-size: 0.95rem;
+  font-weight: 700;
+  color: #92400E;
+  margin: 0 0 4px 0;
+}
+
+.gen-confirm-subtext {
+  font-size: 0.8125rem;
+  color: #78350F;
+  margin: 0;
+  line-height: 1.45;
+}
+
+.gen-confirm-summary-box {
+  background: #F8FAFC;
+  border: 1px solid #E2E8F0;
+  border-radius: 10px;
+  padding: 1rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.gen-summary-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.84375rem;
+  color: #475569;
+}
+
+.gen-summary-row--highlight {
+  font-weight: 600;
+  padding-top: 4px;
+  border-top: 1px dashed #CBD5E1;
+}
+
+.gen-summary-row--protected {
+  font-weight: 600;
+}
+
+.gen-protected-list-box {
+  background: #FEF2F2;
+  border: 1px solid #FECACA;
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  font-size: 0.78125rem;
+}
+
+.gen-protected-list-title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-weight: 700;
+  color: #991B1B;
+  margin-bottom: 6px;
+}
+
+.gen-protected-items {
+  margin: 0;
+  padding-left: 1.25rem;
+  color: #7F1D1D;
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+}
+
+.gen-progress-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0.75rem 1rem;
+  background: #EFF6FF;
+  border: 1px solid #BFDBFE;
+  border-radius: 8px;
+  color: #1E40AF;
+  font-size: 0.84375rem;
+  font-weight: 600;
+}
+
+.gen-spinner {
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+/* Result Card */
+.gen-result-card {
+  text-align: center;
+  padding: 1.5rem 0.5rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.gen-result-icon {
+  width: 64px;
+  height: 64px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1rem;
+}
+
+.gen-result-icon--success {
+  background: #DCFCE7;
+  color: #166534;
+}
+
+.gen-result-icon--error {
+  background: #FEE2E2;
+  color: #991B1B;
+}
+
+.gen-result-title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: #0F172A;
+  margin: 0 0 6px 0;
+}
+
+.gen-result-desc {
+  font-size: 0.875rem;
+  color: #475569;
+  max-width: 480px;
+  margin: 0;
+  line-height: 1.5;
+}
+
+/* Mobile Breakpoints */
+@media (max-width: 640px) {
+  .gen-kpi-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .gen-modal-header {
+    padding: 1rem 1.25rem;
+  }
+
+  .gen-modal-body {
+    padding: 1.25rem;
+  }
+
+  .gen-modal-actions {
+    flex-direction: column-reverse;
+    gap: 8px;
+  }
+
+  .gen-modal-actions button {
+    width: 100%;
+  }
+}

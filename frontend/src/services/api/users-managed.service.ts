@@ -59,6 +59,7 @@ function mapUsuarioToManagedUser(row: any, index: number): ManagedUser {
     status: mapEstadoToStatus(row.estado),
     activeLoans,
     borrowerCode: row.matricula_o_nomina || row.id.slice(0, 8),
+    matricula: row.matricula_o_nomina || null,
     createdAt: row.created_at ? new Date(row.created_at).toLocaleDateString('es-MX') : '',
     hasOverdueLoan,
     avatarColor: color,
@@ -201,4 +202,52 @@ export async function updateManagedUser(
     console.error('[UsersService] Update failed:', err);
     return false;
   }
+}
+
+/**
+ * Consulta los IDs de usuarios con sanciones o multas pendientes de pago
+ * para garantizar que nunca sean desactivados por la configuración de generaciones.
+ */
+export async function fetchPendingSanctionsUserIds(): Promise<Set<string>> {
+  const result = new Set<string>();
+  try {
+    // 1. Intentar vía backend reportes/siabuc
+    const token = localStorage.getItem('acervo_token');
+    const headers: Record<string, string> = {
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    };
+    const res = await fetch('/api/v1/reports/siabuc', { headers });
+    if (res.ok) {
+      const data = await res.json();
+      const detalle = data?.sanciones?.detalle;
+      if (Array.isArray(detalle)) {
+        for (const item of detalle) {
+          if (item?.usuario_id && item?.estado_pago === 'pendiente') {
+            result.add(String(item.usuario_id));
+          }
+        }
+      }
+    }
+  } catch (err) {
+    console.warn('[UsersService] Could not fetch sanctions from SIABUC proxy, checking Supabase fallback:', err);
+  }
+
+  // Fallback con cliente Supabase si aún está vacío
+  if (result.size === 0) {
+    try {
+      const { data } = await supabase
+        .from('sanciones_multas')
+        .select('usuario_id, estado_pago')
+        .eq('estado_pago', 'pendiente');
+      if (Array.isArray(data)) {
+        for (const item of data) {
+          if (item.usuario_id) result.add(String(item.usuario_id));
+        }
+      }
+    } catch {
+      // Ignorar si la tabla no existe o no tiene registros
+    }
+  }
+
+  return result;
 }

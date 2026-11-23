@@ -2,6 +2,7 @@ import React from 'react';
 import { Eye, SquarePen, Ban, CheckCircle2 } from 'lucide-react';
 import { UserTypeBadge } from './UserTypeBadge';
 import { UserStatusBadge } from './UserStatusBadge';
+import { extractGeneration } from '../users.generation';
 import type { ManagedUser } from '../users.types';
 
 interface UsersTableProps {
@@ -22,20 +23,20 @@ export const UsersTable: React.FC<UsersTableProps> = ({
       <div className="users-table-wrapper">
         <table className="users-table" aria-label="Tabla de usuarios del sistema">
           <colgroup>
-            <col style={{ width: '20%' }} />
-            <col style={{ width: '19%' }} />
+            <col style={{ width: '22%' }} />
             <col style={{ width: '13%' }} />
-            <col style={{ width: '11%' }} />
-            <col style={{ width: '12%' }} />
+            <col style={{ width: '13%' }} />
             <col style={{ width: '13%' }} />
             <col style={{ width: '12%' }} />
+            <col style={{ width: '13%' }} />
+            <col style={{ width: '14%' }} />
           </colgroup>
           <thead>
             <tr>
               <th scope="col">USUARIO</th>
-              <th scope="col">CORREO ELECTRÓNICO</th>
-              <th scope="col">TELÉFONO</th>
-              <th scope="col">ROL</th>
+              <th scope="col">MATRÍCULA / FOLIO</th>
+              <th scope="col">TIPO DE USUARIO</th>
+              <th scope="col">GENERACIÓN</th>
               <th scope="col">ESTADO</th>
               <th scope="col" className="users-th-center">PRÉSTAMOS ACTIVOS</th>
               <th scope="col" className="users-th-center">ACCIONES</th>
@@ -52,9 +53,12 @@ export const UsersTable: React.FC<UsersTableProps> = ({
                   .join('')
                   .toUpperCase();
 
+              // Derivación segura de la generación y periodo de ingreso
+              const generationInfo = extractGeneration(user.matricula || user.borrowerCode);
+
               return (
                 <tr key={user.id} className="users-table-row" title={`Folio: ${user.borrowerCode}`}>
-                  {/* USUARIO: Avatar + Nombre + Subtítulo */}
+                  {/* USUARIO: Avatar + Nombre + Correo */}
                   <td className="users-td-user">
                     <div className="users-user-cell">
                       <div
@@ -66,32 +70,42 @@ export const UsersTable: React.FC<UsersTableProps> = ({
                       </div>
                       <div className="users-user-info">
                         <span className="users-user-name">{user.fullName}</span>
-                        <span className="users-user-meta">
-                          {user.kind === 'NORMAL' && user.category === 'ROOM' ? (
-                            <span className="users-room-tag">
-                              Responsable: {user.roomResponsibleName || 'No asignado'}
-                            </span>
-                          ) : (
-                            <span>{user.createdAt}</span>
-                          )}
-                        </span>
+                        <span className="users-user-email">{user.email}</span>
                       </div>
                     </div>
                   </td>
 
-                  {/* CORREO ELECTRÓNICO */}
-                  <td className="users-td-email">
-                    <span className="users-email-text">{user.email}</span>
+                  {/* MATRÍCULA O IDENTIFICADOR */}
+                  <td className="users-td-code">
+                    <span className="users-matricula-text" title={user.borrowerCode}>
+                      {user.borrowerCode}
+                    </span>
                   </td>
 
-                  {/* TELÉFONO */}
-                  <td className="users-td-phone">
-                    <span className="users-phone-text">{user.phone || '—'}</span>
-                  </td>
-
-                  {/* ROL / CATEGORÍA */}
+                  {/* TIPO DE USUARIO */}
                   <td className="users-td-role">
                     <UserTypeBadge user={user} />
+                  </td>
+
+                  {/* GENERACIÓN DERIVADA */}
+                  <td className="users-td-gen">
+                    {generationInfo ? (
+                      <div className="users-gen-cell">
+                        <span className="users-gen-year">
+                          {generationInfo.year}
+                        </span>
+                        <span className="users-gen-period">
+                          Periodo {generationInfo.period}
+                        </span>
+                      </div>
+                    ) : (
+                      <span
+                        className="users-gen-na"
+                        title="La matrícula no contiene formato de generación estudiantil"
+                      >
+                        No disponible
+                      </span>
+                    )}
                   </td>
 
                   {/* ESTADO */}

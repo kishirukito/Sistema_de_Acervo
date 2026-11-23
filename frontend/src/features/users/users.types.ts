@@ -9,6 +9,14 @@ export type NormalUserCategory =
   | 'ROOM'
   | 'GRADUATE';
 
+export type UserClassification =
+  | 'ALL'
+  | 'STUDENT'
+  | 'TEACHER'
+  | 'ADMINISTRATIVE'
+  | 'GRADUATE'
+  | 'EXTERNAL';
+
 export type UserStatus = 'ACTIVE' | 'INACTIVE' | 'SUSPENDED';
 
 export interface Carrera {
@@ -26,6 +34,7 @@ export interface BaseManagedUser {
   status: UserStatus;
   activeLoans: number;
   borrowerCode: string;
+  matricula?: string | null; // Matrícula institucional real
   createdAt: string; // Formatted date or ISO
   hasOverdueLoan?: boolean;
   avatarColor?: string;
@@ -53,9 +62,12 @@ export type ManagedUser = AdministrativeUser | NormalUser;
 
 export interface UsersFilterState {
   searchQuery: string;
-  kind: '' | UserKind;
-  roleOrCategory: string;
+  classification: UserClassification;
+  generation: string; // ej. "2023" o ""
   status: '' | UserStatus | 'OVERDUE';
+  // Campos de compatibilidad hacia atrás
+  kind?: '' | UserKind;
+  roleOrCategory?: string;
 }
 
 export interface UsersMetricsData {
