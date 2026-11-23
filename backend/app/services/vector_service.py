@@ -433,7 +433,11 @@ Responde ÚNICAMENTE en JSON con esta estructura exacta:
             except Exception:
                 keep_alive_val = settings.OLLAMA_KEEP_ALIVE
 
-            async with httpx.AsyncClient(timeout=30.0) as client:
+            # Presupuesto dinámico: ~130 tokens y ~6s por libro candidato (mínimo 400 tokens / 30s)
+            token_budget = min(max(400, len(candidate_books) * 130), 1500)
+            timeout_budget = min(max(30.0, len(candidate_books) * 6.0), 90.0)
+
+            async with httpx.AsyncClient(timeout=timeout_budget) as client:
                 res = await client.post(
                     f"{settings.OLLAMA_BASE_URL}/api/chat",
                     json={
@@ -449,7 +453,7 @@ Responde ÚNICAMENTE en JSON con esta estructura exacta:
                             "temperature": 0.0,
                             "top_p": 0.8,
                             "repeat_penalty": 1.1,
-                            "num_predict": 600
+                            "num_predict": token_budget
                         }
                     }
                 )
