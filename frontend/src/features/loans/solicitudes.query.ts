@@ -9,7 +9,7 @@
  */
 
 import type { BorrowRequest } from '../../types';
-import { getUserBorrowRequests } from './requests.service';
+import { getUserBorrowRequests, USER_REQUESTS_STORAGE_KEY } from './requests.service';
 
 // ─── Query Keys ───────────────────────────────────────────────────────────────
 
@@ -62,12 +62,23 @@ export async function fetchUserSolicitudes(
     const data: any[] = await res.json();
     const apiRows = data.map(mapApiRowToRequest);
 
-    // Merge con localStorage para solicitudes que aún no llegaron al backend
+    // Limpieza de duplicados: descartar de localStorage las solicitudes que ya están en Supabase
     const localReqs = getUserBorrowRequests({ id: userId, email: userEmail });
     const apiIds = new Set(apiRows.map((r) => r.id));
-    const localOnly = localReqs.filter((r) => !apiIds.has(r.id));
+    const apiBookIds = new Set(apiRows.map((r) => `${r.bookId}_${r.status}`));
 
-    return [...apiRows, ...localOnly];
+    // Mantener solo solicitudes locales no sincronizadas (offline)
+    const localOnly = localReqs.filter(
+      (r) => !apiIds.has(r.id) && !apiBookIds.has(`${r.bookId}_${r.status}`)
+    );
+
+    // Actualizar localStorage para remover los folios temporales (SOL-2026-xxxx) ya registrados en BD
+    try {
+      localStorage.setItem(USER_REQUESTS_STORAGE_KEY, JSON.stringify(localOnly));
+    } catch {}
+
+    // Si hay datos en la API de Supabase, devolver exclusivamente los registros reales
+    return apiRows.length > 0 ? apiRows : localOnly;
   } catch {
     // Fallback: solo solicitudes del localStorage del propio usuario
     return getUserBorrowRequests({ id: userId, email: userEmail });
