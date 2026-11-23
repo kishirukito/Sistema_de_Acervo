@@ -151,12 +151,24 @@ async def busqueda_inteligente(
     current_user: Dict[str, Any] = Depends(get_current_user)
 ):
     """
-    Búsqueda Semántica en Lenguaje Natural con nomic-embed-text y Grounding anti-alucinaciones con llama3.2:3b.
-    Utiliza búsqueda híbrida (70% vectorial + 30% léxica) con umbral dinámico.
-    Devuelve los libros reales coincidentes con disponibilidad en tiempo real y justificación fundamentada.
+    Búsqueda Semántica Inteligente con estrategia dual:
+    1. Intenta primero con pgvector en Supabase (índice HNSW, más rápido y escalable).
+    2. Si pgvector falla o no está configurado, cae automáticamente a búsqueda
+       híbrida en memoria (70% vectorial + 30% léxica con umbral dinámico).
+    El frontend no necesita saber qué motor se usó — el fallback es transparente.
     """
     try:
         top_k = payload.top_k or 5
+
+        # Estrategia 1: pgvector (primaria)
+        try:
+            res = await VectorService.smart_search_pgvector(query=payload.query, top_k=top_k)
+            if res.get("total_encontrados", 0) > 0:
+                return res
+        except Exception as pgv_err:
+            print(f"[AI Router] pgvector no disponible, usando búsqueda híbrida en memoria: {pgv_err}")
+
+        # Estrategia 2: Búsqueda híbrida en memoria (fallback)
         res = await VectorService.smart_search(query=payload.query, top_k=top_k)
         return res
     except Exception as e:
