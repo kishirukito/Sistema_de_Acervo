@@ -395,23 +395,23 @@ class VectorService:
         )
 
         prompt = f"""Eres el auditor bibliotecario del Sistema de Acervo Universitario.
+Tu misión es EVITAR ABSOLUTAMENTE falsos positivos. Los estudiantes confían en recomendaciones exactas.
+
 Consulta del usuario: "{query}"
 
 Catálogo de libros candidatos recuperados:
 {books_context}
 
-Tu objetivo es evaluar con precisión la relación entre la consulta del usuario y los libros del catálogo.
-Clasifica cada libro en uno de estos tres niveles:
-- "directo": El libro aborda específicamente el tema exacto pedido (ej. un libro especializado en Python para consulta de Python, o El Principito para consulta de literatura/principito).
-- "relacionado": El libro no es específico del tema pedido, pero comparte el área general o disciplinas afines útiles para el estudiante (ej. libros de programación general o algoritmos cuando busca un lenguaje de programación específico).
-- "irrelevante": El libro NO tiene ninguna relación con el tema (ej. literatura, cocina, novelas si busca programación; o informática si busca medicina o el corazón humano).
+Evalúa si cada libro candidato realmente atiende la consulta del usuario "{query}":
+- "directo": El libro trata específicamente sobre el tema de la consulta (ej. consulta 'python' -> libro de programación en Python; consulta 'cálculo' -> libro de cálculo).
+- "relacionado": El libro NO trata el tema exacto, pero pertenece ESTRICTAMENTE a la misma especialidad temática (ej. consulta 'React' -> libro de JavaScript o Desarrollo Web). 
+- "irrelevante": El libro trata sobre un área o disciplina distinta (ej. la consulta es 'medicina', 'corazón', 'cocina', 'leyes', y el libro es de informática o matemáticas).
 
-REGLAS OBLIGATORIAS:
-1. "The Little Prince" NUNCA puede ser considerado relevante para temas de tecnología, informática, programación, ciencias exactas ni medicina (debe ser "irrelevante", relevante: false).
-2. Si un libro no pertenece al área temática de la consulta (por ejemplo libros de informática cuando el usuario busca medicina, cardiología o biología), clasifícalos OBLIGATORIAMENTE como "irrelevante", relevante: false.
-3. Si el libro no aborda el tema o es irrelevante, marca "relevante": false.
-4. Si NINGÚN libro es relevante, todos deben tener "relevante": false.
-5. En "razon", redacta 1 línea honesta sin fingir relaciones remotas ni especulativas.
+REGLAS DE RECHAZO OBLIGATORIAS:
+1. Si la consulta pertenece a un campo ajeno al libro (ej. salud, cardiología, medicina, biología, cocina frente a libros de tecnología o cálculo), clasifícalo OBLIGATORIAMENTE como "irrelevante", relevante: false.
+2. NUNCA clasifiques un libro como "relacionado" simplemente porque "ambos son ciencias" o "comparte el acervo universitario". Si el contenido no ayuda al estudiante con "{query}", es "irrelevante".
+3. Ante la menor duda sobre la relevancia del libro, márcalo como "irrelevante", relevante: false. Es infinitamente mejor responder que no hay libros a entregar una recomendación absurda.
+4. "The Little Prince" (El Principito) NUNCA es relevante para temas técnicos, ingeniería, programación, ciencias ni medicina.
 
 Responde ÚNICAMENTE en JSON con esta estructura exacta:
 {{
@@ -420,7 +420,7 @@ Responde ÚNICAMENTE en JSON con esta estructura exacta:
       "id": "ID del libro",
       "relevante": true o false,
       "nivel": "directo" o "relacionado" o "irrelevante",
-      "razon": "Justificación concisa de 1 línea"
+      "razon": "Explicación breve y honesta de por qué sí o por qué no"
     }}
   ]
 }}"""
@@ -459,7 +459,8 @@ Responde ÚNICAMENTE en JSON con esta estructura exacta:
                     disqualify_phrases = [
                         "no se trata", "no trata", "no aborda", "no contiene", "no tiene relacion", 
                         "no se relaciona", "no está relacionado", "no esta relacionado", "diferente tema",
-                        "irrelevante", "no menciona", "no es de"
+                        "irrelevante", "no menciona", "no es de", "comparte área general", "comparte el área general",
+                        "área general de", "campo distinto", "área distinta", "disciplina distinta", "materia distinta"
                     ]
                     for item in items:
                         if not isinstance(item, dict) or "id" not in item:
@@ -574,14 +575,9 @@ Responde ÚNICAMENTE en JSON con esta estructura exacta:
                 "resultados": []
             }
 
-        # Umbral dinámico según longitud de la consulta
+        # Umbral calibrado (en nomic-embed-text el piso de ruido en español ronda 0.40-0.44)
         word_count = len(core_query.split())
-        if word_count <= 2:
-            min_score = 0.40  # Consultas cortas: umbral más permisivo
-        elif word_count >= 6:
-            min_score = 0.48  # Consultas largas: umbral más estricto
-        else:
-            min_score = 0.45  # Consultas normales: umbral base
+        min_vector_threshold = 0.48 if word_count >= 6 else 0.46
 
         # Preparar palabras de búsqueda léxica (sin stopwords)
         lexical_words = [
@@ -603,11 +599,11 @@ Responde ÚNICAMENTE en JSON con esta estructura exacta:
             vector_score = cosine_similarity(query_emb, b_emb)
             lexical_sc = cls._lexical_score(lexical_words, book_data)
 
-            # Puntaje combinado híbrido
-            hybrid_score = (vector_score * VECTOR_WEIGHT) + (lexical_sc * LEXICAL_WEIGHT)
-
-            # Aceptar si el puntaje híbrido supera el umbral O si hay match léxico fuerte
-            if hybrid_score >= min_score or (lexical_sc >= 0.5 and vector_score >= 0.30):
+            # Para ser candidato válido:
+            # - Debe superar el umbral semántico seguro (0.46)
+            # - O si tiene coincidencia léxica directa relevante (>=0.5), permitir vector desde 0.35
+            if vector_score >= min_vector_threshold or (lexical_sc >= 0.5 and vector_score >= 0.35):
+                hybrid_score = (vector_score * VECTOR_WEIGHT) + (lexical_sc * LEXICAL_WEIGHT)
                 scored_candidates.append((hybrid_score, book_data))
 
         scored_candidates.sort(key=lambda x: x[0], reverse=True)
@@ -651,6 +647,12 @@ Responde ÚNICAMENTE en JSON con esta estructura exacta:
             nivel = eval_info.get("nivel", "relacionado")
             razon = eval_info.get("razon", f"Obra académica relacionada temáticamente con '{clean_query}'.")
 
+            # Filtro estricto anti falsos positivos:
+            # Si el nivel es "relacionado" pero no comparte ninguna palabra con la consulta y el score es marginal (< 0.48), se descarta
+            lex_sc = cls._lexical_score(lexical_words, b)
+            if nivel == "relacionado" and raw_score < 0.48 and lex_sc == 0.0:
+                continue
+
             # Calibración de coincidencia según nivel verificado
             if nivel == "directo":
                 pct = round(min(max((raw_score - 0.45) / 0.35 * 30 + 70, 75.0), 98.5), 1)
@@ -676,6 +678,14 @@ Responde ÚNICAMENTE en JSON con esta estructura exacta:
                 "match_level": level,
                 "explicacion": razon
             })
+
+        if not resultados:
+            return {
+                "query": query,
+                "total_encontrados": 0,
+                "mensaje": "Actualmente no contamos con libros en el acervo que aborden ese tema.",
+                "resultados": []
+            }
 
         # Ordenar por porcentaje de coincidencia desc
         resultados.sort(key=lambda x: x["porcentaje_coincidencia"], reverse=True)
@@ -768,9 +778,15 @@ Responde ÚNICAMENTE en JSON con esta estructura exacta:
             # Fallback al método clásico en memoria si no se puede generar embedding
             return await cls.smart_search(query, top_k)
 
-        # Umbral dinámico
+        # Umbral dinámico calibrado (en nomic-embed-text el piso de ruido en español ronda 0.40-0.44)
         word_count = len(core_query.split())
-        min_threshold = 0.40 if word_count <= 2 else 0.48 if word_count >= 6 else 0.45
+        min_threshold = 0.48 if word_count >= 6 else 0.46
+
+        lexical_words = [
+            w.lower().strip("?,.:;!\"'()[]")
+            for w in core_query.split()
+            if len(w) > 2 and w.lower() not in QUERY_STOP_WORDS
+        ]
 
         headers = {
             "apikey": settings.SUPABASE_SERVICE_ROLE_KEY,
@@ -888,6 +904,12 @@ Responde ÚNICAMENTE en JSON con esta estructura exacta:
             nivel = eval_info.get("nivel", "relacionado")
             razon = eval_info.get("razon", f"Obra académica relacionada con '{clean_query}'.")
 
+            # Filtro estricto anti falsos positivos:
+            # Si el nivel es "relacionado" pero no comparte ninguna palabra con la consulta y el score es marginal (< 0.48), se descarta
+            lex_sc = cls._lexical_score(lexical_words, b)
+            if nivel == "relacionado" and raw_score < 0.48 and lex_sc == 0.0:
+                continue
+
             if nivel == "directo":
                 pct = round(min(max((raw_score - 0.45) / 0.35 * 30 + 70, 75.0), 98.5), 1)
                 level = "high" if pct >= 85 else "medium"
@@ -911,6 +933,14 @@ Responde ÚNICAMENTE en JSON con esta estructura exacta:
                 "match_level": level,
                 "explicacion": razon
             })
+
+        if not resultados:
+            return {
+                "query": query,
+                "total_encontrados": 0,
+                "mensaje": "Actualmente no contamos con libros en el acervo que aborden ese tema.",
+                "resultados": []
+            }
 
         resultados.sort(key=lambda x: x["porcentaje_coincidencia"], reverse=True)
 
