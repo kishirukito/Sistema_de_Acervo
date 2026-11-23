@@ -447,7 +447,8 @@ Responde ÚNICAMENTE en JSON con esta estructura exacta:
                         "options": {
                             "temperature": 0.0,
                             "top_p": 0.8,
-                            "repeat_penalty": 1.1
+                            "repeat_penalty": 1.1,
+                            "num_predict": 250
                         }
                     }
                 )
@@ -487,7 +488,9 @@ Responde ÚNICAMENTE en JSON con esta estructura exacta:
                     return valid_items
             return {}
         except Exception as e:
-            print(f"[VectorService] Aviso: LLM grounding fallback heurístico ({e})")
+            err_name = type(e).__name__
+            err_desc = str(e) or "Timeout esperando turno en Ollama"
+            print(f"[VectorService] Aviso: LLM grounding fallback heurístico ({err_name}: {err_desc})")
 
         # Fallback heurístico determinista si el LLM no está disponible
         stop_words = {"un", "una", "el", "la", "los", "las", "de", "del", "en", "sobre", "que", "para", "con", "libro", "libros", "quiero", "busco", "necesito", "contenga", "informacion", "acerca"}

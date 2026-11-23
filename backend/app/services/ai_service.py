@@ -4,6 +4,28 @@ from collections import OrderedDict
 from typing import List, Dict, Any
 from app.core.config import settings
 
+# Caché LRU en Memoria para Sugerencias de Búsqueda (maxsize = 128)
+# ==============================================================================
+_SUGGESTIONS_CACHE: OrderedDict[str, List[str]] = OrderedDict()
+_SUGGESTIONS_CACHE_MAXSIZE = 128
+
+def get_cached_suggestions(query: str) -> List[str] | None:
+    norm = query.lower().strip()
+    if norm in _SUGGESTIONS_CACHE:
+        _SUGGESTIONS_CACHE.move_to_end(norm)
+        return _SUGGESTIONS_CACHE[norm]
+    return None
+
+def set_cached_suggestions(query: str, items: List[str]) -> None:
+    norm = query.lower().strip()
+    if not norm or not items:
+        return
+    if norm in _SUGGESTIONS_CACHE:
+        _SUGGESTIONS_CACHE.move_to_end(norm)
+    _SUGGESTIONS_CACHE[norm] = items
+    if len(_SUGGESTIONS_CACHE) > _SUGGESTIONS_CACHE_MAXSIZE:
+        _SUGGESTIONS_CACHE.popitem(last=False)
+
 # ==============================================================================
 # Caché LRU en Memoria para Embeddings (maxsize = 256)
 # ==============================================================================
@@ -177,10 +199,20 @@ class AIService:
         """
         Sugiere 3 a 4 tópicos breves y limpios (máx 3 palabras cada uno)
         directamente relacionados con el término de búsqueda, en formato JSON estricto sin saludos ni charla.
+        Incluye caché LRU y límite num_predict=60 para no congestionar el LLM con pulsaciones del teclado.
         """
         clean_q = query.strip()
         if not clean_q:
             return []
+
+        # Para consultas muy cortas (< 3 caracteres), devolver tópicos base sin despertar al LLM
+        if len(clean_q) < 3:
+            return ["Programación", "Ingeniería de Software", "Bases de Datos"]
+
+        # Verificar caché primero
+        cached = get_cached_suggestions(clean_q)
+        if cached is not None:
+            return cached
 
         prompt = f"""Eres un motor de búsqueda bibliotecario. El usuario busca: "{clean_q}".
 Genera de 3 a 4 etiquetas o materias académicas clave muy breves (máximo 3 palabras por etiqueta).
@@ -190,7 +222,7 @@ Responde ÚNICAMENTE un arreglo JSON de cadenas de texto con este formato exacto
 ["Etiqueta 1", "Etiqueta 2", "Etiqueta 3"]"""
 
         try:
-            async with httpx.AsyncClient(timeout=10.0) as client:
+            async with httpx.AsyncClient(timeout=6.0) as client:
                 response = await client.post(
                     f"{settings.OLLAMA_BASE_URL}/api/generate",
                     json={
@@ -199,7 +231,8 @@ Responde ÚNICAMENTE un arreglo JSON de cadenas de texto con este formato exacto
                         "stream": False,
                         "format": "json",
                         "options": {
-                            "temperature": 0.1
+                            "temperature": 0.1,
+                            "num_predict": 60
                         }
                     }
                 )
@@ -208,19 +241,22 @@ Responde ÚNICAMENTE un arreglo JSON de cadenas de texto con este formato exacto
                     parsed = json.loads(raw)
                     if isinstance(parsed, list):
                         clean_items = [str(x).strip().strip('"').strip("'") for x in parsed if isinstance(x, str) and len(str(x).strip()) > 1]
-                        return clean_items[:4]
+                        result = clean_items[:4]
+                        set_cached_suggestions(clean_q, result)
+                        return result
                     if isinstance(parsed, dict):
-                        # En caso de que el modelo devuelva {"etiquetas": [...]} o {"sugerencias": [...]}
                         for v in parsed.values():
                             if isinstance(v, list):
-                                return [str(x).strip() for x in v if isinstance(x, str)][:4]
+                                result = [str(x).strip() for x in v if isinstance(x, str)][:4]
+                                set_cached_suggestions(clean_q, result)
+                                return result
         except Exception as e:
-            print(f"[AIService] Error generando sugerencias con LLM: {e}")
+            err_name = type(e).__name__
+            err_desc = str(e) or "Timeout esperando turno en LLM"
+            print(f"[AIService] Aviso: Sugerencias LLM en fallback ({err_name}: {err_desc})")
 
         # Fallback limpio sin charla
         words = [w.capitalize() for w in clean_q.split() if len(w) > 3 and w.lower() not in {"quiero", "libro", "sobre", "contenga", "informacion", "acerca", "para"}]
-        if words:
-            return words[:4]
-        return ["Programación", "Ciencias de la Computación", "Ingeniería de Software"]
-
-        return [query, f"Fundamentos de {query}", f"Arquitectura y {query}"]
+        fallback_res = words[:4] if words else ["Programación", "Ciencias de la Computación", "Ingeniería de Software"]
+        set_cached_suggestions(clean_q, fallback_res)
+        return fallback_res
