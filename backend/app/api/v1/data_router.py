@@ -225,83 +225,98 @@ async def bulk_create_usuarios(
         import hashlib
         pw_hash = hashlib.sha256(b"Acervo2026!").hexdigest()
 
+    sem_usr = asyncio.Semaphore(5)
+
+    async def process_single_user(idx: int, item: Dict[str, Any]) -> Dict[str, Any]:
+        async with sem_usr:
+            try:
+                nombre = str(item.get("nombre_completo") or item.get("fullName") or item.get("nombre") or "").strip()
+                email = str(item.get("email") or item.get("correo") or "").strip().lower()
+                matricula = str(item.get("matricula_o_nomina") or item.get("matricula") or item.get("borrowerCode") or item.get("codigo") or "").strip()
+
+                if not nombre:
+                    return {
+                        "ok": False,
+                        "row": idx,
+                        "identifier": matricula or email or f"Fila {idx}",
+                        "error": "El nombre completo es obligatorio."
+                    }
+
+                if not email or "@" not in email:
+                    return {
+                        "ok": False,
+                        "row": idx,
+                        "identifier": matricula or nombre or f"Fila {idx}",
+                        "error": "El correo electrónico es inválido o está ausente."
+                    }
+
+                if not matricula:
+                    return {
+                        "ok": False,
+                        "row": idx,
+                        "identifier": email or nombre or f"Fila {idx}",
+                        "error": "La matrícula o código de usuario es obligatorio."
+                    }
+
+                rol_raw = str(item.get("rol") or item.get("role") or "alumno").lower().strip()
+                tipo_usuario_id = ROL_TO_TIPO.get(rol_raw, 3)
+
+                rol_norm = "lector"
+                if rol_raw in ["admin", "personal", "bibliotecario"]:
+                    rol_norm = "personal" if rol_raw == "personal" else "admin"
+                elif rol_raw in ["docente", "profesor", "maestro"]:
+                    rol_norm = "docente"
+
+                carrera_id_val = item.get("carrera_id") or item.get("carreraId") or None
+                dep_val = (item.get("dependencia_o_area") or item.get("dependenciaOArea") or item.get("carrera") or "").strip() or None
+
+                user_row = {
+                    "nombre_completo": nombre,
+                    "email": email,
+                    "password_hash": pw_hash,
+                    "tipo_usuario_id": tipo_usuario_id,
+                    "telefono": str(item.get("telefono") or item.get("phone") or "").strip() or None,
+                    "matricula_o_nomina": matricula,
+                    "rol": rol_norm,
+                    "carrera_id": carrera_id_val,
+                    "dependencia_o_area": dep_val,
+                    "estado": item.get("estado", "activo"),
+                }
+
+                res = await supabase_service.create_user(user_row)
+                return {
+                    "ok": True,
+                    "row": idx,
+                    "id": res.get("id"),
+                    "nombre": nombre,
+                    "matricula": matricula,
+                    "email": email
+                }
+            except Exception as e:
+                err_str = str(e)
+                if "duplicate" in err_str.lower() or "unique" in err_str.lower() or "23505" in err_str:
+                    error_desc = "La matrícula o el correo ya se encuentra registrado."
+                else:
+                    error_desc = f"Error al insertar: {err_str[:120]}"
+                return {
+                    "ok": False,
+                    "row": idx,
+                    "identifier": matricula or email or f"Fila {idx}",
+                    "error": error_desc
+                }
+
+    user_tasks = [process_single_user(idx, item) for idx, item in enumerate(items, start=1)]
+    user_results = await asyncio.gather(*user_tasks)
+
     successful = []
     failed = []
 
-    for idx, item in enumerate(items, start=1):
-        try:
-            nombre = str(item.get("nombre_completo") or item.get("fullName") or item.get("nombre") or "").strip()
-            email = str(item.get("email") or item.get("correo") or "").strip().lower()
-            matricula = str(item.get("matricula_o_nomina") or item.get("matricula") or item.get("borrowerCode") or item.get("codigo") or "").strip()
-
-            if not nombre:
-                failed.append({
-                    "row": idx,
-                    "identifier": matricula or email or f"Fila {idx}",
-                    "error": "El nombre completo es obligatorio."
-                })
-                continue
-
-            if not email or "@" not in email:
-                failed.append({
-                    "row": idx,
-                    "identifier": matricula or nombre or f"Fila {idx}",
-                    "error": "El correo electrónico es inválido o está ausente."
-                })
-                continue
-
-            if not matricula:
-                failed.append({
-                    "row": idx,
-                    "identifier": email or nombre or f"Fila {idx}",
-                    "error": "La matrícula o código de usuario es obligatorio."
-                })
-                continue
-
-            rol_raw = str(item.get("rol") or item.get("role") or "alumno").lower().strip()
-            tipo_usuario_id = ROL_TO_TIPO.get(rol_raw, 3)
-
-            rol_norm = "lector"
-            if rol_raw in ["admin", "personal", "bibliotecario"]:
-                rol_norm = "personal" if rol_raw == "personal" else "admin"
-            elif rol_raw in ["docente", "profesor", "maestro"]:
-                rol_norm = "docente"
-
-            carrera_id_val = item.get("carrera_id") or item.get("carreraId") or None
-            dep_val = (item.get("dependencia_o_area") or item.get("dependenciaOArea") or item.get("carrera") or "").strip() or None
-
-            user_row = {
-                "nombre_completo": nombre,
-                "email": email,
-                "password_hash": pw_hash,
-                "tipo_usuario_id": tipo_usuario_id,
-                "telefono": str(item.get("telefono") or item.get("phone") or "").strip() or None,
-                "matricula_o_nomina": matricula,
-                "rol": rol_norm,
-                "carrera_id": carrera_id_val,
-                "dependencia_o_area": dep_val,
-                "estado": item.get("estado", "activo"),
-            }
-
-            res = await supabase_service.create_user(user_row)
-            successful.append({
-                "row": idx,
-                "id": res.get("id"),
-                "nombre": nombre,
-                "matricula": matricula,
-                "email": email
-            })
-        except Exception as e:
-            err_str = str(e)
-            if "duplicate" in err_str.lower() or "unique" in err_str.lower() or "23505" in err_str:
-                error_desc = "La matrícula o el correo ya se encuentra registrado."
-            else:
-                error_desc = f"Error al insertar: {err_str[:120]}"
-            failed.append({
-                "row": idx,
-                "identifier": matricula or email or f"Fila {idx}",
-                "error": error_desc
-            })
+    for r in sorted(user_results, key=lambda x: x["row"]):
+        is_ok = r.pop("ok")
+        if is_ok:
+            successful.append(r)
+        else:
+            failed.append(r)
 
     return {
         "total": len(items),
@@ -509,59 +524,80 @@ async def bulk_create_libros(
             detail="Se requiere una lista de libros en el campo 'items'."
         )
 
+    sem_lib = asyncio.Semaphore(5)
+
+    async def process_single_book(idx: int, item: Dict[str, Any]) -> Dict[str, Any]:
+        async with sem_lib:
+            try:
+                isbn = str(item.get("isbn") or "").strip()
+                titulo = str(item.get("titulo") or item.get("title") or "").strip()
+                if not titulo:
+                    return {
+                        "ok": False,
+                        "row": idx,
+                        "identifier": isbn or f"Fila {idx}",
+                        "error": "El título del libro es obligatorio."
+                    }
+
+                # Adaptar claves comunes de plantillas Excel/CSV
+                portada_val = str(item.get("portada_url") or item.get("url_img") or item.get("imagen") or "").strip()
+                resumen_val = str(item.get("resumen") or item.get("descripcion") or item.get("description") or "").strip()
+                book_payload = {
+                    "isbn": isbn,
+                    "titulo": titulo,
+                    "autor": str(item.get("autor") or item.get("author") or "Autor Desconocido").strip(),
+                    "editorial": str(item.get("editorial") or item.get("publisher") or "Editorial General").strip(),
+                    "anio_publicacion": item.get("anio_publicacion") or item.get("anio") or item.get("publishYear") or 2024,
+                    "categoria": str(item.get("categoria") or item.get("clasificacion_dewey") or item.get("dewey") or "000").strip(),
+                    "ejemplares_iniciales": item.get("ejemplares_iniciales") or item.get("ejemplares") or item.get("copias") or 1,
+                    "ubicacion": str(item.get("ubicacion") or item.get("location") or "Estante General").strip(),
+                    "edicion": str(item.get("edicion") or item.get("edition") or "1ra Edición").strip(),
+                    "resumen": resumen_val,
+                    "descripcion": resumen_val,
+                    "portada_url": portada_val or None,
+                }
+
+                res = await supabase_service.create_book(book_payload)
+                book_id = res.get("id") if isinstance(res, dict) else None
+                return {
+                    "ok": True,
+                    "row": idx,
+                    "id": book_id,
+                    "titulo": titulo,
+                    "isbn": isbn
+                }
+            except Exception as e:
+                err_msg = str(e)
+                if "23505" in err_msg or "duplicate key" in err_msg or "registrado" in err_msg:
+                    error_desc = f"El ISBN {item.get('isbn')} ya se encuentra registrado."
+                else:
+                    error_desc = f"Error al procesar registro: {err_msg[:120]}"
+                return {
+                    "ok": False,
+                    "row": idx,
+                    "identifier": item.get("isbn") or item.get("titulo") or f"Fila {idx}",
+                    "error": error_desc
+                }
+
+    book_tasks = [process_single_book(idx, item) for idx, item in enumerate(items, start=1)]
+    raw_results = await asyncio.gather(*book_tasks)
+
     successful = []
     failed = []
+    successful_ids = []
 
-    for idx, item in enumerate(items, start=1):
-        try:
-            isbn = str(item.get("isbn") or "").strip()
-            titulo = str(item.get("titulo") or item.get("title") or "").strip()
-            if not titulo:
-                failed.append({
-                    "row": idx,
-                    "identifier": isbn or f"Fila {idx}",
-                    "error": "El título del libro es obligatorio."
-                })
-                continue
+    for r in sorted(raw_results, key=lambda x: x["row"]):
+        is_ok = r.pop("ok")
+        if is_ok:
+            successful.append(r)
+            if r.get("id"):
+                successful_ids.append(r["id"])
+        else:
+            failed.append(r)
 
-            # Adaptar claves comunes de plantillas Excel/CSV
-            portada_val = str(item.get("portada_url") or item.get("url_img") or item.get("imagen") or "").strip()
-            resumen_val = str(item.get("resumen") or item.get("descripcion") or item.get("description") or "").strip()
-            book_payload = {
-                "isbn": isbn,
-                "titulo": titulo,
-                "autor": str(item.get("autor") or item.get("author") or "Autor Desconocido").strip(),
-                "editorial": str(item.get("editorial") or item.get("publisher") or "Editorial General").strip(),
-                "anio_publicacion": item.get("anio_publicacion") or item.get("anio") or item.get("publishYear") or 2024,
-                "categoria": str(item.get("categoria") or item.get("clasificacion_dewey") or item.get("dewey") or "000").strip(),
-                "ejemplares_iniciales": item.get("ejemplares_iniciales") or item.get("ejemplares") or item.get("copias") or 1,
-                "ubicacion": str(item.get("ubicacion") or item.get("location") or "Estante General").strip(),
-                "edicion": str(item.get("edicion") or item.get("edition") or "1ra Edición").strip(),
-                "resumen": resumen_val,
-                "descripcion": resumen_val,
-                "portada_url": portada_val or None,
-            }
-
-            res = await supabase_service.create_book(book_payload)
-            if isinstance(res, dict) and res.get("id"):
-                asyncio.create_task(VectorService.index_single_book(res["id"]))
-            successful.append({
-                "row": idx,
-                "id": res.get("id") if isinstance(res, dict) else None,
-                "titulo": titulo,
-                "isbn": isbn
-            })
-        except Exception as e:
-            err_msg = str(e)
-            if "23505" in err_msg or "duplicate key" in err_msg or "registrado" in err_msg:
-                error_desc = f"El ISBN {item.get('isbn')} ya se encuentra registrado."
-            else:
-                error_desc = f"Error al procesar registro: {err_msg[:120]}"
-            failed.append({
-                "row": idx,
-                "identifier": item.get("isbn") or item.get("titulo") or f"Fila {idx}",
-                "error": error_desc
-            })
+    # Programar indexación vectorial en segundo plano de manera no bloqueante
+    if successful_ids:
+        asyncio.create_task(VectorService.index_books_batch_bg(successful_ids))
 
     invalidate_siabuc_cache()
     invalidate_books_cache()

@@ -268,6 +268,17 @@ class VectorService:
                 cls.save_index_to_disk()
 
     @classmethod
+    async def index_books_batch_bg(cls, book_ids: List[str]) -> None:
+        """
+        Indexa en segundo plano una lista de libros sin bloquear el proceso de inserción.
+        """
+        for b_id in book_ids:
+            try:
+                await cls.index_single_book(b_id)
+            except Exception as e:
+                print(f"[VectorService] Error en indexación en segundo plano para {b_id}: {e}")
+
+    @classmethod
     async def index_all_books(cls) -> Dict[str, Any]:
         """
         Indexa en lote todos los libros de la base de datos Supabase con nomic-embed-text.
