@@ -606,8 +606,9 @@ Responde ÚNICAMENTE en JSON con esta estructura exacta:
             # - Debe superar el umbral semántico seguro (0.46)
             # - O si tiene coincidencia léxica directa relevante (>=0.5), permitir vector desde 0.35
             if vector_score >= min_vector_threshold or (lexical_sc >= 0.5 and vector_score >= 0.35):
-                hybrid_score = (vector_score * VECTOR_WEIGHT) + (lexical_sc * LEXICAL_WEIGHT)
-                scored_candidates.append((hybrid_score, book_data))
+                # Boost léxico sumado al score vectorial
+                hybrid_score = vector_score + (lexical_sc * 0.15)
+                scored_candidates.append((hybrid_score, vector_score, book_data))
 
         scored_candidates.sort(key=lambda x: x[0], reverse=True)
 
@@ -616,12 +617,13 @@ Responde ÚNICAMENTE en JSON con esta estructura exacta:
                 "query": query,
                 "total_encontrados": 0,
                 "mensaje": "Actualmente no contamos con libros en el acervo que aborden ese tema.",
-                "resultados": []
+                "resultados": [],
+                "motor": "memoria_hibrida"
             }
 
         # Tomar los top candidatos para la validación grounded
-        top_candidates = [b for _, b in scored_candidates[:top_k]]
-        candidate_scores = {b["id"]: s for s, b in scored_candidates[:top_k]}
+        top_candidates = [b for _, _, b in scored_candidates[:top_k]]
+        candidate_scores = {b["id"]: v_sc for _, v_sc, b in scored_candidates[:top_k]}
 
         # Paso B y C: Grounding con LLM para asegurar que no se devuelvan falsos positivos
         grounded_explanations = await cls.ground_with_llm(clean_query, top_candidates)
@@ -632,7 +634,8 @@ Responde ÚNICAMENTE en JSON con esta estructura exacta:
                 "query": query,
                 "total_encontrados": 0,
                 "mensaje": "Actualmente no contamos con libros en el acervo que aborden ese tema.",
-                "resultados": []
+                "resultados": [],
+                "motor": "memoria_hibrida"
             }
 
         # Filtrar solo los libros verificados
@@ -687,7 +690,8 @@ Responde ÚNICAMENTE en JSON con esta estructura exacta:
                 "query": query,
                 "total_encontrados": 0,
                 "mensaje": "Actualmente no contamos con libros en el acervo que aborden ese tema.",
-                "resultados": []
+                "resultados": [],
+                "motor": "memoria_hibrida"
             }
 
         # Ordenar por porcentaje de coincidencia desc
@@ -697,7 +701,8 @@ Responde ÚNICAMENTE en JSON con esta estructura exacta:
             "query": query,
             "total_encontrados": len(resultados),
             "mensaje": f"Se encontraron {len(resultados)} libro(s) en el acervo que abordan tu búsqueda.",
-            "resultados": resultados
+            "resultados": resultados,
+            "motor": "memoria_hibrida"
         }
 
     # ==========================================================================
@@ -825,7 +830,8 @@ Responde ÚNICAMENTE en JSON con esta estructura exacta:
                 "query": query,
                 "total_encontrados": 0,
                 "mensaje": "Actualmente no contamos con libros en el acervo que aborden ese tema.",
-                "resultados": []
+                "resultados": [],
+                "motor": "pgvector_hnsw"
             }
 
         # Construir candidatos para grounding
@@ -892,7 +898,8 @@ Responde ÚNICAMENTE en JSON con esta estructura exacta:
                 "query": query,
                 "total_encontrados": 0,
                 "mensaje": "Actualmente no contamos con libros en el acervo que aborden ese tema.",
-                "resultados": []
+                "resultados": [],
+                "motor": "pgvector_hnsw"
             }
 
         verified_books = [b for b in top_candidates if b["id"] in grounded_explanations]
@@ -942,7 +949,8 @@ Responde ÚNICAMENTE en JSON con esta estructura exacta:
                 "query": query,
                 "total_encontrados": 0,
                 "mensaje": "Actualmente no contamos con libros en el acervo que aborden ese tema.",
-                "resultados": []
+                "resultados": [],
+                "motor": "memoria_hibrida"
             }
 
         resultados.sort(key=lambda x: x["porcentaje_coincidencia"], reverse=True)

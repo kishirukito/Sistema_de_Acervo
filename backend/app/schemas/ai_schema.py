@@ -61,4 +61,5 @@ class SmartSearchResponse(BaseModel):
     total_encontrados: int
     mensaje: str
     resultados: List[SmartSearchResultItem]
+    motor: Optional[str] = Field(default=None, description="Motor utilizado: 'pgvector_hnsw' o 'memoria_hibrida'")
 
