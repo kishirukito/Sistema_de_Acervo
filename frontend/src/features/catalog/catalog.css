@@ -82,6 +82,10 @@
   width: 100%;
 }
 
+.catalog-toolbar-row .custom-select-container {
+  min-width: 140px;
+}
+
 .catalog-search-wrapper {
   position: relative;
   flex: 1;

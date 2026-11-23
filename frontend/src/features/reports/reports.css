@@ -60,6 +60,10 @@
   flex: 1;
 }
 
+.reports-toolbar-left .custom-select-container {
+  min-width: 140px;
+}
+
 .reports-date-picker-btn {
   height: 38px;
   padding: 0 14px;

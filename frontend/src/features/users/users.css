@@ -187,6 +187,10 @@
   flex-shrink: 0;
 }
 
+.users-filters-row .custom-select-container {
+  min-width: 130px;
+}
+
 .users-select {
   height: 40px;
   padding: 0 32px 0 12px;

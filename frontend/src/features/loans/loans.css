@@ -290,6 +290,10 @@
   flex-shrink: 0;
 }
 
+.loans-filters-group .custom-select-container {
+  min-width: 130px;
+}
+
 .loans-select {
   height: 40px;
   padding: 0 32px 0 12px;
