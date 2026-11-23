@@ -101,9 +101,11 @@ export function getBorrowRequestById(id: string): BorrowRequest | undefined {
 export function formatSuggestedDate(dateInput: Date | string): string {
   let date: Date;
   if (typeof dateInput === 'string') {
-    if (dateInput.includes('-')) {
-      const [year, month, day] = dateInput.split('-').map(Number);
-      date = new Date(year, month - 1, day);
+    if (dateInput.includes('T')) {
+      date = new Date(dateInput);
+    } else if (dateInput.includes('-')) {
+      const parts = dateInput.split('T')[0].split('-').map(Number);
+      date = new Date(parts[0], parts[1] - 1, parts[2]);
     } else {
       date = new Date(dateInput);
     }
