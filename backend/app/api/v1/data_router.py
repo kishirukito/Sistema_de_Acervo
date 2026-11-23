@@ -525,6 +525,8 @@ async def bulk_create_libros(
                 continue
 
             # Adaptar claves comunes de plantillas Excel/CSV
+            portada_val = str(item.get("portada_url") or item.get("url_img") or item.get("imagen") or "").strip()
+            resumen_val = str(item.get("resumen") or item.get("descripcion") or item.get("description") or "").strip()
             book_payload = {
                 "isbn": isbn,
                 "titulo": titulo,
@@ -535,7 +537,9 @@ async def bulk_create_libros(
                 "ejemplares_iniciales": item.get("ejemplares_iniciales") or item.get("ejemplares") or item.get("copias") or 1,
                 "ubicacion": str(item.get("ubicacion") or item.get("location") or "Estante General").strip(),
                 "edicion": str(item.get("edicion") or item.get("edition") or "1ra Edición").strip(),
-                "resumen": str(item.get("resumen") or item.get("descripcion") or item.get("description") or "").strip(),
+                "resumen": resumen_val,
+                "descripcion": resumen_val,
+                "portada_url": portada_val or None,
             }
 
             res = await supabase_service.create_book(book_payload)

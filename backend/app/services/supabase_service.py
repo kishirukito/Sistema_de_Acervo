@@ -488,7 +488,7 @@ class SupabaseService:
             anio = 2026
 
         edicion = str(data.get("edicion") or "1ra Edición").strip()
-        portada_url = data.get("portada_url") or data.get("coverUrl") or "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&q=80&w=400"
+        portada_url = data.get("portada_url") or data.get("url_img") or data.get("coverUrl") or "https://images.unsplash.com/photo-1544716278-ca5e3f4abd8c?auto=format&fit=crop&q=80&w=400"
         categoria = str(data.get("categoria") or data.get("category") or "000").strip()
         
         total_copias = data.get("ejemplares_iniciales") or data.get("total_copias") or data.get("totalCopies") or 1
@@ -499,7 +499,7 @@ class SupabaseService:
         total_copias = max(1, min(total_copias, 50))
 
         ubicacion = str(data.get("ubicacion_estante") or data.get("ubicacion") or data.get("location") or "Estante General").strip()
-        descripcion = str(data.get("descripcion") or data.get("description") or "").strip()
+        descripcion = str(data.get("descripcion") or data.get("resumen") or data.get("description") or "").strip()
 
         async with httpx.AsyncClient(timeout=15.0) as client:
             # -------------------------------------------------------------

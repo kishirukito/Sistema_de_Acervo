@@ -52,6 +52,12 @@ const BOOK_HEADER_MAP: Record<string, string> = {
   descripcion: 'resumen',
   description: 'resumen',
   summary: 'resumen',
+  url_img: 'portada_url',
+  url_imagen: 'portada_url',
+  portada: 'portada_url',
+  portada_url: 'portada_url',
+  cover_url: 'portada_url',
+  imagen: 'portada_url',
 };
 
 /**
