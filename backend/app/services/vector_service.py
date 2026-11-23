@@ -412,6 +412,7 @@ REGLAS DE RECHAZO OBLIGATORIAS:
 2. NUNCA clasifiques un libro como "relacionado" simplemente porque "ambos son ciencias" o "comparte el acervo universitario". Si el contenido no ayuda al estudiante con "{query}", es "irrelevante".
 3. Ante la menor duda sobre la relevancia del libro, márcalo como "irrelevante", relevante: false. Es infinitamente mejor responder que no hay libros a entregar una recomendación absurda.
 4. "The Little Prince" (El Principito) NUNCA es relevante para temas técnicos, ingeniería, programación, ciencias ni medicina.
+5. En "razon", redacta una justificación muy breve (máximo 15 palabras).
 
 Responde ÚNICAMENTE en JSON con esta estructura exacta:
 {{
@@ -420,7 +421,7 @@ Responde ÚNICAMENTE en JSON con esta estructura exacta:
       "id": "ID del libro",
       "relevante": true o false,
       "nivel": "directo" o "relacionado" o "irrelevante",
-      "razon": "Explicación breve y honesta de por qué sí o por qué no"
+      "razon": "Justificación concisa de máximo 15 palabras"
     }}
   ]
 }}"""
@@ -448,14 +449,24 @@ Responde ÚNICAMENTE en JSON con esta estructura exacta:
                             "temperature": 0.0,
                             "top_p": 0.8,
                             "repeat_penalty": 1.1,
-                            "num_predict": 250
+                            "num_predict": 600
                         }
                     }
                 )
                 if res.status_code == 200:
-                    raw = res.json().get("message", {}).get("content", "")
-                    parsed = json.loads(raw)
-                    items = parsed.get("evaluaciones", [])
+                    raw = res.json().get("message", {}).get("content", "").strip()
+                    items = []
+                    try:
+                        parsed = json.loads(raw)
+                        items = parsed.get("evaluaciones", [])
+                    except json.JSONDecodeError:
+                        # Si la respuesta se cortó al final, recuperar las evaluaciones completas válidas
+                        matches = re.findall(r'\{[^{}]*"id"[^{}]*\}', raw)
+                        for m in matches:
+                            try:
+                                items.append(json.loads(m))
+                            except Exception:
+                                pass
                     valid_items: Dict[str, Dict[str, Any]] = {}
                     disqualify_phrases = [
                         "no se trata", "no trata", "no aborda", "no contiene", "no tiene relacion", 
