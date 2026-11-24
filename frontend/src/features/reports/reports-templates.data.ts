@@ -67,7 +67,7 @@ export const ALL_QUICK_REPORT_TEMPLATES: (QuickReportItem & { badge: string; des
   {
     id: 'rep-cedula',
     title: 'Cédula Estadística Semestral / Trimestral',
-    badge: 'Formato Oficial SIABUC / Dirección',
+    badge: 'Formato Oficial / Dirección',
     description: 'Cédula oficial estandarizada: volúmenes catalogados, usuarios atendidos por mes, desglose sala vs domicilio.',
     iconName: 'BarChart3',
     iconBgColor: '#ECFDF5',
@@ -956,7 +956,7 @@ export function buildReportTemplateData(
         id: 'rep-cedula',
         code: 'CED-EST-OFICIAL',
         title: 'Cédula Estadística Semestral de Servicios Bibliotecarios',
-        categoryBadge: 'Formato Oficial Acreditación SIABUC',
+        categoryBadge: 'Formato Oficial de Acreditación',
         periodLabel: (dateRange?.startDate && dateRange?.endDate) ? customPeriod : `Semestre Académico ${currentYear}-2`,
         description: 'Documento oficial para dirección académica y comités de acreditación: crecimiento de volúmenes, usuarios beneficiados, circulación sala vs domicilio y servicios de tecnología.',
         kpis: [

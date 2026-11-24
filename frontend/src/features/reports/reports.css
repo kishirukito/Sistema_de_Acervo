@@ -649,7 +649,7 @@
   grid-template-columns: 1fr 340px;
   gap: 1.25rem;
   width: 100%;
-  align-items: start;
+  align-items: stretch;
 }
 
 /* Left: Préstamos Vencidos Card */
@@ -662,6 +662,8 @@
   display: flex;
   flex-direction: column;
   gap: 1rem;
+  height: 100%;
+  box-sizing: border-box;
 }
 
 .reports-overdue-header {
@@ -714,6 +716,7 @@
 .reports-overdue-table-wrapper {
   width: 100%;
   max-width: 100%;
+  flex: 1;
   overflow-x: auto;
   -webkit-overflow-scrolling: touch;
 }
@@ -844,6 +847,7 @@
   display: flex;
   justify-content: flex-end;
   padding-top: 0.25rem;
+  margin-top: auto;
 }
 
 .reports-view-all-link {
@@ -873,7 +877,15 @@
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
   display: flex;
   flex-direction: column;
+  justify-content: space-between;
   gap: 1rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.reports-compact-card:hover {
+  border-color: #93C5FD;
+  box-shadow: 0 4px 12px -2px rgba(37, 99, 235, 0.1);
 }
 
 .reports-compact-header {

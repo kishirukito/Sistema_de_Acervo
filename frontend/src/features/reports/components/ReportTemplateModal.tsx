@@ -18,6 +18,7 @@ import {
   Building2,
   BarChart3,
 } from 'lucide-react';
+import { CustomSelect } from '../../../components/ui/CustomSelect';
 import type { ReportTemplateData } from '../reports-templates.types';
 import type { SiabucReportData } from '../reports.types';
 import type { Loan } from '../../loans/loans.types';
@@ -216,18 +217,17 @@ export const ReportTemplateModal: React.FC<ReportTemplateModalProps> = ({
               <Layers size={14} />
               <span>Plantilla de reporte:</span>
             </label>
-            <select
+            <CustomSelect
               id="report-select-master"
-              className="report-config-select"
               value={selectedReportId}
-              onChange={(e) => setSelectedReportId(e.target.value)}
-            >
-              {ALL_QUICK_REPORT_TEMPLATES.map((tmpl) => (
-                <option key={tmpl.id} value={tmpl.id}>
-                  {tmpl.title} — [{tmpl.badge}]
-                </option>
-              ))}
-            </select>
+              onChange={(val) => setSelectedReportId(val)}
+              options={ALL_QUICK_REPORT_TEMPLATES.map((tmpl) => ({
+                value: tmpl.id,
+                label: `${tmpl.title} — ${tmpl.badge}`,
+              }))}
+              fullWidth
+              aria-label="Seleccionar plantilla de reporte"
+            />
           </div>
 
           {/* Selector de Rango de Fechas (Inputs inicial y final) */}

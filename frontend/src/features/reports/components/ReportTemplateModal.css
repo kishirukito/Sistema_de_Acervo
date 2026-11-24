@@ -186,6 +186,8 @@
    BARRA DE CONFIGURACIÓN Y FECHAS
    -------------------------------------------------------------------------- */
 .report-config-bar {
+  position: relative;
+  z-index: 25;
   background: #F8FAFC;
   border-bottom: 1px solid #E2E8F0;
   padding: 0.85rem 1.75rem;
