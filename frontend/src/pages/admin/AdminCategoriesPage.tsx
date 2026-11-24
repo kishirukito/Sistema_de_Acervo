@@ -16,7 +16,7 @@ import { Button } from '../../components/ui/Button';
 import { LoadingSpinner } from '../../components/ui/LoadingSpinner';
 import { Input } from '../../components/ui/Input';
 import { Select } from '../../components/ui/Select';
-import { useCategories, invalidateCategories } from '../../features/categories/categories.query';
+import { useCategories, invalidateCategories, CATEGORIES_KEY } from '../../features/categories/categories.query';
 import { categoriesService } from '../../features/categories/categories.service';
 import { CategoryFormModal } from '../../features/categories/CategoryFormModal';
 import { DeleteCategoryModal } from '../../features/categories/DeleteCategoryModal';
@@ -101,14 +101,21 @@ export const AdminCategoriesPage: React.FC = () => {
 
   const handleConfirmDeactivate = async (id: number) => {
     await categoriesService.toggle(id, false);
+    queryClient.setQueryData<Tema[]>(CATEGORIES_KEY, (prev) =>
+      prev ? prev.map((item) => (item.id === id ? { ...item, activa: false } : item)) : prev
+    );
     await invalidateCategories(queryClient);
   };
 
   const handleToggle = async (t: Tema) => {
     setToggleError(null);
     setPendingToggle(t.id);
+    const nextActiva = !t.activa;
     try {
-      await categoriesService.toggle(t.id, !t.activa);
+      await categoriesService.toggle(t.id, nextActiva);
+      queryClient.setQueryData<Tema[]>(CATEGORIES_KEY, (prev) =>
+        prev ? prev.map((item) => (item.id === t.id ? { ...item, activa: nextActiva } : item)) : prev
+      );
       await invalidateCategories(queryClient);
     } catch (err: any) {
       setToggleError(err?.message || 'Error al cambiar el estado.');

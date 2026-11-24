@@ -1478,6 +1478,9 @@ class SupabaseService:
                         raise ValueError(f"Ya existe otro tema con el código '{codigo}'.")
                 updates["codigo"] = codigo
 
+            if "activa" in payload and isinstance(payload["activa"], bool):
+                updates["activa"] = payload["activa"]
+
             if not updates:
                 current = check_resp.json()[0]
                 return {"status": "no_changes", "id": tema_id, "data": current}

@@ -216,7 +216,7 @@ export async function deleteCategory(id: number): Promise<DeleteTemaResult> {
 
 /** Activa o desactiva un tema/categoría. */
 export async function toggleCategory(id: number, activa: boolean): Promise<Tema> {
-  const res = await fetch(`/api/v1/data/temas/${encodeURIComponent(id)}`, {
+  const res = await fetch(`/api/v1/data/temas/${encodeURIComponent(id)}/toggle`, {
     method: 'PATCH',
     headers: getAuthHeaders(),
     body: JSON.stringify({ activa }),
