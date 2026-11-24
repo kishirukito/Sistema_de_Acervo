@@ -14,6 +14,7 @@ import { AdminNewBookPage } from '../pages/admin/AdminNewBookPage';
 import { BookSuccessPage } from '../pages/admin/BookSuccessPage';
 import { AdminCategoriesPage } from '../pages/admin/AdminCategoriesPage';
 import { AdminUsersPage } from '../pages/admin/AdminUsersPage';
+import { AdminRequestsPage } from '../pages/admin/AdminRequestsPage';
 import { AdminLoansPage } from '../pages/admin/AdminLoansPage';
 import { AdminNewLoanPage } from '../pages/admin/AdminNewLoanPage';
 import { LoanSuccessPage } from '../pages/admin/LoanSuccessPage';
@@ -97,6 +98,10 @@ export const router = createBrowserRouter([
       {
         path: 'users',
         element: <AdminUsersPage />,
+      },
+      {
+        path: 'solicitudes',
+        element: <AdminRequestsPage />,
       },
       {
         path: 'loans',

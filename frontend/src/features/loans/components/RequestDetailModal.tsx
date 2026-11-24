@@ -238,13 +238,23 @@ export const RequestDetailModal: React.FC<RequestDetailModalProps> = ({
             </div>
             <div className="req-detail-user-info">
               <span className="req-detail-user-name">{request.userName}</span>
+              {request.userMatricula && (
+                <span className="req-detail-user-id" style={{ marginTop: '2px' }}>
+                  Matrícula: <code style={{ fontWeight: 600 }}>{request.userMatricula}</code>
+                </span>
+              )}
+              {request.userCareer && (
+                <span className="req-detail-user-email" style={{ color: '#4F46E5', fontWeight: 500 }}>
+                  {request.userCareer}
+                </span>
+              )}
               {request.userEmail && (
                 <span className="req-detail-user-email">
                   <Mail size={13} />
                   {request.userEmail}
                 </span>
               )}
-              {request.userId && (
+              {request.userId && !request.userMatricula && (
                 <span className="req-detail-user-id">
                   ID: <code>{request.userId.slice(0, 16)}{request.userId.length > 16 ? '…' : ''}</code>
                 </span>
@@ -258,11 +268,29 @@ export const RequestDetailModal: React.FC<RequestDetailModalProps> = ({
           <h3 className="req-detail-section-title">Libro solicitado</h3>
           <div className="req-detail-book-card">
             <div className="req-detail-book-cover" aria-hidden="true">
-              <BookOpen size={28} />
+              {request.bookCover ? (
+                <img
+                  src={request.bookCover}
+                  alt={request.bookTitle}
+                  style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '6px' }}
+                />
+              ) : (
+                <BookOpen size={28} />
+              )}
             </div>
             <div className="req-detail-book-info">
               <span className="req-detail-book-title">{request.bookTitle}</span>
-              {request.bookId && (
+              {request.bookAuthor && (
+                <span className="req-detail-user-email" style={{ color: '#4B5563' }}>
+                  Autor: {request.bookAuthor}
+                </span>
+              )}
+              {request.bookIsbn && (
+                <span className="req-detail-book-id">
+                  ISBN: <code>{request.bookIsbn}</code>
+                </span>
+              )}
+              {request.bookId && !request.bookIsbn && (
                 <span className="req-detail-book-id">
                   ID: <code>{request.bookId.slice(0, 20)}{request.bookId.length > 20 ? '…' : ''}</code>
                 </span>

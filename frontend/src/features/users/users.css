@@ -183,12 +183,13 @@
 .users-filters-row {
   display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
   flex-shrink: 0;
+  flex-wrap: wrap;
 }
 
 .users-filters-row .custom-select-container {
-  min-width: 130px;
+  min-width: 145px;
 }
 
 .users-select {
@@ -699,7 +700,21 @@
   }
 }
 
+@media (max-width: 1200px) {
+  .users-classification-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
 @media (max-width: 640px) {
+  .users-classification-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.75rem;
+  }
+  .users-class-card {
+    min-height: 94px;
+    padding: 0.875rem 1rem;
+  }
   .users-container {
     padding: 0;
     max-width: 100%;

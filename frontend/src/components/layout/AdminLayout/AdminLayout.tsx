@@ -12,6 +12,7 @@ const ADMIN_ROUTE_TITLES: Record<string, string> = {
   '/admin/catalog/new': 'Registrar Nuevo Título',
   '/admin/categories': 'Categorías',
   '/admin/users': 'Usuarios',
+  '/admin/solicitudes': 'Solicitudes de alumnos',
   '/admin/loans': 'Préstamos',
   '/admin/loans/new': 'Nuevo Préstamo',
   '/admin/returns': 'Devoluciones',

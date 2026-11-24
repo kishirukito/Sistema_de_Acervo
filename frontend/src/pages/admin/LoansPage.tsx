@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, SearchX, CheckCircle2, BookOpen, Clock } from 'lucide-react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { Plus, SearchX, CheckCircle2 } from 'lucide-react';
+import { useQueryClient } from '@tanstack/react-query';
 import { LoansSummary } from '../../features/loans/components/LoansSummary';
 import { LoansFilters } from '../../features/loans/components/LoansFilters';
 import { LoansTable } from '../../features/loans/components/LoansTable';
@@ -9,7 +9,6 @@ import { LoansPagination } from '../../features/loans/components/LoansPagination
 import { LoanDetailModal } from '../../features/loans/components/LoanDetailModal';
 import { ReturnLoanModal } from '../../features/loans/components/ReturnLoanModal';
 import { RenewLoanModal } from '../../features/loans/components/RenewLoanModal';
-import { AdminRequestsTable } from '../../features/loans/components/AdminRequestsTable';
 import { Button } from '../../components/ui/Button';
 import { LoadingSpinner } from '../../components/ui/LoadingSpinner';
 import { executeLoanReturn, formatDisplayDate } from '../../features/returns/returns.service';
@@ -18,29 +17,17 @@ import {
 } from '../../features/loans/loans.mock';
 import { updateAdminLoan } from '../../services/api/loans-admin.service';
 import {
-  approveBorrowRequest,
-  rejectBorrowRequest,
-} from '../../features/loans/requests.service';
-import {
-  fetchAdminSolicitudes,
-  ADMIN_SOLICITUDES_KEY,
-} from '../../features/loans/solicitudes.query';
-import {
   useAdminLoans,
   deriveLoansSummary,
   invalidateAdminLoans,
   ADMIN_LOANS_KEY,
 } from '../../features/loans/admin-loans.query';
 import { ADMIN_RETURNS_KEY } from '../../features/returns/returns.query';
-import type { BorrowRequest } from '../../types';
 import type {
   Loan,
   LoansFilterState,
 } from '../../features/loans/loans.types';
 import '../../features/loans/loans.css';
-
-/** Polling interval for new student requests (cross-session sync). */
-const ADMIN_REQUESTS_POLL_MS = 20_000;
 
 const INITIAL_FILTERS: LoansFilterState = {
   searchQuery: '',
@@ -66,20 +53,6 @@ export const LoansPage: React.FC = () => {
   const [selectedLoanForReturn, setSelectedLoanForReturn] = useState<Loan | null>(null);
   const [selectedLoanForRenew, setSelectedLoanForRenew] = useState<Loan | null>(null);
   
-  // Pestañas: 'LOANS' (Préstamos activos/registrados) o 'REQUESTS' (Solicitudes de alumnos)
-  const [activeTab, setActiveTab] = useState<'LOANS' | 'REQUESTS'>('LOANS');
-
-  // ── React Query: solicitudes de alumnos con polling ───────────────────────
-  const { data: borrowRequests = [] } = useQuery<BorrowRequest[]>({
-    queryKey: [ADMIN_SOLICITUDES_KEY],
-    queryFn: fetchAdminSolicitudes,
-    refetchInterval: ADMIN_REQUESTS_POLL_MS,
-    refetchIntervalInBackground: false,
-    refetchOnWindowFocus: true,
-    refetchOnReconnect: true,
-    staleTime: 10_000,
-  });
-
   const itemsPerPage = 5;
 
   const showToast = (message: string) => {
@@ -235,81 +208,6 @@ export const LoansPage: React.FC = () => {
     );
   };
 
-  const handleApproveRequest = async (req: BorrowRequest) => {
-    const token = localStorage.getItem('acervo_token');
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    };
-
-    // 1. PATCH solicitud en Supabase → APPROVED
-    if (req.supabaseId) {
-      try {
-        await fetch(`/api/v1/data/solicitudes/${req.supabaseId}`, {
-          method: 'PATCH',
-          headers,
-          body: JSON.stringify({ estado: 'APPROVED', notas: `Aprobada por el administrador.` }),
-        });
-      } catch (_) {}
-    }
-
-    // 2. Intentar registrar el préstamo formal en el backend si el libro tiene ID
-    try {
-      const catRes = await fetch('/api/v1/data/libros', { headers });
-      if (catRes.ok) {
-        const books = await catRes.json();
-        const targetBook = books.find((b: any) => b.id === req.bookId || b.titulo?.toLowerCase() === req.bookTitle?.toLowerCase());
-        const availCopy = targetBook?.ejemplares?.find((ej: any) => ej.estado === 'disponible');
-
-        if (availCopy && req.userId) {
-          await fetch('/api/v1/data/prestamos', {
-            method: 'POST',
-            headers,
-            body: JSON.stringify({
-              usuario_id: req.userId,
-              ejemplar_id: availCopy.id,
-              notas: `Aprobado desde solicitud web ${req.id}. Recogida: ${req.pickupLocation || 'Mostrador'}`
-            }),
-          });
-          // Invalidar caché de préstamos para reflejar el nuevo registro
-          invalidateAdminLoans(queryClient);
-        }
-      }
-    } catch (err) {
-      console.warn('Registro automático en backend omitido o con advertencia:', err);
-    }
-
-    // 3. Marcar solicitud como Aprobada en localStorage (fallback)
-    approveBorrowRequest(req.id);
-    // Invalidar ambas queries para que el lector también vea el cambio en su próxima revalidación
-    queryClient.invalidateQueries({ queryKey: [ADMIN_SOLICITUDES_KEY] });
-    showToast(`Solicitud ${req.id} aprobada con éxito. El libro está listo para entrega.`);
-  };
-
-  const handleRejectRequest = async (req: BorrowRequest) => {
-    const token = localStorage.getItem('acervo_token');
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    };
-
-    // PATCH solicitud en Supabase → REJECTED
-    if (req.supabaseId) {
-      try {
-        await fetch(`/api/v1/data/solicitudes/${req.supabaseId}`, {
-          method: 'PATCH',
-          headers,
-          body: JSON.stringify({ estado: 'REJECTED', notas: 'Rechazada por la biblioteca.' }),
-        });
-      } catch (_) {}
-    }
-
-    rejectBorrowRequest(req.id, 'Rechazada por la biblioteca.');
-    // Invalidar query para reflejar el cambio inmediatamente
-    queryClient.invalidateQueries({ queryKey: [ADMIN_SOLICITUDES_KEY] });
-    showToast(`Solicitud ${req.id} rechazada.`);
-  };
-
   const handleNewLoan = () => {
     navigate('/admin/loans/new');
   };
@@ -339,40 +237,7 @@ export const LoansPage: React.FC = () => {
       {/* Summary KPI Cards */}
       <LoansSummary summary={loansSummary} />
 
-      {/* Pestañas de Navegación: Préstamos Activos vs Solicitudes de Alumnos */}
-      <div className="loans-tabs-container">
-        <button
-          type="button"
-          className={`loans-tab-button ${activeTab === 'LOANS' ? 'active' : ''}`}
-          onClick={() => setActiveTab('LOANS')}
-        >
-          <BookOpen size={17} />
-          <span>Préstamos registrados</span>
-          <span className="loans-tab-badge">{loansList.length}</span>
-        </button>
-
-        <button
-          type="button"
-          className={`loans-tab-button ${activeTab === 'REQUESTS' ? 'active' : ''}`}
-          onClick={() => setActiveTab('REQUESTS')}
-        >
-          <Clock size={17} />
-          <span>Solicitudes de alumnos</span>
-          <span className={`loans-tab-badge ${borrowRequests.filter((r) => r.status === 'PENDING').length > 0 ? 'badge-highlight' : ''}`}>
-            {borrowRequests.filter((r) => r.status === 'PENDING').length} pendientes
-          </span>
-        </button>
-      </div>
-
-      {activeTab === 'REQUESTS' ? (
-        <AdminRequestsTable
-          requests={borrowRequests}
-          onApprove={handleApproveRequest}
-          onReject={handleRejectRequest}
-        />
-      ) : (
-        <>
-          {/* Filters Toolbar */}
+      {/* Filters Toolbar */}
           <LoansFilters
             filters={filters}
             onFilterChange={handleFilterChange}
@@ -418,8 +283,6 @@ export const LoansPage: React.FC = () => {
               />
             </>
           )}
-        </>
-      )}
 
       {/* Toast Notification Banner */}
       {toastMessage && (

@@ -22,14 +22,23 @@ export const ADMIN_SOLICITUDES_KEY = 'admin-solicitudes' as const;
 // ─── Mapper compartido ────────────────────────────────────────────────────────
 
 function mapApiRowToRequest(s: any): BorrowRequest {
+  const autores = s.libros?.libro_autores
+    ? s.libros.libro_autores.map((la: any) => la.autores?.nombre).filter(Boolean).join(', ')
+    : undefined;
+
   return {
     supabaseId: s.id,
     id: s.folio || s.id,
     bookId: s.libro_id ?? '',
     bookTitle: s.libros?.titulo ?? 'Sin título',
+    bookAuthor: autores || s.libros?.autor || undefined,
+    bookCover: s.libros?.portada_url || undefined,
+    bookIsbn: s.libros?.isbn || undefined,
     userId: s.usuario_id ?? '',
     userName: s.usuarios?.nombre_completo ?? '',
     userEmail: s.usuarios?.email ?? '',
+    userMatricula: s.usuarios?.matricula_o_nomina ?? undefined,
+    userCareer: s.usuarios?.carreras?.nombre ?? undefined,
     requestDate: s.fecha_solicitud ?? s.created_at ?? '',
     status: s.estado ?? 'PENDING',
     notes: s.notas ?? '',

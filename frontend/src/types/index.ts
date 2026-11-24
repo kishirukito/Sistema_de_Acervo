@@ -74,9 +74,14 @@ export interface BorrowRequest {
   id: string;
   bookId: string;
   bookTitle: string;
+  bookAuthor?: string;
+  bookCover?: string;
+  bookIsbn?: string;
   userId: string;
   userName: string;
   userEmail: string;
+  userMatricula?: string;
+  userCareer?: string;
   requestDate: string;
   status: RequestStatus;
   notes?: string;

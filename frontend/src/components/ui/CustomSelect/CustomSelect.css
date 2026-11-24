@@ -15,7 +15,7 @@
 
 /* Ensure compact / non-full-width triggers have a comfortable minimum width */
 .custom-select-container:not(.custom-select-container--full-width) .custom-select-trigger:not(.custom-select-trigger--inline):not(.custom-select-trigger--scope) {
-  min-width: 130px;
+  min-width: 145px;
 }
 
 /* Optional Label */
@@ -217,19 +217,21 @@
   top: calc(100% + 5px);
   left: 0;
   width: max-content;
-  min-width: max(100%, 180px);
-  max-width: min(340px, 90vw);
+  min-width: max(100%, 220px);
+  max-width: min(420px, 94vw);
   background-color: #FFFFFF;
   border: 1px solid #E2E8F0;
   border-radius: 12px;
   box-shadow: 0 10px 25px -5px rgba(15, 23, 42, 0.12), 0 8px 10px -6px rgba(15, 23, 42, 0.04);
   padding: 6px;
+  padding-right: 8px;
   margin: 0;
   list-style: none;
   z-index: 10000;
-  max-height: 280px;
+  max-height: 290px;
   overflow-y: auto;
   overflow-x: hidden;
+  scrollbar-gutter: stable;
   box-sizing: border-box;
   animation: customSelectFadeIn 0.16s cubic-bezier(0.16, 1, 0.3, 1);
   outline: none;
@@ -277,9 +279,9 @@
   justify-content: space-between;
   gap: 12px;
   width: 100%;
-  padding: 8px 12px;
+  padding: 9px 12px;
   min-height: 38px;
-  font-size: 0.8125rem;
+  font-size: 0.84rem;
   font-weight: 500;
   line-height: 1.35;
   color: #334155;
@@ -299,22 +301,20 @@
 
 /* Active / Focused via keyboard */
 .custom-select-option--focused:not(.custom-select-option--disabled) {
-  background-color: #F1F5F9;
-  color: #0F172A;
-  outline: 2px solid #2563EB;
-  outline-offset: -2px;
+  background-color: #EFF6FF;
+  color: #1D4ED8;
+  box-shadow: inset 0 0 0 1.5px #3B82F6;
 }
 
 /* Selected State */
 .custom-select-option--selected {
   background-color: #EFF6FF !important;
-  color: #2563EB !important;
+  color: #1D4ED8 !important;
   font-weight: 600;
 }
 
 .custom-select-option--selected.custom-select-option--focused {
-  outline: 2px solid #2563EB;
-  outline-offset: -2px;
+  box-shadow: inset 0 0 0 1.5px #3B82F6;
 }
 
 /* Option Text */
@@ -330,8 +330,8 @@
 /* Checkmark Icon */
 .custom-select-option-check {
   flex-shrink: 0;
-  color: #2563EB;
-  margin-left: 8px;
+  color: #1D4ED8;
+  margin-left: 10px;
 }
 
 /* Disabled Option */

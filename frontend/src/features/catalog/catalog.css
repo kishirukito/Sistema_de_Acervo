@@ -80,10 +80,11 @@
   align-items: center;
   gap: 12px;
   width: 100%;
+  flex-wrap: wrap;
 }
 
 .catalog-toolbar-row .custom-select-container {
-  min-width: 140px;
+  min-width: 160px;
 }
 
 .catalog-search-wrapper {
