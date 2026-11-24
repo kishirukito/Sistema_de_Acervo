@@ -454,11 +454,11 @@ export const RequestsPage: React.FC = () => {
               <thead>
                 <tr>
                   <th scope="col" style={{ width: '14%' }}>FOLIO / FECHA</th>
-                  <th scope="col" style={{ width: '25%' }}>ALUMNO / SOLICITANTE</th>
-                  <th scope="col" style={{ width: '25%' }}>LIBRO SOLICITADO</th>
-                  <th scope="col" style={{ width: '13%' }}>FECHA SUGERIDA</th>
+                  <th scope="col" style={{ width: '26%' }}>ALUMNO / SOLICITANTE</th>
+                  <th scope="col" style={{ width: '26%' }}>LIBRO SOLICITADO</th>
+                  <th scope="col" style={{ width: '14%' }}>FECHA SUGERIDA</th>
                   <th scope="col" style={{ width: '10%' }}>ESTADO</th>
-                  <th scope="col" style={{ width: '13%', minWidth: '125px' }} className="requests-th-center">ACCIONES</th>
+                  <th scope="col" style={{ width: '10%', minWidth: '115px' }} className="requests-th-center">ACCIONES</th>
                 </tr>
               </thead>
               <tbody>
@@ -559,44 +559,12 @@ export const RequestsPage: React.FC = () => {
                         <div className="requests-actions-group">
                           <button
                             type="button"
-                            className="requests-btn-approve"
-                            onClick={() => handleApprove(req)}
-                            disabled={req.status === 'APPROVED'}
-                            title={
-                              req.status === 'APPROVED'
-                                ? 'Esta solicitud ya se encuentra aprobada'
-                                : 'Aceptar solicitud y autorizar entrega'
-                            }
-                            aria-label={`Aceptar solicitud ${req.id}`}
-                          >
-                            <CheckCircle2 size={14} />
-                            <span>Aceptar</span>
-                          </button>
-
-                          <button
-                            type="button"
-                            className="requests-btn-reject"
-                            onClick={() => handleOpenRejectDialog(req)}
-                            disabled={req.status === 'REJECTED'}
-                            title={
-                              req.status === 'REJECTED'
-                                ? 'Esta solicitud ya se encuentra rechazada'
-                                : 'Rechazar solicitud'
-                            }
-                            aria-label={`Rechazar solicitud ${req.id}`}
-                          >
-                            <XCircle size={14} />
-                            <span>Rechazar</span>
-                          </button>
-
-                          <button
-                            type="button"
                             className="requests-btn-view"
                             onClick={() => setSelectedRequest(req)}
-                            title="Ver detalle completo de la solicitud"
+                            title="Ver información completa y gestionar solicitud"
                             aria-label={`Ver detalles de solicitud ${req.id}`}
                           >
-                            <Eye size={14} />
+                            <Eye size={15} />
                             <span>Ver detalle</span>
                           </button>
                         </div>
