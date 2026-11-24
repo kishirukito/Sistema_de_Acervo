@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, SearchX, CheckCircle, X, FileSpreadsheet } from 'lucide-react';
+import { Plus, SearchX, CheckCircle, X, FileSpreadsheet, Library, BookOpen, Building2 } from 'lucide-react';
 import { CatalogToolbar } from '../../features/catalog/components/CatalogToolbar';
 import { ResourceTable } from '../../features/catalog/components/ResourceTable';
 import { CatalogPagination } from '../../features/catalog/components/CatalogPagination';
@@ -11,6 +11,7 @@ import { BulkImportBooksModal } from '../../features/catalog/components/BulkImpo
 import { LoadingSpinner } from '../../components/ui/LoadingSpinner';
 import { MOCK_RESOURCES } from '../../features/catalog/catalog.mock';
 import { fetchCatalogResources, deleteResource, updateResource } from '../../services/api/catalog.service';
+import { useAdminLoans } from '../../features/loans/admin-loans.query';
 import { useRealtimeTable } from '../../hooks/useRealtimeTable';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import type { CatalogFilterState, Resource } from '../../features/catalog/catalog.types';
@@ -42,9 +43,65 @@ export const CatalogPage: React.FC = () => {
     refetchOnWindowFocus: false,
   });
 
+  // ── React Query: préstamos admin para cálculo de libros en sala y en otras bibliotecas ──
+  const { data: loansList = [] } = useAdminLoans();
+
   const invalidateCatalog = useCallback(() => {
     queryClient.invalidateQueries({ queryKey: [ADMIN_CATALOG_KEY], refetchType: 'active' });
   }, [queryClient]);
+
+  // ── Métricas de libros: Acervo (Biblioteca), En sala y En otras bibliotecas ──
+  const catalogMetrics = useMemo(() => {
+    // 1. Préstamos activos en el sistema (no devueltos)
+    const activeLoans = loansList.filter((l) => l.status !== 'RETURNED');
+
+    // 2. Préstamos interinstitucionales activos (en otras bibliotecas en convenio)
+    const prestamosOtrasBibliotecas = activeLoans.filter(
+      (l) => l.tipoPrestamoClave === 'interbibliotecario' || Boolean(l.institucionId)
+    ).length;
+
+    // 3. Préstamos en sala activos (consulta interna de lectura)
+    const prestamosEnSala = activeLoans.filter(
+      (l) => l.tipoPrestamoClave === 'sala'
+    ).length;
+
+    // 4. Conteo de ejemplares desde los libros
+    let totalDisponibles = 0;
+    let ejemplaresEnSalaFisicos = 0;
+    let ejemplaresEnOtrasBibliotecasFisicos = 0;
+
+    for (const book of resourcesList) {
+      totalDisponibles += book.availableCopies || 0;
+      if (Array.isArray(book.ejemplares)) {
+        for (const ej of book.ejemplares) {
+          const ubicacion = (ej.ubicacion_estante || '').toLowerCase();
+          const estado = (ej.estado || '').toLowerCase();
+
+          // Ejemplar ubicado en sala y disponible para consulta interna
+          if (ubicacion.includes('sala') && estado === 'disponible') {
+            ejemplaresEnSalaFisicos++;
+          }
+          // Ejemplar en convenio con otra institución
+          if (
+            (ubicacion.includes('otra') || ubicacion.includes('convenio') || ubicacion.includes('inter')) &&
+            estado === 'prestado'
+          ) {
+            ejemplaresEnOtrasBibliotecasFisicos++;
+          }
+        }
+      }
+    }
+
+    const totalEnSala = prestamosEnSala + ejemplaresEnSalaFisicos;
+    const totalEnOtrasBibliotecas = Math.max(prestamosOtrasBibliotecas, ejemplaresEnOtrasBibliotecasFisicos);
+    const totalEnAcervo = Math.max(0, totalDisponibles - ejemplaresEnSalaFisicos);
+
+    return {
+      acervo: totalEnAcervo,
+      sala: totalEnSala,
+      otrasBibliotecas: totalEnOtrasBibliotecas,
+    };
+  }, [resourcesList, loansList]);
 
   // ── Realtime: invalidar caché cuando cambia un libro o ejemplar ──────────
   useRealtimeTable('libros', {
@@ -262,6 +319,45 @@ export const CatalogPage: React.FC = () => {
           </button>
         </div>
       )}
+
+      {/* Tarjetas de métricas de acervo: En acervo (biblioteca), En sala, En otras bibliotecas */}
+      <section className="catalog-metrics-grid" aria-label="Distribución de libros en acervo y préstamos">
+        {/* 1. En acervo (biblioteca) */}
+        <div className="catalog-metric-card">
+          <div className="catalog-metric-icon-wrap catalog-metric-icon-wrap--acervo" aria-hidden="true">
+            <Library size={22} />
+          </div>
+          <div className="catalog-metric-info">
+            <span className="catalog-metric-value">{catalogMetrics.acervo}</span>
+            <span className="catalog-metric-label">En acervo (biblioteca)</span>
+            <span className="catalog-metric-subtext">Disponibles en estantería</span>
+          </div>
+        </div>
+
+        {/* 2. En sala */}
+        <div className="catalog-metric-card">
+          <div className="catalog-metric-icon-wrap catalog-metric-icon-wrap--sala" aria-hidden="true">
+            <BookOpen size={22} />
+          </div>
+          <div className="catalog-metric-info">
+            <span className="catalog-metric-value">{catalogMetrics.sala}</span>
+            <span className="catalog-metric-label">En sala</span>
+            <span className="catalog-metric-subtext">Consulta interna de lectura</span>
+          </div>
+        </div>
+
+        {/* 3. En otras bibliotecas */}
+        <div className="catalog-metric-card">
+          <div className="catalog-metric-icon-wrap catalog-metric-icon-wrap--otras" aria-hidden="true">
+            <Building2 size={22} />
+          </div>
+          <div className="catalog-metric-info">
+            <span className="catalog-metric-value">{catalogMetrics.otrasBibliotecas}</span>
+            <span className="catalog-metric-label">En otras bibliotecas</span>
+            <span className="catalog-metric-subtext">Convenio interbibliotecario</span>
+          </div>
+        </div>
+      </section>
 
       <CatalogToolbar
         filters={filters}

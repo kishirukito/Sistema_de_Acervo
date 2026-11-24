@@ -488,10 +488,103 @@
   max-width: 360px;
 }
 
+/* ── Tablero de Métricas del Catálogo (Acervo, Sala, Otras Bibliotecas) ── */
+.catalog-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.125rem;
+  width: 100%;
+}
+
+.catalog-metric-card {
+  background: #FFFFFF;
+  border: 1.5px solid #E2E8F0;
+  border-radius: 14px;
+  padding: 1.125rem 1.25rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+  position: relative;
+  box-sizing: border-box;
+}
+
+.catalog-metric-card:hover {
+  border-color: #CBD5E1;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 16px -2px rgba(15, 23, 42, 0.08);
+}
+
+.catalog-metric-icon-wrap {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.catalog-metric-icon-wrap--acervo {
+  background-color: #EFF6FF;
+  color: #2563EB;
+}
+
+.catalog-metric-icon-wrap--sala {
+  background-color: #F5F3FF;
+  color: #7C3AED;
+}
+
+.catalog-metric-icon-wrap--otras {
+  background-color: #ECFDF5;
+  color: #059669;
+}
+
+.catalog-metric-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  min-width: 0;
+}
+
+.catalog-metric-value {
+  font-family: var(--font-family-heading, 'Poppins', sans-serif);
+  font-size: 1.625rem;
+  font-weight: 700;
+  color: #0F172A;
+  line-height: 1.1;
+  letter-spacing: -0.02em;
+}
+
+.catalog-metric-label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #334155;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.catalog-metric-subtext {
+  font-size: 0.75rem;
+  color: #64748B;
+  font-weight: 500;
+}
+
+@media (max-width: 900px) {
+  .catalog-metrics-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
 /* ==============================================================================
    RESPONSIVIDAD MÓVIL (CATÁLOGO)
    ============================================================================== */
 @media (max-width: 640px) {
+  .catalog-metrics-grid {
+    grid-template-columns: 1fr;
+  }
   .catalog-container {
     padding: 0;
     max-width: 100%;
