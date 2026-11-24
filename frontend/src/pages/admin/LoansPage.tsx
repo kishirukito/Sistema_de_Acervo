@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, SearchX, CheckCircle2 } from 'lucide-react';
+import { Plus, SearchX, CheckCircle2, Inbox } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { LoansSummary } from '../../features/loans/components/LoansSummary';
 import { LoansFilters } from '../../features/loans/components/LoansFilters';
@@ -223,15 +223,42 @@ export const LoansPage: React.FC = () => {
           </p>
         </div>
 
-        <button
-          type="button"
-          onClick={handleNewLoan}
-          className="loans-new-btn"
-          aria-label="Registrar un nuevo préstamo"
-        >
-          <Plus size={18} />
-          <span>Nuevo préstamo</span>
-        </button>
+        <div style={{ display: 'flex', gap: '10px', alignItems: 'center', flexWrap: 'wrap' }}>
+          <button
+            type="button"
+            onClick={() => navigate('/admin/solicitudes')}
+            className="loans-header-requests-btn"
+            style={{
+              display: 'inline-flex',
+              alignItems: 'center',
+              gap: '8px',
+              padding: '0.65rem 1.15rem',
+              backgroundColor: '#FFFFFF',
+              color: '#1E3A5F',
+              border: '1.5px solid #CBD5E1',
+              borderRadius: '8px',
+              fontSize: '0.875rem',
+              fontWeight: 600,
+              cursor: 'pointer',
+              transition: 'all 0.15s ease',
+            }}
+            aria-label="Ir a solicitudes de alumnos"
+            title="Ver solicitudes de préstamo pendientes de alumnos"
+          >
+            <Inbox size={18} color="#2563EB" />
+            <span>Solicitudes de alumnos</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={handleNewLoan}
+            className="loans-new-btn"
+            aria-label="Registrar un nuevo préstamo"
+          >
+            <Plus size={18} />
+            <span>Nuevo préstamo</span>
+          </button>
+        </div>
       </div>
 
       {/* Summary KPI Cards */}

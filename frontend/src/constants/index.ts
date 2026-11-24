@@ -41,7 +41,7 @@ export const ADMIN_NAV_ITEMS = [
   { label: 'Catálogo', path: '/admin/catalog', icon: BookOpen },
   { label: 'Categorías', path: '/admin/categories', icon: Library },
   { label: 'Usuarios', path: '/admin/users', icon: Users },
-  { label: 'Solicitudes', path: '/admin/solicitudes', icon: Inbox },
+  { label: 'Solicitudes de alumnos', path: '/admin/solicitudes', icon: Inbox },
   { label: 'Préstamos', path: '/admin/loans', icon: BookMarked },
   { label: 'Devoluciones', path: '/admin/returns', icon: RotateCcw },
   { label: 'Búsqueda Inteligente', path: '/admin/search', icon: Sparkles },

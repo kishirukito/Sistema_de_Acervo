@@ -54,6 +54,21 @@ const RootRedirect: React.FC = () => {
   return <Navigate to="/user/home" replace />;
 };
 
+/** Redirección inteligente para URLs directas de solicitudes según el rol */
+const SolicitudesRedirect: React.FC = () => {
+  const { user, isAuthenticated } = useAuth();
+
+  if (!isAuthenticated || !user) {
+    return <Navigate to="/login" replace />;
+  }
+
+  if (user.kind === 'ADMINISTRATIVE') {
+    return <Navigate to="/admin/solicitudes" replace />;
+  }
+
+  return <Navigate to="/user/requests" replace />;
+};
+
 export const router = createBrowserRouter([
   {
     path: '/',
@@ -62,6 +77,22 @@ export const router = createBrowserRouter([
   {
     path: '/login',
     element: <LoginPage />,
+  },
+  {
+    path: '/solicitudes',
+    element: <SolicitudesRedirect />,
+  },
+  {
+    path: '/solicitudes-prestamos',
+    element: <SolicitudesRedirect />,
+  },
+  {
+    path: '/solicitudes-alumnos',
+    element: <SolicitudesRedirect />,
+  },
+  {
+    path: '/requests',
+    element: <SolicitudesRedirect />,
   },
   {
     path: '/admin',
@@ -102,6 +133,26 @@ export const router = createBrowserRouter([
       {
         path: 'solicitudes',
         element: <AdminRequestsPage />,
+      },
+      {
+        path: 'solicitudes-alumnos',
+        element: <AdminRequestsPage />,
+      },
+      {
+        path: 'solicitudes-prestamos',
+        element: <AdminRequestsPage />,
+      },
+      {
+        path: 'requests',
+        element: <AdminRequestsPage />,
+      },
+      {
+        path: 'loans/solicitudes',
+        element: <Navigate to="/admin/solicitudes" replace />,
+      },
+      {
+        path: 'loans/requests',
+        element: <Navigate to="/admin/solicitudes" replace />,
       },
       {
         path: 'loans',
@@ -194,6 +245,22 @@ export const router = createBrowserRouter([
       {
         path: 'requests',
         element: <UserRequestsPage />,
+      },
+      {
+        path: 'solicitudes',
+        element: <UserRequestsPage />,
+      },
+      {
+        path: 'solicitudes-alumnos',
+        element: <UserRequestsPage />,
+      },
+      {
+        path: 'solicitudes-prestamos',
+        element: <UserRequestsPage />,
+      },
+      {
+        path: 'solicitudes/:requestId',
+        element: <UserRequestDetailPage />,
       },
       {
         path: 'requests/:requestId',
