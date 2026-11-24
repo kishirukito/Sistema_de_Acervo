@@ -1,15 +1,14 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import {
   X,
   FileSpreadsheet,
-  Printer,
+  FileText,
   Search,
   Info,
   BarChart2,
   TrendingUp,
   Calendar,
   Layers,
-  Download,
   BookOpen,
   ClipboardCheck,
   Package,
@@ -17,128 +16,155 @@ import {
   AlertTriangle,
   Building2,
   BarChart3,
+  RefreshCw,
 } from 'lucide-react';
 import { CustomSelect } from '../../../components/ui/CustomSelect';
-import type { ReportTemplateData } from '../reports-templates.types';
-import type { SiabucReportData } from '../reports.types';
-import type { Loan } from '../../loans/loans.types';
-import {
-  ALL_QUICK_REPORT_TEMPLATES,
-  buildReportTemplateData,
-  exportReportTemplateToExcelXlsx,
-  exportReportTemplateToCsv,
-} from '../reports-templates.data';
+import { LoadingSpinner } from '../../../components/ui/LoadingSpinner';
+import type { ReportModel } from '../reports-templates.types';
+import { ALL_QUICK_REPORT_TEMPLATES } from '../reports-templates.data';
+import { fetchReportModel, downloadReportFile } from '../../../services/api/reports.service';
 import './ReportTemplateModal.css';
 
 interface ReportTemplateModalProps {
   isOpen: boolean;
   initialReportId?: string;
-  siabucData: SiabucReportData;
-  loansList?: Loan[];
   onClose: () => void;
+  onExportConfirmed?: (message: string) => void;
+}
+
+function formatKpiDisplay(val: string | number, fmt: string): string {
+  if (typeof val === 'number') {
+    if (fmt === 'currency') return `$${val.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} MXN`;
+    if (fmt === 'percent') return `${val.toFixed(1)}%`;
+    if (fmt === 'int') return val.toLocaleString('es-MX');
+    if (fmt === 'float') return val.toLocaleString('es-MX', { minimumFractionDigits: 1, maximumFractionDigits: 2 });
+  }
+  return String(val ?? 'No disponible');
+}
+
+function formatCellDisplay(val: any, type: string): string {
+  if (val === null || val === undefined || val === '') return 'No disponible';
+  if (typeof val === 'number') {
+    if (type === 'currency') return `$${val.toLocaleString('es-MX', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    if (type === 'percent') return `${(val * 100).toFixed(1)}%`;
+    if (type === 'int') return val.toLocaleString('es-MX');
+    if (type === 'float') return val.toLocaleString('es-MX', { minimumFractionDigits: 1, maximumFractionDigits: 2 });
+  }
+  return String(val);
 }
 
 export const ReportTemplateModal: React.FC<ReportTemplateModalProps> = ({
   isOpen,
   initialReportId = 'rep-carreras',
-  siabucData,
-  loansList = [],
   onClose,
+  onExportConfirmed,
 }) => {
-  // Reporte seleccionado
   const [selectedReportId, setSelectedReportId] = useState<string>(initialReportId);
 
-  // Inicialización de fechas (por defecto: mes actual al día de hoy)
   const today = new Date();
   const currentYear = today.getFullYear();
   const currentMonth = String(today.getMonth() + 1).padStart(2, '0');
   const currentDay = String(today.getDate()).padStart(2, '0');
+  const todayStr = `${currentYear}-${currentMonth}-${currentDay}`;
 
-  const defaultStart = `${currentYear}-${currentMonth}-01`;
-  const defaultEnd = `${currentYear}-${currentMonth}-${currentDay}`;
-
-  const [startDate, setStartDate] = useState<string>(defaultStart);
-  const [endDate, setEndDate] = useState<string>(defaultEnd);
-  const [activePreset, setActivePreset] = useState<'month' | 'quarter' | 'semester' | 'year' | 'custom'>('month');
-
+  const [startDate, setStartDate] = useState<string>('');
+  const [endDate, setEndDate] = useState<string>('');
+  const [activePreset, setActivePreset] = useState<'all' | 'month' | 'quarter' | 'semester' | 'year' | 'custom'>('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [debouncedSearch, setDebouncedSearch] = useState('');
 
-  // Atajos rápidos de fecha
-  const handleApplyPreset = (preset: 'month' | 'quarter' | 'semester' | 'year') => {
+  const [reportModel, setReportModel] = useState<ReportModel | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [exportingFormat, setExportingFormat] = useState<'excel' | 'pdf' | null>(null);
+
+  useEffect(() => {
+    if (initialReportId) {
+      setSelectedReportId(initialReportId);
+    }
+  }, [initialReportId]);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setDebouncedSearch(searchQuery);
+    }, 300);
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  const loadModel = useCallback(async () => {
+    if (!isOpen) return;
+    setIsLoading(true);
+    setErrorMsg(null);
+    try {
+      const model = await fetchReportModel({
+        reportId: selectedReportId,
+        startDate: startDate || undefined,
+        endDate: endDate || undefined,
+        search: debouncedSearch,
+      });
+      setReportModel(model);
+    } catch (err: any) {
+      setErrorMsg(err?.message || 'No se pudo cargar el reporte desde el servidor.');
+      setReportModel(null);
+    } finally {
+      setIsLoading(false);
+    }
+  }, [isOpen, selectedReportId, startDate, endDate, debouncedSearch]);
+
+  useEffect(() => {
+    loadModel();
+  }, [loadModel]);
+
+  const handleApplyPreset = (preset: 'all' | 'month' | 'quarter' | 'semester' | 'year') => {
     setActivePreset(preset);
-    const endStr = `${currentYear}-${currentMonth}-${currentDay}`;
-
-    if (preset === 'month') {
+    if (preset === 'all') {
+      setStartDate('');
+      setEndDate('');
+    } else if (preset === 'month') {
       setStartDate(`${currentYear}-${currentMonth}-01`);
-      setEndDate(endStr);
+      setEndDate(todayStr);
     } else if (preset === 'quarter') {
       const qStart = new Date(today);
       qStart.setMonth(qStart.getMonth() - 3);
       setStartDate(qStart.toISOString().slice(0, 10));
-      setEndDate(endStr);
+      setEndDate(todayStr);
     } else if (preset === 'semester') {
       const sStart = new Date(today);
       sStart.setMonth(sStart.getMonth() - 6);
       setStartDate(sStart.toISOString().slice(0, 10));
-      setEndDate(endStr);
+      setEndDate(todayStr);
     } else if (preset === 'year') {
       setStartDate(`${currentYear}-01-01`);
-      setEndDate(endStr);
+      setEndDate(todayStr);
     }
   };
 
-  const handleStartDateChange = (val: string) => {
-    setStartDate(val);
-    setActivePreset('custom');
+  const handleExport = async (format: 'excel' | 'pdf') => {
+    setExportingFormat(format);
+    setErrorMsg(null);
+    try {
+      const filename = await downloadReportFile({
+        format,
+        reportId: selectedReportId,
+        startDate: startDate || undefined,
+        endDate: endDate || undefined,
+        search: debouncedSearch,
+      });
+      // Refrescar vista con el mismo corte tras exportación confirmada
+      await loadModel();
+      if (onExportConfirmed) {
+        onExportConfirmed(`Archivo exportado correctamente: ${filename}`);
+      }
+    } catch (err: any) {
+      setErrorMsg(err?.message || `Error al exportar el archivo ${format.toUpperCase()}.`);
+    } finally {
+      setExportingFormat(null);
+    }
   };
-
-  const handleEndDateChange = (val: string) => {
-    setEndDate(val);
-    setActivePreset('custom');
-  };
-
-  // Construcción reactiva de los datos del reporte seleccionado con el rango de fechas
-  const reportData = useMemo<ReportTemplateData>(() => {
-    return buildReportTemplateData(selectedReportId, siabucData, loansList, {
-      startDate,
-      endDate,
-    });
-  }, [selectedReportId, siabucData, loansList, startDate, endDate]);
-
-  // Filtrado interno de filas por búsqueda
-  const filteredRows = useMemo(() => {
-    if (!searchQuery.trim()) return reportData.rows;
-    const q = searchQuery.toLowerCase().trim();
-    return reportData.rows.filter((row) =>
-      Object.values(row).some((val) =>
-        String(val).toLowerCase().includes(q)
-      )
-    );
-  }, [reportData.rows, searchQuery]);
 
   if (!isOpen) return null;
 
-  const handlePrint = () => {
-    window.print();
-  };
-
-  const handleExportExcel = () => {
-    exportReportTemplateToExcelXlsx(reportData);
-  };
-
-  const handleExportCsv = () => {
-    exportReportTemplateToCsv(reportData);
-  };
-
-  // Escala máxima para gráfica de ranking
-  const maxRankingVal = reportData.rankingSeries.length > 0
-    ? Math.max(...reportData.rankingSeries.map((s) => s.value), 1)
-    : 1;
-
-  // Escala máxima para gráfica de tendencia
-  const maxTrendVal = reportData.trendSeries.length > 0
-    ? Math.max(...reportData.trendSeries.map((s) => s.value), 1)
-    : 1;
+  const activeMeta = ALL_QUICK_REPORT_TEMPLATES.find((t) => t.id === selectedReportId) || ALL_QUICK_REPORT_TEMPLATES[0];
 
   const renderIconForReport = (id: string) => {
     switch (id) {
@@ -156,44 +182,42 @@ export const ReportTemplateModal: React.FC<ReportTemplateModalProps> = ({
   return (
     <div className="report-modal-backdrop" onClick={onClose} role="dialog" aria-modal="true">
       <div className="report-modal-container" onClick={(e) => e.stopPropagation()}>
-        {/* =========================================================================
-            HEADER SUPERIOR DEL MODAL
-            ========================================================================= */}
+        {/* HEADER SUPERIOR */}
         <header className="report-modal-header">
           <div className="report-modal-header-info">
             <div className="report-modal-badges-row">
-              <span className="report-modal-code-badge">{reportData.code}</span>
-              <span className="report-modal-cat-badge">{reportData.categoryBadge}</span>
+              <span className="report-modal-code-badge">{reportModel?.code || activeMeta.code}</span>
+              <span className="report-modal-cat-badge">{reportModel?.badge || activeMeta.badge}</span>
               <span className="report-modal-period-badge">
                 <Calendar size={12} style={{ display: 'inline', marginRight: 4, verticalAlign: -1 }} />
-                {reportData.periodLabel}
+                {reportModel?.period_label || 'Consultando periodo...'}
               </span>
             </div>
-            <h2 className="report-modal-title">{reportData.title.toUpperCase()}</h2>
-            <p className="report-modal-desc">
-              {reportData.description}
-            </p>
+            <h2 className="report-modal-title">{(reportModel?.title || activeMeta.title).toUpperCase()}</h2>
+            <p className="report-modal-desc">{reportModel?.description || activeMeta.description}</p>
           </div>
 
           <div className="report-modal-header-actions">
             <button
               type="button"
               className="report-modal-action-btn report-modal-btn--export-excel"
-              onClick={handleExportExcel}
-              title="Descargar libro de Microsoft Excel (.xlsx) con anchos de columna auto-ajustados"
+              onClick={() => handleExport('excel')}
+              disabled={exportingFormat !== null || isLoading}
+              title="Descargar libro Excel (.xlsx) real con hojas Resumen (gráficas nativas), Detalle y Criterios"
             >
               <FileSpreadsheet size={16} />
-              <span>Exportar Excel (.xlsx)</span>
+              <span>{exportingFormat === 'excel' ? 'Generando Excel...' : 'Exportar Excel (.xlsx)'}</span>
             </button>
 
             <button
               type="button"
               className="report-modal-action-btn report-modal-btn--print"
-              onClick={handlePrint}
-              title="Imprimir cédula oficial o guardar como PDF"
+              onClick={() => handleExport('pdf')}
+              disabled={exportingFormat !== null || isLoading}
+              title={`Descargar PDF independiente (${activeMeta.orientation === 'landscape' ? 'Horizontal' : 'Vertical'})`}
             >
-              <Printer size={16} />
-              <span>Imprimir / PDF</span>
+              <FileText size={16} />
+              <span>{exportingFormat === 'pdf' ? 'Generando PDF...' : 'Exportar PDF (.pdf)'}</span>
             </button>
 
             <button
@@ -207,11 +231,8 @@ export const ReportTemplateModal: React.FC<ReportTemplateModalProps> = ({
           </div>
         </header>
 
-        {/* =========================================================================
-            BARRA DE CONFIGURACIÓN DE REPORTES Y FECHAS (Tiempos e Inputs)
-            ========================================================================= */}
+        {/* BARRA DE CONFIGURACIÓN Y FECHAS */}
         <section className="report-config-bar">
-          {/* Selector de Tipo de Reporte */}
           <div className="report-config-type-group">
             <label className="report-config-label" htmlFor="report-select-master">
               <Layers size={14} />
@@ -230,7 +251,6 @@ export const ReportTemplateModal: React.FC<ReportTemplateModalProps> = ({
             />
           </div>
 
-          {/* Selector de Rango de Fechas (Inputs inicial y final) */}
           <div className="report-config-dates-group">
             <label className="report-config-label">
               <Calendar size={14} />
@@ -244,7 +264,10 @@ export const ReportTemplateModal: React.FC<ReportTemplateModalProps> = ({
                   type="date"
                   className="report-date-input"
                   value={startDate}
-                  onChange={(e) => handleStartDateChange(e.target.value)}
+                  onChange={(e) => {
+                    setStartDate(e.target.value);
+                    setActivePreset('custom');
+                  }}
                   aria-label="Fecha inicial del reporte"
                 />
               </div>
@@ -257,13 +280,22 @@ export const ReportTemplateModal: React.FC<ReportTemplateModalProps> = ({
                   type="date"
                   className="report-date-input"
                   value={endDate}
-                  onChange={(e) => handleEndDateChange(e.target.value)}
+                  onChange={(e) => {
+                    setEndDate(e.target.value);
+                    setActivePreset('custom');
+                  }}
                   aria-label="Fecha final del reporte"
                 />
               </div>
 
-              {/* Botones de Presets Rápidos */}
               <div className="report-presets-row">
+                <button
+                  type="button"
+                  className={`report-preset-btn ${activePreset === 'all' ? 'active' : ''}`}
+                  onClick={() => handleApplyPreset('all')}
+                >
+                  Todo
+                </button>
                 <button
                   type="button"
                   className={`report-preset-btn ${activePreset === 'month' ? 'active' : ''}`}
@@ -297,7 +329,7 @@ export const ReportTemplateModal: React.FC<ReportTemplateModalProps> = ({
           </div>
         </section>
 
-        {/* Pestañas de Acceso Rápido por Icono */}
+        {/* PESTAÑAS DE CAMBIO RÁPIDO */}
         <nav className="report-tabs-quick-bar" aria-label="Cambio rápido de reporte">
           {ALL_QUICK_REPORT_TEMPLATES.map((tmpl) => (
             <button
@@ -312,206 +344,231 @@ export const ReportTemplateModal: React.FC<ReportTemplateModalProps> = ({
           ))}
         </nav>
 
-        {/* =========================================================================
-            CUERPO DEL REPORTE (PREVISUALIZACIÓN EN VIVO)
-            ========================================================================= */}
+        {/* CUERPO DEL REPORTE (PREVISUALIZACIÓN DEL MODELO COMÚN REAL) */}
         <div className="report-modal-body">
-          {/* BANNER KPI SUPERIOR (Estilo Dorado de la Plantilla de Referencia) */}
-          <section className="report-kpi-gold-ribbon" aria-label="Indicadores generales del informe">
-            {reportData.kpis.map((kpi, idx) => (
-              <div
-                key={idx}
-                className={`report-kpi-gold-card ${kpi.highlight ? 'report-kpi-gold-card--highlight' : ''}`}
+          {errorMsg && (
+            <div
+              role="alert"
+              style={{
+                backgroundColor: '#FEE2E2',
+                border: '1px solid #FCA5A5',
+                color: '#991B1B',
+                padding: '0.85rem 1rem',
+                borderRadius: '8px',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                gap: '1rem',
+                fontSize: '0.85rem',
+              }}
+            >
+              <span>{errorMsg}</span>
+              <button
+                type="button"
+                onClick={loadModel}
+                style={{
+                  display: 'inline-flex',
+                  alignItems: 'center',
+                  gap: '6px',
+                  padding: '4px 10px',
+                  backgroundColor: '#FFFFFF',
+                  border: '1px solid #FCA5A5',
+                  borderRadius: '6px',
+                  color: '#991B1B',
+                  fontWeight: 600,
+                  cursor: 'pointer',
+                }}
               >
-                <span className="report-kpi-gold-label">{kpi.label}</span>
-                <span className="report-kpi-gold-val">{kpi.value}</span>
-              </div>
-            ))}
-          </section>
-
-          {/* SECCIÓN DE GRÁFICAS INFORMATIVAS (2 Paneles) */}
-          <section className="report-charts-two-col">
-            {/* Gráfica 1: Tendencia / Flujo */}
-            <div className="report-chart-box">
-              <div className="report-chart-box-header">
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <TrendingUp size={16} color="#2563EB" />
-                  <h4 className="report-chart-box-title">{reportData.trendChartTitle}</h4>
-                </div>
-                <span className="report-chart-box-sub">{reportData.trendChartSubtitle}</span>
-              </div>
-
-              <div className="report-bars-vertical-wrapper">
-                {reportData.trendSeries.map((item, idx) => {
-                  const pct = Math.min((item.value / maxTrendVal) * 100, 100);
-                  return (
-                    <div key={idx} className="report-vert-bar-col">
-                      <span className="report-vert-bar-val">{item.value}</span>
-                      <div className="report-vert-bar-track">
-                        <div
-                          className="report-vert-bar-fill"
-                          style={{
-                            height: `${Math.max(pct, item.value > 0 ? 8 : 4)}%`,
-                            backgroundColor: item.color || '#3B82F6',
-                          }}
-                          title={item.sublabel || `${item.label}: ${item.value}`}
-                        />
-                      </div>
-                      <span className="report-vert-bar-label">{item.label}</span>
-                    </div>
-                  );
-                })}
-              </div>
+                <RefreshCw size={13} />
+                <span>Reintentar</span>
+              </button>
             </div>
+          )}
 
-            {/* Gráfica 2: Ranking / Desglose */}
-            <div className="report-chart-box">
-              <div className="report-chart-box-header">
-                <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
-                  <BarChart2 size={16} color="#D97706" />
-                  <h4 className="report-chart-box-title">{reportData.rankingChartTitle}</h4>
-                </div>
-                <span className="report-chart-box-sub">{reportData.rankingChartSubtitle}</span>
-              </div>
-
-              <div className="report-bars-horizontal-list">
-                {reportData.rankingSeries.map((item, idx) => {
-                  const pct = Math.min((item.value / maxRankingVal) * 100, 100);
-                  return (
-                    <div key={idx} className="report-horiz-bar-item">
-                      <span className="report-horiz-bar-label" title={item.label}>
-                        {item.label}
-                      </span>
-                      <div className="report-horiz-bar-track">
-                        <div
-                          className="report-horiz-bar-fill"
-                          style={{
-                            width: `${Math.max(pct, item.value > 0 ? 8 : 0)}%`,
-                            backgroundColor: item.color || '#F59E0B',
-                          }}
-                        />
-                      </div>
-                      <span className="report-horiz-bar-val">{item.value}</span>
-                    </div>
-                  );
-                })}
-              </div>
+          {isLoading ? (
+            <div style={{ padding: '4rem 0' }}>
+              <LoadingSpinner center size="lg" text="Consultando datos reales desde el servidor..." />
             </div>
-          </section>
-
-          {/* SECCIÓN TABLA DE DATOS (Detalle Granular con Fila de Totales) */}
-          <section className="report-table-section">
-            <div className="report-table-toolbar">
-              <div className="report-table-title-group">
-                <h3 className="report-table-main-title">RESUMEN Y REGISTRO DETALLADO DEL PERIODO</h3>
-                <span className="report-table-count">
-                  Mostrando {filteredRows.length} de {reportData.rows.length} fila(s)
-                </span>
-              </div>
-
-              <div className="report-table-search">
-                <Search size={15} className="report-search-icon" />
-                <input
-                  type="text"
-                  placeholder="Buscar en la tabla de este reporte..."
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  className="report-search-input"
-                />
-                {searchQuery && (
-                  <button
-                    type="button"
-                    className="report-search-clear"
-                    onClick={() => setSearchQuery('')}
+          ) : reportModel ? (
+            <>
+              {/* BANNER DE KPIS */}
+              <section className="report-kpi-gold-ribbon" aria-label="Indicadores generales del informe">
+                {reportModel.kpis.map((kpi, idx) => (
+                  <div
+                    key={idx}
+                    className={`report-kpi-gold-card ${kpi.highlight ? 'report-kpi-gold-card--highlight' : ''}`}
                   >
-                    ×
-                  </button>
-                )}
-              </div>
-            </div>
+                    <span className="report-kpi-gold-label">{kpi.label}</span>
+                    <span className="report-kpi-gold-val">{formatKpiDisplay(kpi.value, kpi.format)}</span>
+                  </div>
+                ))}
+              </section>
 
-            <div className="report-table-wrapper">
-              <table className="report-grid-table">
-                <thead>
-                  <tr>
-                    {reportData.columns.map((col) => (
-                      <th
-                        key={col.key}
-                        style={{
-                          minWidth: col.minWidth,
-                          textAlign: col.align || 'left',
-                        }}
-                      >
-                        {col.header}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {filteredRows.length === 0 ? (
-                    <tr>
-                      <td colSpan={reportData.columns.length} className="report-table-empty">
-                        No se encontraron registros que coincidan con la búsqueda.
-                      </td>
-                    </tr>
-                  ) : (
-                    filteredRows.map((row, rowIdx) => (
-                      <tr key={rowIdx}>
-                        {reportData.columns.map((col) => {
-                          const val = row[col.key];
-                          const badge = col.badge ? col.badge(val) : null;
+              {/* GRÁFICAS INFORMATIVAS */}
+              {reportModel.charts.length > 0 && (
+                <section className="report-charts-two-col">
+                  {reportModel.charts.map((ch) => {
+                    const maxVal = Math.max(...ch.values, 1);
+                    const isFirstBar = ch.type === 'line';
+                    return (
+                      <div key={ch.id} className="report-chart-box">
+                        <div className="report-chart-box-header">
+                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px' }}>
+                            {isFirstBar ? <TrendingUp size={16} color="#2563EB" /> : <BarChart2 size={16} color="#1E3A5F" />}
+                            <h4 className="report-chart-box-title">{ch.title}</h4>
+                          </div>
+                          <span className="report-chart-box-sub">{ch.subtitle}</span>
+                        </div>
 
-                          return (
-                            <td
-                              key={col.key}
-                              style={{ textAlign: col.align || 'left' }}
-                            >
-                              {badge ? (
-                                <span
-                                  className="report-cell-badge"
-                                  style={{
-                                    backgroundColor: badge.bg,
-                                    color: badge.color,
-                                  }}
-                                >
-                                  {badge.text}
+                        <div className="report-bars-horizontal-list" style={{ height: 'auto', minHeight: '140px' }}>
+                          {ch.categories.map((cat, idx) => {
+                            const val = ch.values[idx] ?? 0;
+                            const pct = Math.min((val / maxVal) * 100, 100);
+                            return (
+                              <div key={idx} className="report-horiz-bar-item">
+                                <span className="report-horiz-bar-label" title={cat}>{cat}</span>
+                                <div className="report-horiz-bar-track">
+                                  <div
+                                    className="report-horiz-bar-fill"
+                                    style={{
+                                      width: `${Math.max(pct, val > 0 ? 6 : 0)}%`,
+                                      backgroundColor: '#2563EB',
+                                    }}
+                                  />
+                                </div>
+                                <span className="report-horiz-bar-val">
+                                  {formatCellDisplay(val, ch.value_format)}
                                 </span>
-                              ) : (
-                                <span className="report-cell-text">{val ?? '—'}</span>
-                              )}
-                            </td>
-                          );
-                        })}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </section>
+              )}
+
+              {/* TABLA DETALLADA (CON TODOS LOS REGISTROS DEL CORTE) */}
+              <section className="report-table-section">
+                <div className="report-table-toolbar">
+                  <div className="report-table-title-group">
+                    <h3 className="report-table-main-title">DETALLE COMPLETO DEL REPORTE</h3>
+                    <span className="report-table-count">
+                      {reportModel.rows.length} registro(s) · La búsqueda escrita afecta pantalla, Excel y PDF
+                    </span>
+                  </div>
+
+                  <div className="report-table-search">
+                    <Search size={15} className="report-search-icon" />
+                    <input
+                      type="text"
+                      placeholder="Filtrar registros (afecta Excel y PDF)..."
+                      value={searchQuery}
+                      onChange={(e) => setSearchQuery(e.target.value)}
+                      className="report-search-input"
+                    />
+                    {searchQuery && (
+                      <button
+                        type="button"
+                        className="report-search-clear"
+                        onClick={() => setSearchQuery('')}
+                      >
+                        ×
+                      </button>
+                    )}
+                  </div>
+                </div>
+
+                <div className="report-table-wrapper">
+                  <table className="report-grid-table">
+                    <thead>
+                      <tr>
+                        {reportModel.columns.map((col) => (
+                          <th
+                            key={col.key}
+                            style={{
+                              minWidth: col.width_hint ? `${col.width_hint * 6}px` : undefined,
+                              textAlign: col.align || 'left',
+                            }}
+                          >
+                            {col.header}
+                          </th>
+                        ))}
                       </tr>
-                    ))
-                  )}
+                    </thead>
+                    <tbody>
+                      {reportModel.rows.length === 0 ? (
+                        <tr>
+                          <td colSpan={reportModel.columns.length} className="report-table-empty">
+                            Sin datos para el periodo
+                          </td>
+                        </tr>
+                      ) : (
+                        reportModel.rows.map((row, rowIdx) => (
+                          <tr key={rowIdx}>
+                            {reportModel.columns.map((col) => (
+                              <td key={col.key} style={{ textAlign: col.align || 'left' }}>
+                                <span className="report-cell-text">
+                                  {formatCellDisplay(row[col.key], col.type)}
+                                </span>
+                              </td>
+                            ))}
+                          </tr>
+                        ))
+                      )}
 
-                  {/* Fila de Totales / Resumen Destacada */}
-                  {reportData.totalSummaryRow && (
-                    <tr className="report-row-summary">
-                      {reportData.columns.map((col) => (
-                        <td
-                          key={col.key}
-                          style={{ textAlign: col.align || 'left' }}
-                        >
-                          <strong>{reportData.totalSummaryRow?.[col.key] ?? '—'}</strong>
-                        </td>
-                      ))}
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
-          </section>
+                      {reportModel.rows.length > 0 && reportModel.total_row && (
+                        <tr className="report-row-summary">
+                          {reportModel.columns.map((col) => (
+                            <td key={col.key} style={{ textAlign: col.align || 'left' }}>
+                              <strong>
+                                {reportModel.total_row?.[col.key] !== '' && reportModel.total_row?.[col.key] !== undefined
+                                  ? formatCellDisplay(reportModel.total_row[col.key], col.type)
+                                  : ''}
+                              </strong>
+                            </td>
+                          ))}
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </section>
 
-          {/* =========================================================================
-              PIE DE PÁGINA DEL REPORTE
-              ========================================================================= */}
+              {/* RECOMENDACIONES Y CRITERIOS METODOLÓGICOS */}
+              <section className="report-table-section">
+                <h3 className="report-table-main-title">HALLAZGOS, CRITERIOS Y LIMITACIONES</h3>
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(280px, 1fr))', gap: '1rem', fontSize: '0.8rem', color: '#334155' }}>
+                  <div>
+                    <strong style={{ color: '#1E3A5F' }}>Recomendaciones:</strong>
+                    <ul style={{ margin: '6px 0 0', paddingLeft: '1.1rem' }}>
+                      {reportModel.recommendations.map((r, i) => <li key={i}>{r}</li>)}
+                    </ul>
+                  </div>
+                  <div>
+                    <strong style={{ color: '#1E3A5F' }}>Fórmulas y reglas:</strong>
+                    <ul style={{ margin: '6px 0 0', paddingLeft: '1.1rem' }}>
+                      {[...reportModel.methodology.formulas, ...reportModel.methodology.rules].map((f, i) => <li key={i}>{f}</li>)}
+                    </ul>
+                  </div>
+                  <div>
+                    <strong style={{ color: '#1E3A5F' }}>Limitaciones documentadas:</strong>
+                    <ul style={{ margin: '6px 0 0', paddingLeft: '1.1rem' }}>
+                      {reportModel.methodology.limitations.map((l, i) => <li key={i}>{l}</li>)}
+                    </ul>
+                  </div>
+                </div>
+              </section>
+            </>
+          ) : null}
+
+          {/* FOOTER */}
           <footer className="report-modal-footer">
             <div className="report-footer-left">
               <Info size={15} color="#64748B" />
               <span>
-                Reporte oficial generado por el Sistema de Acervo Bibliotecario de la Universidad Politécnica de Durango.
+                Corte: {reportModel?.cutoff_date || todayStr} · Orientación PDF: {activeMeta.orientation === 'landscape' ? 'Horizontal' : 'Vertical'} · Datos reales del backend.
               </span>
             </div>
 
@@ -519,20 +576,21 @@ export const ReportTemplateModal: React.FC<ReportTemplateModalProps> = ({
               <button
                 type="button"
                 className="report-modal-action-btn report-modal-btn--export-excel"
-                onClick={handleExportExcel}
+                onClick={() => handleExport('excel')}
+                disabled={exportingFormat !== null || isLoading}
               >
                 <FileSpreadsheet size={15} />
-                <span>Descargar Excel (.xlsx)</span>
+                <span>{exportingFormat === 'excel' ? 'Generando...' : 'Descargar Excel (.xlsx)'}</span>
               </button>
 
               <button
                 type="button"
-                className="report-modal-action-btn report-modal-btn--csv"
-                onClick={handleExportCsv}
-                title="Descargar versión alternativa CSV delimitada por comas"
+                className="report-modal-action-btn report-modal-btn--print"
+                onClick={() => handleExport('pdf')}
+                disabled={exportingFormat !== null || isLoading}
               >
-                <Download size={14} />
-                <span>CSV</span>
+                <FileText size={15} />
+                <span>{exportingFormat === 'pdf' ? 'Generando...' : 'Descargar PDF (.pdf)'}</span>
               </button>
             </div>
           </footer>

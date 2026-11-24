@@ -1,5 +1,6 @@
 import { apiClient } from './client';
 import type { SiabucReportData } from '../../features/reports/reports.types';
+import type { ReportModel } from '../../features/reports/reports-templates.types';
 
 export const DEFAULT_SIABUC_DATA: SiabucReportData = {
   circulacion: {
@@ -170,4 +171,85 @@ export async function updateEjemplarEstado(data: {
   });
   if (!res.ok) throw new Error(await res.text());
   return res.json();
+}
+
+export async function fetchReportModel(params: {
+  reportId: string;
+  startDate?: string;
+  endDate?: string;
+  search?: string;
+}): Promise<ReportModel> {
+  const qs = new URLSearchParams();
+  qs.set('report_id', params.reportId);
+  if (params.startDate) qs.set('start_date', params.startDate);
+  if (params.endDate) qs.set('end_date', params.endDate);
+  if (params.search && params.search.trim()) qs.set('search', params.search.trim());
+
+  const res = await fetch(`/api/v1/reports/model?${qs.toString()}`, {
+    method: 'GET',
+    headers: getAuthHeaders(),
+  });
+  if (!res.ok) {
+    let detail = `Error ${res.status} al consultar el modelo del reporte.`;
+    try {
+      const errJson = await res.json();
+      if (errJson?.detail) detail = errJson.detail;
+    } catch {
+      // keep default detail
+    }
+    throw new Error(detail);
+  }
+  return res.json();
+}
+
+export async function downloadReportFile(params: {
+  format: 'excel' | 'pdf';
+  reportId: string;
+  startDate?: string;
+  endDate?: string;
+  search?: string;
+}): Promise<string> {
+  const qs = new URLSearchParams();
+  qs.set('report_id', params.reportId);
+  if (params.startDate) qs.set('start_date', params.startDate);
+  if (params.endDate) qs.set('end_date', params.endDate);
+  if (params.search && params.search.trim()) qs.set('search', params.search.trim());
+
+  const res = await fetch(`/api/v1/reports/export/${params.format}?${qs.toString()}`, {
+    method: 'GET',
+    headers: getAuthHeaders(),
+  });
+
+  if (!res.ok) {
+    let detail = `Error ${res.status} al exportar el archivo ${params.format.toUpperCase()}.`;
+    try {
+      const errJson = await res.json();
+      if (errJson?.detail) detail = errJson.detail;
+    } catch {
+      // keep default detail
+    }
+    throw new Error(detail);
+  }
+
+  const blob = await res.blob();
+  const ext = params.format === 'excel' ? 'xlsx' : 'pdf';
+  let filename = `reporte_${params.reportId}.${ext}`;
+  const disposition = res.headers.get('Content-Disposition');
+  if (disposition) {
+    const match = disposition.match(/filename="?([^"]+)"?/i);
+    if (match && match[1]) {
+      filename = match[1];
+    }
+  }
+
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  URL.revokeObjectURL(url);
+
+  return filename;
 }

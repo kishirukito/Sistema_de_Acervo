@@ -1,10 +1,13 @@
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, HTTPException, Depends, Query
+from fastapi.responses import Response
 from pydantic import BaseModel
 import httpx
 import asyncio
 import time
 from app.core.config import settings
 from app.core.security import require_admin
+from app.services.report_builder import build_report_model, REPORT_CATALOG
+from app.services.report_exporters import export_report_to_xlsx, export_report_to_pdf
 from typing import Dict, Any, List, Optional
 from datetime import datetime, timezone
 
@@ -557,3 +560,110 @@ async def update_ejemplar_estado(payload: UpdateEjemplarEstadoPayload, admin: Di
         if resp.status_code >= 400:
             raise HTTPException(status_code=resp.status_code, detail=resp.text)
         return resp.json()
+
+
+# ==============================================================================
+# MODELO COMÚN DE REPORTE Y EXPORTACIÓN REAL (EXCEL .XLSX Y PDF .PDF)
+# ==============================================================================
+
+@router.get("/catalog")
+async def get_reports_catalog(admin: Dict[str, Any] = Depends(require_admin)) -> List[Dict[str, str]]:
+    """Retorna el catálogo oficial de reportes disponibles."""
+    return REPORT_CATALOG
+
+
+@router.get("/model")
+async def get_report_model_endpoint(
+    report_id: str = Query(..., description="Identificador del reporte"),
+    start_date: Optional[str] = Query(None, description="Fecha inicial YYYY-MM-DD"),
+    end_date: Optional[str] = Query(None, description="Fecha final YYYY-MM-DD"),
+    search: str = Query("", description="Texto de búsqueda aplicado al detalle"),
+    admin: Dict[str, Any] = Depends(require_admin),
+) -> Dict[str, Any]:
+    """
+    Retorna el modelo común del reporte (pantalla, Excel y PDF usan exactamente este corte real).
+    """
+    try:
+        return await build_report_model(
+            report_id=report_id,
+            start_date=start_date,
+            end_date=end_date,
+            search_query=search,
+        )
+    except Exception as exc:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error al construir el modelo de reporte: {str(exc)}",
+        )
+
+
+@router.get("/export/excel")
+async def export_report_excel_endpoint(
+    report_id: str = Query(..., description="Identificador del reporte"),
+    start_date: Optional[str] = Query(None, description="Fecha inicial YYYY-MM-DD"),
+    end_date: Optional[str] = Query(None, description="Fecha final YYYY-MM-DD"),
+    search: str = Query("", description="Texto de búsqueda aplicado al detalle"),
+    admin: Dict[str, Any] = Depends(require_admin),
+) -> Response:
+    """
+    Genera y descarga un libro Excel (.xlsx) real con 3 hojas (Resumen, Detalle, Criterios)
+    y gráficas nativas de Excel a partir de los datos reales de Supabase.
+    """
+    try:
+        model = await build_report_model(
+            report_id=report_id,
+            start_date=start_date,
+            end_date=end_date,
+            search_query=search,
+        )
+        xlsx_bytes = export_report_to_xlsx(model)
+        filename = f"{model['default_file_name']}.xlsx"
+        return Response(
+            content=xlsx_bytes,
+            media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+            headers={
+                "Content-Disposition": f'attachment; filename="{filename}"',
+                "Cache-Control": "no-store",
+            },
+        )
+    except Exception as exc:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error al generar el archivo Excel: {str(exc)}",
+        )
+
+
+@router.get("/export/pdf")
+async def export_report_pdf_endpoint(
+    report_id: str = Query(..., description="Identificador del reporte"),
+    start_date: Optional[str] = Query(None, description="Fecha inicial YYYY-MM-DD"),
+    end_date: Optional[str] = Query(None, description="Fecha final YYYY-MM-DD"),
+    search: str = Query("", description="Texto de búsqueda aplicado al detalle"),
+    admin: Dict[str, Any] = Depends(require_admin),
+) -> Response:
+    """
+    Genera y descarga un documento PDF (.pdf) independiente con resumen ejecutivo,
+    detalle multipágina con encabezados repetidos, numeración y notas metodológicas.
+    """
+    try:
+        model = await build_report_model(
+            report_id=report_id,
+            start_date=start_date,
+            end_date=end_date,
+            search_query=search,
+        )
+        pdf_bytes = export_report_to_pdf(model)
+        filename = f"{model['default_file_name']}.pdf"
+        return Response(
+            content=pdf_bytes,
+            media_type="application/pdf",
+            headers={
+                "Content-Disposition": f'attachment; filename="{filename}"',
+                "Cache-Control": "no-store",
+            },
+        )
+    except Exception as exc:
+        raise HTTPException(
+            status_code=500,
+            detail=f"Error al generar el archivo PDF: {str(exc)}",
+        )

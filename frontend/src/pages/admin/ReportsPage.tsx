@@ -19,7 +19,6 @@ import { CategoriesBarChart } from '../../features/reports/components/Categories
 import { OverdueLoansTable } from '../../features/reports/components/OverdueLoansTable';
 import { QuickReportsCard } from '../../features/reports/components/QuickReportsCard';
 import { ReportTemplateModal } from '../../features/reports/components/ReportTemplateModal';
-import { useAdminLoans } from '../../features/loans/admin-loans.query';
 
 import { CirculacionStatsView } from '../../features/reports/components/CirculacionStatsView';
 import { ProcesosTecnicosStatsView } from '../../features/reports/components/ProcesosTecnicosStatsView';
@@ -59,9 +58,6 @@ export const ReportsPage: React.FC = () => {
   });
 
   const [toastMessage, setToastMessage] = useState<string | null>(null);
-
-  // Cargar préstamos admin para enriquecer reportes con datos reales
-  const { data: loansList = [] } = useAdminLoans();
 
   // React Query — staleTime: 5 min para estadísticas SIABUC.
   // No se hace polling porque el endpoint puede tener efectos secundarios.
@@ -358,9 +354,8 @@ export const ReportsPage: React.FC = () => {
       <ReportTemplateModal
         isOpen={isMasterReportModalOpen}
         initialReportId={activeMasterReportId}
-        siabucData={siabucData}
-        loansList={loansList}
         onClose={() => setIsMasterReportModalOpen(false)}
+        onExportConfirmed={(msg) => showToast(msg)}
       />
 
       {/* Toast notification banner */}
