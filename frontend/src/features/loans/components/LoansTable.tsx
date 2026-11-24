@@ -21,13 +21,13 @@ export const LoansTable: React.FC<LoansTableProps> = ({
       <div className="loans-table-wrapper">
         <table className="loans-table" aria-label="Tabla de préstamos del sistema">
           <colgroup>
-            <col style={{ width: '9%' }} />
-            <col style={{ width: '19%' }} />
-            <col style={{ width: '23%' }} />
-            <col style={{ width: '15%' }} />
-            <col style={{ width: '14%' }} />
-            <col style={{ width: '12%' }} />
-            <col style={{ width: '8%' }} />
+            <col style={{ width: '90px' }} />
+            <col style={{ width: '22%' }} />
+            <col style={{ width: '24%' }} />
+            <col style={{ width: '13%' }} />
+            <col style={{ width: '13%' }} />
+            <col style={{ width: '11%' }} />
+            <col style={{ width: '85px' }} />
           </colgroup>
           <thead>
             <tr>
@@ -67,16 +67,22 @@ export const LoansTable: React.FC<LoansTableProps> = ({
                       >
                         {loan.userInitials}
                       </div>
-                      <div className="loans-user-details" style={{ display: 'flex', flexDirection: 'column' }}>
+                      <div className="loans-user-details">
                         <span className="loans-user-name" title={loan.userName}>
                           {loan.userName}
                         </span>
                         {loan.tipoPrestamoClave === 'interbibliotecario' ? (
-                          <span style={{ fontSize: '0.75rem', color: '#7C3AED', fontWeight: 600 }}>
+                          <span
+                            className="loans-user-convenio"
+                            title={`Convenio: ${loan.responsableExternoNombre || 'Externo'} ${loan.autorizadoPorNombre ? `(Autorizó: ${loan.autorizadoPorNombre})` : ''}`}
+                          >
                             Convenio: {loan.responsableExternoNombre || 'Externo'} {loan.autorizadoPorNombre ? `(Autorizó: ${loan.autorizadoPorNombre})` : ''}
                           </span>
                         ) : loan.userCareerName ? (
-                          <span style={{ fontSize: '0.75rem', color: '#64748B' }}>
+                          <span
+                            className="loans-user-career"
+                            title={loan.userCareerName}
+                          >
                             {loan.userCareerName}
                           </span>
                         ) : null}

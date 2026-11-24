@@ -17,14 +17,14 @@ export const ReturnsTable: React.FC<ReturnsTableProps> = ({
       <div className="returns-table-wrapper">
         <table className="returns-table" aria-label="Tabla de préstamos pendientes de devolución">
           <colgroup>
-            <col style={{ width: '5.5%' }} />
-            <col style={{ width: '13.5%' }} />
-            <col style={{ width: '16.5%' }} />
-            <col style={{ width: '13%' }} />
+            <col style={{ width: '85px' }} />
+            <col style={{ width: '18%' }} />
+            <col style={{ width: '22%' }} />
+            <col style={{ width: '11%' }} />
             <col style={{ width: '10%' }} />
-            <col style={{ width: '17%' }} />
-            <col style={{ width: '10.5%' }} />
             <col style={{ width: '14%' }} />
+            <col style={{ width: '10%' }} />
+            <col style={{ width: '160px' }} />
           </colgroup>
           <thead>
             <tr>

@@ -383,11 +383,14 @@
 
 .loans-table-wrapper {
   width: 100%;
+  max-width: 100%;
   overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .loans-table {
   width: 100%;
+  min-width: 960px;
   border-collapse: collapse;
   text-align: left;
   font-size: 0.875rem;
@@ -430,6 +433,7 @@
   padding: 0.85rem 0.75rem;
   vertical-align: middle;
   color: #1F2937;
+  overflow: hidden;
 }
 
 .loans-td-center {
@@ -457,6 +461,8 @@
   align-items: center;
   gap: 10px;
   min-width: 0;
+  width: 100%;
+  overflow: hidden;
 }
 
 .loans-avatar {
@@ -474,6 +480,14 @@
   letter-spacing: 0.02em;
 }
 
+.loans-user-details {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  width: 100%;
+  overflow: hidden;
+}
+
 .loans-user-name {
   font-size: 0.875rem;
   font-weight: 600;
@@ -481,6 +495,29 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  max-width: 100%;
+  display: block;
+}
+
+.loans-user-career {
+  font-size: 0.75rem;
+  color: #64748B;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+  display: block;
+}
+
+.loans-user-convenio {
+  font-size: 0.75rem;
+  color: #7C3AED;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+  display: block;
 }
 
 /* Book cell */
@@ -489,6 +526,8 @@
   flex-direction: column;
   gap: 2px;
   min-width: 0;
+  width: 100%;
+  overflow: hidden;
 }
 
 .loans-book-title {
@@ -498,6 +537,8 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  max-width: 100%;
+  display: block;
 }
 
 .loans-book-author {
@@ -506,6 +547,8 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  max-width: 100%;
+  display: block;
 }
 
 /* Dates */
