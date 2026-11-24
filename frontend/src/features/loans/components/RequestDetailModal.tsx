@@ -60,7 +60,6 @@ export const RequestDetailModal: React.FC<RequestDetailModalProps> = ({
 
   if (!request) return null;
 
-  const isPending = request.status === 'PENDING';
   const isProcessed = request.status === 'APPROVED' || request.status === 'REJECTED';
 
   const handleApprove = async () => {
@@ -117,32 +116,39 @@ export const RequestDetailModal: React.FC<RequestDetailModalProps> = ({
             Cerrar
           </Button>
 
-          {isPending && (
-            <>
-              <Button
-                type="button"
-                variant="danger"
-                leftIcon={<XCircle size={15} />}
-                onClick={handleReject}
-                disabled={isSubmitting}
-                isLoading={isSubmitting}
-                aria-label="Rechazar solicitud"
-              >
-                Rechazar solicitud
-              </Button>
-              <Button
-                type="button"
-                variant="primary"
-                leftIcon={<CheckCircle2 size={15} />}
-                onClick={handleApprove}
-                disabled={isSubmitting}
-                isLoading={isSubmitting}
-                aria-label="Aceptar solicitud"
-              >
-                Aceptar solicitud
-              </Button>
-            </>
-          )}
+          <Button
+            type="button"
+            variant="danger"
+            leftIcon={<XCircle size={15} />}
+            onClick={handleReject}
+            disabled={isSubmitting || request.status === 'REJECTED'}
+            isLoading={isSubmitting}
+            aria-label="Rechazar solicitud"
+            title={
+              request.status === 'REJECTED'
+                ? 'Esta solicitud ya se encuentra rechazada'
+                : 'Rechazar solicitud'
+            }
+          >
+            {request.status === 'REJECTED' ? 'Solicitud rechazada' : 'Rechazar solicitud'}
+          </Button>
+
+          <Button
+            type="button"
+            variant="primary"
+            leftIcon={<CheckCircle2 size={15} />}
+            onClick={handleApprove}
+            disabled={isSubmitting || request.status === 'APPROVED'}
+            isLoading={isSubmitting}
+            aria-label="Aceptar solicitud"
+            title={
+              request.status === 'APPROVED'
+                ? 'Esta solicitud ya se encuentra aprobada'
+                : 'Aceptar y formalizar préstamo'
+            }
+          >
+            {request.status === 'APPROVED' ? 'Solicitud aprobada' : 'Aceptar solicitud'}
+          </Button>
         </div>
       }
     >

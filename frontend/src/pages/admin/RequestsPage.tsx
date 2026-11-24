@@ -453,12 +453,12 @@ export const RequestsPage: React.FC = () => {
             <table className="requests-table" aria-label="Tabla de solicitudes de alumnos">
               <thead>
                 <tr>
-                  <th scope="col" style={{ width: '14%' }}>FOLIO / FECHA</th>
-                  <th scope="col" style={{ width: '24%' }}>ALUMNO / SOLICITANTE</th>
-                  <th scope="col" style={{ width: '24%' }}>LIBRO SOLICITADO</th>
-                  <th scope="col" style={{ width: '14%' }}>FECHA SUGERIDA</th>
-                  <th scope="col" style={{ width: '12%' }}>ESTADO</th>
-                  <th scope="col" style={{ width: '12%' }} className="requests-th-center">ACCIONES</th>
+                  <th scope="col" style={{ width: '13%' }}>FOLIO / FECHA</th>
+                  <th scope="col" style={{ width: '22%' }}>ALUMNO / SOLICITANTE</th>
+                  <th scope="col" style={{ width: '22%' }}>LIBRO SOLICITADO</th>
+                  <th scope="col" style={{ width: '13%' }}>FECHA SUGERIDA</th>
+                  <th scope="col" style={{ width: '10%' }}>ESTADO</th>
+                  <th scope="col" style={{ width: '20%', minWidth: '240px' }} className="requests-th-center">ACCIONES</th>
                 </tr>
               </thead>
               <tbody>
@@ -469,8 +469,6 @@ export const RequestsPage: React.FC = () => {
                     .slice(0, 2)
                     .join('')
                     .toUpperCase();
-
-                  const isPending = req.status === 'PENDING';
 
                   return (
                     <tr key={req.id} className="requests-table-row">
@@ -558,54 +556,50 @@ export const RequestsPage: React.FC = () => {
 
                       {/* Acciones */}
                       <td className="requests-td-center">
-                        {isPending ? (
-                          <div className="requests-actions-group">
-                            <button
-                              type="button"
-                              className="requests-btn-approve"
-                              onClick={() => handleApprove(req)}
-                              title="Aceptar y autorizar entrega de libro"
-                              aria-label={`Aceptar solicitud ${req.id}`}
-                            >
-                              <CheckCircle2 size={15} />
-                              <span>Aceptar</span>
-                            </button>
+                        <div className="requests-actions-group">
+                          <button
+                            type="button"
+                            className="requests-btn-approve"
+                            onClick={() => handleApprove(req)}
+                            disabled={req.status === 'APPROVED'}
+                            title={
+                              req.status === 'APPROVED'
+                                ? 'Esta solicitud ya se encuentra aprobada'
+                                : 'Aceptar solicitud y autorizar entrega'
+                            }
+                            aria-label={`Aceptar solicitud ${req.id}`}
+                          >
+                            <CheckCircle2 size={14} />
+                            <span>Aceptar</span>
+                          </button>
 
-                            <button
-                              type="button"
-                              className="requests-btn-reject"
-                              onClick={() => handleOpenRejectDialog(req)}
-                              title="Rechazar solicitud"
-                              aria-label={`Rechazar solicitud ${req.id}`}
-                            >
-                              <XCircle size={15} />
-                              <span>Rechazar</span>
-                            </button>
+                          <button
+                            type="button"
+                            className="requests-btn-reject"
+                            onClick={() => handleOpenRejectDialog(req)}
+                            disabled={req.status === 'REJECTED'}
+                            title={
+                              req.status === 'REJECTED'
+                                ? 'Esta solicitud ya se encuentra rechazada'
+                                : 'Rechazar solicitud'
+                            }
+                            aria-label={`Rechazar solicitud ${req.id}`}
+                          >
+                            <XCircle size={14} />
+                            <span>Rechazar</span>
+                          </button>
 
-                            <button
-                              type="button"
-                              className="requests-btn-view"
-                              onClick={() => setSelectedRequest(req)}
-                              title="Ver detalle completo"
-                              aria-label={`Ver detalles de solicitud ${req.id}`}
-                            >
-                              <Eye size={15} />
-                            </button>
-                          </div>
-                        ) : (
-                          <div className="requests-actions-group">
-                            <button
-                              type="button"
-                              className="requests-btn-view requests-btn-view--processed"
-                              onClick={() => setSelectedRequest(req)}
-                              title="Ver detalle de la solicitud"
-                              aria-label={`Ver detalles de solicitud ${req.id}`}
-                            >
-                              <Eye size={15} />
-                              <span>Ver detalle</span>
-                            </button>
-                          </div>
-                        )}
+                          <button
+                            type="button"
+                            className="requests-btn-view"
+                            onClick={() => setSelectedRequest(req)}
+                            title="Ver detalle completo de la solicitud"
+                            aria-label={`Ver detalles de solicitud ${req.id}`}
+                          >
+                            <Eye size={14} />
+                            <span>Ver detalle</span>
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );
