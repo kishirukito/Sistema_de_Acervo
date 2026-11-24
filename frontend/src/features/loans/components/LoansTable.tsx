@@ -20,24 +20,15 @@ export const LoansTable: React.FC<LoansTableProps> = ({
     <div className="loans-table-card">
       <div className="loans-table-wrapper">
         <table className="loans-table" aria-label="Tabla de préstamos del sistema">
-          <colgroup>
-            <col style={{ width: '90px' }} />
-            <col style={{ width: '22%' }} />
-            <col style={{ width: '24%' }} />
-            <col style={{ width: '13%' }} />
-            <col style={{ width: '13%' }} />
-            <col style={{ width: '11%' }} />
-            <col style={{ width: '85px' }} />
-          </colgroup>
           <thead>
             <tr>
-              <th scope="col">FOLIO</th>
-              <th scope="col">USUARIO</th>
-              <th scope="col">LIBRO</th>
-              <th scope="col">FECHA DE PRÉSTAMO</th>
-              <th scope="col">FECHA LÍMITE</th>
-              <th scope="col">ESTADO</th>
-              <th scope="col" className="loans-th-center">ACCIONES</th>
+              <th scope="col" className="loans-th-folio">FOLIO</th>
+              <th scope="col" className="loans-th-user">USUARIO</th>
+              <th scope="col" className="loans-th-book">LIBRO</th>
+              <th scope="col" className="loans-th-date">FECHA DE PRÉSTAMO</th>
+              <th scope="col" className="loans-th-due">FECHA LÍMITE</th>
+              <th scope="col" className="loans-th-status">ESTADO</th>
+              <th scope="col" className="loans-th-actions loans-th-center">ACCIONES</th>
             </tr>
           </thead>
           <tbody>
@@ -141,7 +132,7 @@ export const LoansTable: React.FC<LoansTableProps> = ({
                   </td>
 
                   {/* ACCIONES */}
-                  <td className="loans-td-center">
+                  <td className="loans-td-actions loans-td-center">
                     <div className="loans-actions-group">
                       <button
                         type="button"

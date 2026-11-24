@@ -16,26 +16,16 @@ export const ReturnsTable: React.FC<ReturnsTableProps> = ({
     <div className="returns-table-card">
       <div className="returns-table-wrapper">
         <table className="returns-table" aria-label="Tabla de préstamos pendientes de devolución">
-          <colgroup>
-            <col style={{ width: '85px' }} />
-            <col style={{ width: '18%' }} />
-            <col style={{ width: '22%' }} />
-            <col style={{ width: '11%' }} />
-            <col style={{ width: '10%' }} />
-            <col style={{ width: '14%' }} />
-            <col style={{ width: '10%' }} />
-            <col style={{ width: '160px' }} />
-          </colgroup>
           <thead>
             <tr>
-              <th scope="col">FOLIO</th>
-              <th scope="col">USUARIO</th>
-              <th scope="col">LIBRO</th>
-              <th scope="col">FECHA DE PRÉSTAMO</th>
-              <th scope="col">FECHA LÍMITE</th>
-              <th scope="col">DÍAS RESTANTES / RETRASO</th>
-              <th scope="col">ESTADO</th>
-              <th scope="col" className="returns-th-center">ACCIÓN</th>
+              <th scope="col" className="returns-th-folio">FOLIO</th>
+              <th scope="col" className="returns-th-user">USUARIO</th>
+              <th scope="col" className="returns-th-book">LIBRO</th>
+              <th scope="col" className="returns-th-date">FECHA DE PRÉSTAMO</th>
+              <th scope="col" className="returns-th-due">FECHA LÍMITE</th>
+              <th scope="col" className="returns-th-days">DÍAS RESTANTES / RETRASO</th>
+              <th scope="col" className="returns-th-status">ESTADO</th>
+              <th scope="col" className="returns-th-action returns-th-center">ACCIÓN</th>
             </tr>
           </thead>
           <tbody>
@@ -118,7 +108,7 @@ export const ReturnsTable: React.FC<ReturnsTableProps> = ({
                   </td>
 
                   {/* ACCIÓN */}
-                  <td className="returns-td-center">
+                  <td className="returns-td-action returns-td-center">
                     <button
                       type="button"
                       onClick={() => onProcessReturn(record)}

@@ -288,11 +288,11 @@
 
 .returns-table {
   width: 100%;
-  min-width: 1040px;
+  min-width: 1180px;
   border-collapse: collapse;
   text-align: left;
   font-size: 0.875rem;
-  table-layout: fixed;
+  table-layout: auto;
 }
 
 .returns-table thead {
@@ -306,7 +306,7 @@
   color: #1E3A5F;
   text-transform: uppercase;
   letter-spacing: 0.03em;
-  padding: 0.85rem 0.65rem;
+  padding: 0.85rem 0.75rem;
   white-space: nowrap;
 }
 
@@ -328,12 +328,63 @@
 }
 
 .returns-table td {
-  padding: 0.85rem 0.65rem;
+  padding: 0.85rem 0.75rem;
   vertical-align: middle;
   color: #1F2937;
 }
 
 .returns-td-center {
+  text-align: center;
+}
+
+/* Anchos mínimos y control de columnas de devoluciones */
+.returns-th-folio,
+.returns-td-folio {
+  width: 85px;
+  min-width: 85px;
+  white-space: nowrap;
+}
+
+.returns-th-user,
+.returns-td-user {
+  min-width: 200px;
+  max-width: 250px;
+}
+
+.returns-th-book,
+.returns-td-book {
+  min-width: 200px;
+  max-width: 260px;
+}
+
+.returns-th-date,
+.returns-td-date {
+  min-width: 140px;
+  white-space: nowrap;
+}
+
+.returns-th-due,
+.returns-td-due {
+  min-width: 130px;
+  white-space: nowrap;
+}
+
+.returns-th-days,
+.returns-td-days {
+  min-width: 180px;
+  white-space: nowrap;
+}
+
+.returns-th-status,
+.returns-td-status {
+  min-width: 155px;
+  white-space: nowrap;
+}
+
+.returns-th-action,
+.returns-td-action {
+  min-width: 175px;
+  white-space: nowrap;
   text-align: center;
 }
 

@@ -453,12 +453,12 @@ export const RequestsPage: React.FC = () => {
             <table className="requests-table" aria-label="Tabla de solicitudes de alumnos">
               <thead>
                 <tr>
-                  <th scope="col" style={{ width: '14%' }}>FOLIO / FECHA</th>
-                  <th scope="col" style={{ width: '26%' }}>ALUMNO / SOLICITANTE</th>
-                  <th scope="col" style={{ width: '26%' }}>LIBRO SOLICITADO</th>
-                  <th scope="col" style={{ width: '14%' }}>FECHA SUGERIDA</th>
-                  <th scope="col" style={{ width: '10%' }}>ESTADO</th>
-                  <th scope="col" style={{ width: '10%', minWidth: '115px' }} className="requests-th-center">ACCIONES</th>
+                  <th scope="col" className="requests-th-folio">FOLIO / FECHA</th>
+                  <th scope="col" className="requests-th-user">ALUMNO / SOLICITANTE</th>
+                  <th scope="col" className="requests-th-book">LIBRO SOLICITADO</th>
+                  <th scope="col" className="requests-th-date">FECHA SUGERIDA</th>
+                  <th scope="col" className="requests-th-status">ESTADO</th>
+                  <th scope="col" className="requests-th-actions requests-th-center">ACCIONES</th>
                 </tr>
               </thead>
               <tbody>
@@ -473,7 +473,7 @@ export const RequestsPage: React.FC = () => {
                   return (
                     <tr key={req.id} className="requests-table-row">
                       {/* Folio y Fecha */}
-                      <td>
+                      <td className="requests-td-folio">
                         <div className="requests-folio-cell">
                           <span className="requests-folio-code" title={req.id}>
                             {req.id}
@@ -487,7 +487,7 @@ export const RequestsPage: React.FC = () => {
                       </td>
 
                       {/* Alumno / Solicitante */}
-                      <td>
+                      <td className="requests-td-user">
                         <div className="requests-user-cell">
                           <div className="requests-user-avatar" aria-hidden="true">
                             {userInitials}
@@ -510,7 +510,7 @@ export const RequestsPage: React.FC = () => {
                       </td>
 
                       {/* Libro Solicitado */}
-                      <td>
+                      <td className="requests-td-book">
                         <div className="requests-book-cell">
                           <div className="requests-book-cover" aria-hidden="true">
                             {req.bookCover ? (
@@ -536,7 +536,7 @@ export const RequestsPage: React.FC = () => {
                       </td>
 
                       {/* Fecha Sugerida y Recogida */}
-                      <td>
+                      <td className="requests-td-date">
                         <div className="requests-date-cell">
                           <div className="requests-date-row">
                             <Calendar size={13} className="requests-cell-icon" />
@@ -552,10 +552,10 @@ export const RequestsPage: React.FC = () => {
                       </td>
 
                       {/* Estado */}
-                      <td>{getStatusBadge(req.status)}</td>
+                      <td className="requests-td-status">{getStatusBadge(req.status)}</td>
 
                       {/* Acciones */}
-                      <td className="requests-td-center">
+                      <td className="requests-td-actions requests-td-center">
                         <div className="requests-actions-group">
                           <button
                             type="button"

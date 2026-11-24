@@ -336,10 +336,11 @@
 
 .requests-table {
   width: 100%;
-  min-width: 960px;
+  min-width: 1020px;
   border-collapse: collapse;
   text-align: left;
   font-size: 0.875rem;
+  table-layout: auto;
 }
 
 .requests-table thead {
@@ -381,6 +382,44 @@
 }
 
 .requests-td-center {
+  text-align: center;
+}
+
+/* Anchos mínimos y control de columnas de solicitudes */
+.requests-th-folio,
+.requests-td-folio {
+  min-width: 125px;
+  white-space: nowrap;
+}
+
+.requests-th-user,
+.requests-td-user {
+  min-width: 220px;
+  max-width: 280px;
+}
+
+.requests-th-book,
+.requests-td-book {
+  min-width: 220px;
+  max-width: 280px;
+}
+
+.requests-th-date,
+.requests-td-date {
+  min-width: 155px;
+  white-space: nowrap;
+}
+
+.requests-th-status,
+.requests-td-status {
+  min-width: 135px;
+  white-space: nowrap;
+}
+
+.requests-th-actions,
+.requests-td-actions {
+  min-width: 135px;
+  white-space: nowrap;
   text-align: center;
 }
 

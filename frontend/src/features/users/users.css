@@ -287,11 +287,11 @@
 
 .users-table {
   width: 100%;
-  min-width: 920px;
+  min-width: 980px;
   border-collapse: collapse;
   text-align: left;
   font-size: 0.875rem;
-  table-layout: fixed;
+  table-layout: auto;
 }
 
 .users-table thead {
@@ -333,6 +333,51 @@
 }
 
 .users-td-center {
+  text-align: center;
+}
+
+/* Anchos mínimos y control de columnas de usuarios */
+.users-th-user,
+.users-td-user {
+  min-width: 210px;
+  max-width: 260px;
+}
+
+.users-th-code,
+.users-td-code {
+  min-width: 130px;
+  white-space: nowrap;
+}
+
+.users-th-role,
+.users-td-role {
+  min-width: 135px;
+  white-space: nowrap;
+}
+
+.users-th-gen,
+.users-td-gen {
+  min-width: 125px;
+  white-space: nowrap;
+}
+
+.users-th-status,
+.users-td-status {
+  min-width: 110px;
+  white-space: nowrap;
+}
+
+.users-th-loans,
+.users-td-loans {
+  min-width: 120px;
+  white-space: nowrap;
+  text-align: center;
+}
+
+.users-th-actions,
+.users-td-actions {
+  min-width: 120px;
+  white-space: nowrap;
   text-align: center;
 }
 

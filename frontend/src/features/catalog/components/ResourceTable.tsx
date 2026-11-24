@@ -28,21 +28,21 @@ export const ResourceTable: React.FC<ResourceTableProps> = ({
         <table className="catalog-table">
           <thead>
             <tr>
-              <th>PORTADA</th>
-              <th>TÍTULO</th>
-              <th>AUTOR</th>
-              <th>CATEGORÍA</th>
-              <th>ISBN</th>
-              <th>DISPONIBLES</th>
-              <th>ESTADO</th>
-              <th>ACCIONES</th>
+              <th className="catalog-th-cover">PORTADA</th>
+              <th className="catalog-th-title">TÍTULO</th>
+              <th className="catalog-th-author">AUTOR</th>
+              <th className="catalog-th-category">CATEGORÍA</th>
+              <th className="catalog-th-isbn">ISBN</th>
+              <th className="catalog-th-copies">DISPONIBLES</th>
+              <th className="catalog-th-status">ESTADO</th>
+              <th className="catalog-th-actions catalog-th-center">ACCIONES</th>
             </tr>
           </thead>
           <tbody>
             {resources.map((item) => (
               <tr key={item.id}>
                 {/* Cover Thumbnail */}
-                <td>
+                <td className="catalog-td-cover">
                   <div
                     className="book-cover-thumb"
                     style={{ backgroundColor: item.coverColor || '#2F80ED' }}
@@ -53,7 +53,7 @@ export const ResourceTable: React.FC<ResourceTableProps> = ({
                 </td>
 
                 {/* Title and Publication Year */}
-                <td>
+                <td className="catalog-td-title">
                   <div className="book-title-cell">
                     <span className="book-title-name">{item.title}</span>
                     <span className="book-title-year">{item.publicationYear}</span>
@@ -61,18 +61,18 @@ export const ResourceTable: React.FC<ResourceTableProps> = ({
                 </td>
 
                 {/* Author */}
-                <td>{item.author}</td>
+                <td className="catalog-td-author">{item.author}</td>
 
                 {/* Category Pill */}
-                <td>
+                <td className="catalog-td-category">
                   <span className="category-pill">{item.categoryLabel}</span>
                 </td>
 
                 {/* ISBN */}
-                <td className="isbn-cell">{item.isbn}</td>
+                <td className="catalog-td-isbn isbn-cell">{item.isbn}</td>
 
                 {/* Copies available vs total */}
-                <td className="copies-cell">
+                <td className="catalog-td-copies copies-cell">
                   <div>
                     <span
                       className={getCopiesColorClass(
@@ -163,12 +163,12 @@ export const ResourceTable: React.FC<ResourceTableProps> = ({
                 </td>
 
                 {/* Status Badge */}
-                <td>
+                <td className="catalog-td-status">
                   <ResourceStatusBadge status={item.status} />
                 </td>
 
                 {/* Action Icon Buttons */}
-                <td>
+                <td className="catalog-td-actions catalog-td-center">
                   <div className="catalog-actions-cell">
                     <button
                       type="button"

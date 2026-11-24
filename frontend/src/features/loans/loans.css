@@ -390,11 +390,11 @@
 
 .loans-table {
   width: 100%;
-  min-width: 960px;
+  min-width: 1060px;
   border-collapse: collapse;
   text-align: left;
   font-size: 0.875rem;
-  table-layout: fixed;
+  table-layout: auto;
 }
 
 .loans-table thead {
@@ -433,10 +433,54 @@
   padding: 0.85rem 0.75rem;
   vertical-align: middle;
   color: #1F2937;
-  overflow: hidden;
 }
 
 .loans-td-center {
+  text-align: center;
+}
+
+/* Anchos mínimos y control de columnas de préstamos */
+.loans-th-folio,
+.loans-td-folio {
+  width: 90px;
+  min-width: 90px;
+  white-space: nowrap;
+}
+
+.loans-th-user,
+.loans-td-user {
+  min-width: 200px;
+  max-width: 260px;
+}
+
+.loans-th-book,
+.loans-td-book {
+  min-width: 210px;
+  max-width: 280px;
+}
+
+.loans-th-date,
+.loans-td-date {
+  min-width: 140px;
+  white-space: nowrap;
+}
+
+.loans-th-due,
+.loans-td-due {
+  min-width: 130px;
+  white-space: nowrap;
+}
+
+.loans-th-status,
+.loans-td-status {
+  min-width: 145px;
+  white-space: nowrap;
+}
+
+.loans-th-actions,
+.loans-td-actions {
+  min-width: 100px;
+  white-space: nowrap;
   text-align: center;
 }
 

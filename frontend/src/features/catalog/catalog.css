@@ -208,10 +208,11 @@
 
 .catalog-table {
   width: 100%;
-  min-width: 900px;
+  min-width: 1040px;
   border-collapse: collapse;
   text-align: left;
   font-size: 0.875rem;
+  table-layout: auto;
 }
 
 .catalog-table thead {
@@ -226,6 +227,12 @@
   text-transform: uppercase;
   letter-spacing: 0.05em;
   padding: 0.85rem 1rem;
+  white-space: nowrap;
+}
+
+.catalog-th-center,
+.catalog-td-center {
+  text-align: center;
 }
 
 .catalog-table td {
@@ -241,6 +248,57 @@
 
 .catalog-table tbody tr:hover {
   background-color: #F9FAFB;
+}
+
+/* Anchos mínimos y control de columnas de catálogo */
+.catalog-th-cover,
+.catalog-td-cover {
+  width: 60px;
+  min-width: 60px;
+  text-align: center;
+}
+
+.catalog-th-title,
+.catalog-td-title {
+  min-width: 200px;
+  max-width: 280px;
+}
+
+.catalog-th-author,
+.catalog-td-author {
+  min-width: 140px;
+  max-width: 200px;
+}
+
+.catalog-th-category,
+.catalog-td-category {
+  min-width: 130px;
+  white-space: nowrap;
+}
+
+.catalog-th-isbn,
+.catalog-td-isbn {
+  min-width: 125px;
+  white-space: nowrap;
+}
+
+.catalog-th-copies,
+.catalog-td-copies {
+  min-width: 140px;
+  white-space: nowrap;
+}
+
+.catalog-th-status,
+.catalog-td-status {
+  min-width: 125px;
+  white-space: nowrap;
+}
+
+.catalog-th-actions,
+.catalog-td-actions {
+  min-width: 115px;
+  white-space: nowrap;
+  text-align: center;
 }
 
 /* Book Cover Thumbnail */

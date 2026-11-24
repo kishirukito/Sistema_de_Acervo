@@ -252,14 +252,18 @@
 /* Activity Table */
 .activity-table-wrapper {
   width: 100%;
+  max-width: 100%;
   overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .activity-table {
   width: 100%;
+  min-width: 780px;
   border-collapse: collapse;
   text-align: left;
   font-size: 0.875rem;
+  table-layout: auto;
 }
 
 .activity-table th {

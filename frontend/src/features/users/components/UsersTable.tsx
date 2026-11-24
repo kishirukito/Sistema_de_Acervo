@@ -22,24 +22,15 @@ export const UsersTable: React.FC<UsersTableProps> = ({
     <div className="users-table-card">
       <div className="users-table-wrapper">
         <table className="users-table" aria-label="Tabla de usuarios del sistema">
-          <colgroup>
-            <col style={{ width: '22%' }} />
-            <col style={{ width: '13%' }} />
-            <col style={{ width: '13%' }} />
-            <col style={{ width: '13%' }} />
-            <col style={{ width: '12%' }} />
-            <col style={{ width: '13%' }} />
-            <col style={{ width: '14%' }} />
-          </colgroup>
           <thead>
             <tr>
-              <th scope="col">USUARIO</th>
-              <th scope="col">MATRÍCULA / FOLIO</th>
-              <th scope="col">TIPO DE USUARIO</th>
-              <th scope="col">GENERACIÓN</th>
-              <th scope="col">ESTADO</th>
-              <th scope="col" className="users-th-center">PRÉSTAMOS ACTIVOS</th>
-              <th scope="col" className="users-th-center">ACCIONES</th>
+              <th scope="col" className="users-th-user">USUARIO</th>
+              <th scope="col" className="users-th-code">MATRÍCULA / FOLIO</th>
+              <th scope="col" className="users-th-role">TIPO DE USUARIO</th>
+              <th scope="col" className="users-th-gen">GENERACIÓN</th>
+              <th scope="col" className="users-th-status">ESTADO</th>
+              <th scope="col" className="users-th-loans users-th-center">PRÉSTAMOS ACTIVOS</th>
+              <th scope="col" className="users-th-actions users-th-center">ACCIONES</th>
             </tr>
           </thead>
           <tbody>
@@ -114,7 +105,7 @@ export const UsersTable: React.FC<UsersTableProps> = ({
                   </td>
 
                   {/* PRÉSTAMOS ACTIVOS */}
-                  <td className="users-td-center">
+                  <td className="users-td-loans users-td-center">
                     {user.activeLoans === 0 ? (
                       <span className="users-loans-dash">—</span>
                     ) : (
@@ -134,7 +125,7 @@ export const UsersTable: React.FC<UsersTableProps> = ({
                   </td>
 
                   {/* ACCIONES */}
-                  <td className="users-td-center">
+                  <td className="users-td-actions users-td-center">
                     <div className="users-actions-group">
                       <button
                         type="button"

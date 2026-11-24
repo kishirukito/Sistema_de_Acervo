@@ -106,9 +106,11 @@
 
 .admin-requests-table {
   width: 100%;
+  min-width: 960px;
   border-collapse: collapse;
   font-size: 0.875rem;
   text-align: left;
+  table-layout: auto;
 }
 
 .admin-requests-table th {

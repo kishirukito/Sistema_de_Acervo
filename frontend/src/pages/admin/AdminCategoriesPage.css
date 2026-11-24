@@ -25,6 +25,8 @@
 /* ── Table ── */
 .categories-table-wrapper {
   overflow-x: auto;
+  max-width: 100%;
+  -webkit-overflow-scrolling: touch;
   border-radius: var(--radius-md, 8px);
   border: 1px solid var(--color-border, #E2E8F0);
   background: var(--color-surface, #fff);
@@ -32,8 +34,10 @@
 
 .categories-table {
   width: 100%;
+  min-width: 760px;
   border-collapse: collapse;
   font-size: 0.875rem;
+  table-layout: auto;
 }
 
 .categories-table th {
