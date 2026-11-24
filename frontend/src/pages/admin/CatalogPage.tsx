@@ -28,10 +28,13 @@ const INITIAL_FILTERS: CatalogFilterState = {
 /** Clave compartida del catálogo admin. staleTime: 2 min. */
 export const ADMIN_CATALOG_KEY = 'admin-catalog' as const;
 
+export type CatalogMetricFilter = 'acervo' | 'sala' | 'otras' | null;
+
 export const CatalogPage: React.FC = () => {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const [filters, setFilters] = useState<CatalogFilterState>(INITIAL_FILTERS);
+  const [metricFilter, setMetricFilter] = useState<CatalogMetricFilter>(null);
   const [currentPage, setCurrentPage] = useState<number>(1);
 
   // ── React Query: catálogo admin con caché ─────────────────────────────────
@@ -121,8 +124,57 @@ export const CatalogPage: React.FC = () => {
   const [feedbackToast, setFeedbackToast] = useState<string | null>(null);
   const itemsPerPage = 5;
 
+  const handleToggleMetricFilter = (target: 'acervo' | 'sala' | 'otras') => {
+    setMetricFilter((prev) => (prev === target ? null : target));
+    setCurrentPage(1);
+  };
+
   const filteredResources = useMemo(() => {
     return resourcesList.filter((resource) => {
+      // 0. Filtro superior de métricas interactivas (Acervo, Sala, Otras bibliotecas)
+      if (metricFilter === 'acervo') {
+        const hasAvailableAcervo =
+          resource.availableCopies > 0 &&
+          (!resource.ejemplares ||
+            resource.ejemplares.length === 0 ||
+            resource.ejemplares.some(
+              (ej) =>
+                ej.estado === 'disponible' &&
+                !(ej.ubicacion_estante || '').toLowerCase().includes('sala')
+            ));
+        if (!hasAvailableAcervo) return false;
+      } else if (metricFilter === 'sala') {
+        const hasLoanInSala = loansList.some(
+          (l) =>
+            l.resourceId === resource.id &&
+            l.status !== 'RETURNED' &&
+            l.tipoPrestamoClave === 'sala'
+        );
+        const hasEjemplarInSala =
+          Boolean(
+            resource.ejemplares?.some((ej) =>
+              (ej.ubicacion_estante || '').toLowerCase().includes('sala')
+            )
+          ) || (resource.location || '').toLowerCase().includes('sala');
+
+        if (!hasLoanInSala && !hasEjemplarInSala) return false;
+      } else if (metricFilter === 'otras') {
+        const hasLoanInOther = loansList.some(
+          (l) =>
+            l.resourceId === resource.id &&
+            l.status !== 'RETURNED' &&
+            (l.tipoPrestamoClave === 'interbibliotecario' || Boolean(l.institucionId))
+        );
+        const hasEjemplarInOther = Boolean(
+          resource.ejemplares?.some((ej) => {
+            const u = (ej.ubicacion_estante || '').toLowerCase();
+            return u.includes('otra') || u.includes('convenio') || u.includes('inter');
+          })
+        );
+
+        if (!hasLoanInOther && !hasEjemplarInOther) return false;
+      }
+
       if (filters.searchQuery.trim()) {
         const query = filters.searchQuery.toLowerCase().trim();
         const matchesTitle = resource.title.toLowerCase().includes(query);
@@ -166,7 +218,7 @@ export const CatalogPage: React.FC = () => {
 
       return true;
     });
-  }, [filters, resourcesList]);
+  }, [filters, resourcesList, metricFilter, loansList]);
 
   const totalPages = Math.ceil(filteredResources.length / itemsPerPage) || 1;
 
@@ -182,6 +234,7 @@ export const CatalogPage: React.FC = () => {
 
   const handleClearFilters = () => {
     setFilters(INITIAL_FILTERS);
+    setMetricFilter(null);
     setCurrentPage(1);
   };
 
@@ -321,9 +374,25 @@ export const CatalogPage: React.FC = () => {
       )}
 
       {/* Tarjetas de métricas de acervo: En acervo (biblioteca), En sala, En otras bibliotecas */}
-      <section className="catalog-metrics-grid" aria-label="Distribución de libros en acervo y préstamos">
+      <section className="catalog-metrics-grid" aria-label="Filtros rápidos por distribución de libros en acervo y préstamos">
         {/* 1. En acervo (biblioteca) */}
-        <div className="catalog-metric-card">
+        <div
+          role="button"
+          tabIndex={0}
+          aria-pressed={metricFilter === 'acervo'}
+          className={`catalog-metric-card ${metricFilter === 'acervo' ? 'catalog-metric-card--active-acervo' : ''}`}
+          onClick={() => handleToggleMetricFilter('acervo')}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              handleToggleMetricFilter('acervo');
+            }
+          }}
+          title={metricFilter === 'acervo' ? 'Clic para quitar filtro de acervo' : 'Clic para filtrar solo libros en acervo'}
+        >
+          {metricFilter === 'acervo' && (
+            <span className="catalog-metric-pill catalog-metric-pill--acervo">FILTRADO</span>
+          )}
           <div className="catalog-metric-icon-wrap catalog-metric-icon-wrap--acervo" aria-hidden="true">
             <Library size={22} />
           </div>
@@ -335,7 +404,23 @@ export const CatalogPage: React.FC = () => {
         </div>
 
         {/* 2. En sala */}
-        <div className="catalog-metric-card">
+        <div
+          role="button"
+          tabIndex={0}
+          aria-pressed={metricFilter === 'sala'}
+          className={`catalog-metric-card ${metricFilter === 'sala' ? 'catalog-metric-card--active-sala' : ''}`}
+          onClick={() => handleToggleMetricFilter('sala')}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              handleToggleMetricFilter('sala');
+            }
+          }}
+          title={metricFilter === 'sala' ? 'Clic para quitar filtro de sala' : 'Clic para filtrar solo libros en sala'}
+        >
+          {metricFilter === 'sala' && (
+            <span className="catalog-metric-pill catalog-metric-pill--sala">FILTRADO</span>
+          )}
           <div className="catalog-metric-icon-wrap catalog-metric-icon-wrap--sala" aria-hidden="true">
             <BookOpen size={22} />
           </div>
@@ -347,7 +432,23 @@ export const CatalogPage: React.FC = () => {
         </div>
 
         {/* 3. En otras bibliotecas */}
-        <div className="catalog-metric-card">
+        <div
+          role="button"
+          tabIndex={0}
+          aria-pressed={metricFilter === 'otras'}
+          className={`catalog-metric-card ${metricFilter === 'otras' ? 'catalog-metric-card--active-otras' : ''}`}
+          onClick={() => handleToggleMetricFilter('otras')}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              handleToggleMetricFilter('otras');
+            }
+          }}
+          title={metricFilter === 'otras' ? 'Clic para quitar filtro de otras bibliotecas' : 'Clic para filtrar solo libros en otras bibliotecas'}
+        >
+          {metricFilter === 'otras' && (
+            <span className="catalog-metric-pill catalog-metric-pill--otras">FILTRADO</span>
+          )}
           <div className="catalog-metric-icon-wrap catalog-metric-icon-wrap--otras" aria-hidden="true">
             <Building2 size={22} />
           </div>

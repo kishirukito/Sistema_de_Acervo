@@ -508,12 +508,65 @@
   box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
   position: relative;
   box-sizing: border-box;
+  cursor: pointer;
+  user-select: none;
 }
 
 .catalog-metric-card:hover {
   border-color: #CBD5E1;
   transform: translateY(-2px);
   box-shadow: 0 8px 16px -2px rgba(15, 23, 42, 0.08);
+}
+
+.catalog-metric-card:focus-visible {
+  outline: none;
+  border-color: #2563EB;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
+}
+
+.catalog-metric-card--active-acervo {
+  background: #F0F7FF !important;
+  border-color: #2563EB !important;
+  box-shadow: 0 4px 16px rgba(37, 99, 235, 0.15) !important;
+}
+
+.catalog-metric-card--active-sala {
+  background: #FAF5FF !important;
+  border-color: #7C3AED !important;
+  box-shadow: 0 4px 16px rgba(124, 58, 237, 0.15) !important;
+}
+
+.catalog-metric-card--active-otras {
+  background: #F0FDF4 !important;
+  border-color: #059669 !important;
+  box-shadow: 0 4px 16px rgba(5, 150, 105, 0.15) !important;
+}
+
+.catalog-metric-pill {
+  position: absolute;
+  top: 10px;
+  right: 12px;
+  padding: 2px 8px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  border-radius: 9999px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.catalog-metric-pill--acervo {
+  background-color: #2563EB;
+  color: #FFFFFF;
+}
+
+.catalog-metric-pill--sala {
+  background-color: #7C3AED;
+  color: #FFFFFF;
+}
+
+.catalog-metric-pill--otras {
+  background-color: #059669;
+  color: #FFFFFF;
 }
 
 .catalog-metric-icon-wrap {
