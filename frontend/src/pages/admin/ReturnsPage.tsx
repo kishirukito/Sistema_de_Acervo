@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import { useNavigate, useLocation, useSearchParams } from 'react-router-dom';
 import { CheckCircle2, SearchX } from 'lucide-react';
 import { ReturnsSummary } from '../../features/returns/components/ReturnsSummary';
 import { ReturnsFilters } from '../../features/returns/components/ReturnsFilters';
@@ -15,6 +15,7 @@ import {
 import type {
   ReturnRecord,
   ReturnsFilterState,
+  LoanStatus,
 } from '../../features/returns/returns.types';
 import '../../features/returns/returns.css';
 
@@ -28,6 +29,7 @@ const INITIAL_FILTERS: ReturnsFilterState = {
 export const ReturnsPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
+  const [searchParams, setSearchParams] = useSearchParams();
 
   // ── React Query: registros de devolución con caché de 2 minutos ───────────
   const { data: recordsList = [], isLoading } = useAdminReturns();
@@ -35,12 +37,41 @@ export const ReturnsPage: React.FC = () => {
   // KPIs derivados de la misma consulta — sin segunda petición a /api/v1/data/prestamos
   const returnsSummary = useMemo(() => deriveReturnsSummary(recordsList), [recordsList]);
 
-  const [filters, setFilters] = useState<ReturnsFilterState>(INITIAL_FILTERS);
+  // Inicializar filtros a partir de searchParams (ej. desde alertas: ?status=OVERDUE)
+  const initialStatusParam = (searchParams.get('status') || '') as '' | LoanStatus;
+  const initialDueDateParam = searchParams.get('dueDateFilter') || (initialStatusParam === 'OVERDUE' ? 'OVERDUE_ONLY' : '');
+  const initialSearchParam = searchParams.get('q') || searchParams.get('search') || '';
+
+  const [filters, setFilters] = useState<ReturnsFilterState>({
+    searchQuery: initialSearchParam,
+    status: initialStatusParam,
+    dueDateFilter: initialDueDateParam,
+    userCategory: '',
+  });
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [isSearchModalOpen, setIsSearchModalOpen] = useState<boolean>(false);
   const [toastMessage, setToastMessage] = useState<string | null>(
     (location.state as { toastMessage?: string } | null)?.toastMessage || null
   );
+
+  // Sincronizar filtros reactivamente cuando cambien los searchParams
+  useEffect(() => {
+    const statusParam = searchParams.get('status') as '' | LoanStatus | null;
+    const dueDateParam = searchParams.get('dueDateFilter');
+    const searchParam = searchParams.get('q') || searchParams.get('search');
+
+    if (statusParam !== null || dueDateParam !== null || searchParam !== null) {
+      setFilters((prev) => ({
+        ...prev,
+        status: statusParam !== null ? statusParam : prev.status,
+        dueDateFilter: dueDateParam !== null
+          ? dueDateParam
+          : (statusParam === 'OVERDUE' ? 'OVERDUE_ONLY' : prev.dueDateFilter),
+        searchQuery: searchParam !== null ? searchParam : prev.searchQuery,
+      }));
+      setCurrentPage(1);
+    }
+  }, [searchParams]);
 
   useEffect(() => {
     if (toastMessage) {
@@ -70,6 +101,9 @@ export const ReturnsPage: React.FC = () => {
   const handleClearFilters = () => {
     setFilters(INITIAL_FILTERS);
     setCurrentPage(1);
+    if (searchParams.toString()) {
+      setSearchParams({}, { replace: true });
+    }
   };
 
   const filteredRecords = useMemo(() => {
@@ -100,7 +134,11 @@ export const ReturnsPage: React.FC = () => {
 
       // 2. Status Filter
       if (filters.status) {
-        if (record.status !== filters.status) {
+        if (filters.status === 'OVERDUE') {
+          if (!record.isOverdue && record.status !== 'OVERDUE') {
+            return false;
+          }
+        } else if (record.status !== filters.status) {
           return false;
         }
       }

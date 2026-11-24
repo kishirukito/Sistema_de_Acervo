@@ -404,6 +404,39 @@
   align-items: flex-start;
   gap: 12px;
   border: 1px solid transparent;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.alert-box[role="button"] {
+  cursor: pointer;
+  user-select: none;
+}
+
+.alert-box[role="button"]:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.08);
+  filter: brightness(0.98);
+}
+
+.alert-box[role="button"]:active {
+  transform: translateY(0);
+}
+
+.alert-arrow-wrapper {
+  display: flex;
+  align-items: center;
+  align-self: center;
+  color: #64748B;
+  margin-left: 8px;
+}
+
+.alert-box[role="button"]:hover .alert-arrow-icon {
+  transform: translateX(4px);
+  color: currentColor;
+}
+
+.alert-arrow-icon {
+  transition: transform 0.2s ease, color 0.2s ease;
 }
 
 .alert-box--error {

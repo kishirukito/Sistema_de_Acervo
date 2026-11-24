@@ -51,7 +51,7 @@ function mapPrestamoToLoan(row: any, index: number): Loan {
     ? (instInfo.nombre || 'Institución Externa en Convenio')
     : (usuario.nombre_completo || 'Usuario desconocido');
 
-  const status = mapEstadoToStatus(row.estado, row.fecha_limite_devolucion, row.fecha_devolucion_real);
+  let status = mapEstadoToStatus(row.estado, row.fecha_limite_devolucion, row.fecha_devolucion_real);
 
   let dueDateNote: string | undefined;
   if (status !== 'RETURNED' && row.fecha_limite_devolucion) {
@@ -59,8 +59,12 @@ function mapPrestamoToLoan(row: any, index: number): Loan {
     const due = new Date(row.fecha_limite_devolucion);
     const diffMs = due.getTime() - now.getTime();
     const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24));
-    if (diffDays < 0) {
-      dueDateNote = `${Math.abs(diffDays)}d vencido`;
+    if (diffDays < 0 || now >= due) {
+      status = 'OVERDUE';
+      dueDateNote = `${Math.abs(diffDays) || 1}d vencido`;
+    } else if (diffDays <= 2) {
+      status = 'DUE_SOON';
+      dueDateNote = `Vence en ${diffDays}d`;
     } else if (diffDays <= 3) {
       dueDateNote = `Vence en ${diffDays}d`;
     } else {

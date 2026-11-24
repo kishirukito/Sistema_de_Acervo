@@ -312,7 +312,7 @@ export async function fetchDashboardSnapshot(): Promise<DashboardSnapshot> {
       title: 'Préstamos vencidos',
       text: `Hay ${overdueLoans} préstamo(s) con fecha vencida que requieren devolución inmediata.`,
       type: 'error',
-      actionUrl: '/admin/returns',
+      actionUrl: '/admin/returns?status=OVERDUE',
       actionText: 'Ir a Devoluciones',
     });
   }
@@ -323,7 +323,7 @@ export async function fetchDashboardSnapshot(): Promise<DashboardSnapshot> {
       title: 'Próximos a vencer',
       text: `${dueSoonLoans} préstamo(s) vencerán dentro de las próximas 48 horas.`,
       type: 'warning',
-      actionUrl: '/admin/loans',
+      actionUrl: '/admin/loans?status=DUE_SOON',
       actionText: 'Ver Préstamos',
     });
   }
@@ -334,7 +334,7 @@ export async function fetchDashboardSnapshot(): Promise<DashboardSnapshot> {
       title: 'Ejemplares agotados',
       text: `${exhaustedBooksCount} libro(s) tienen todos sus ejemplares prestados actualmente.`,
       type: 'warning',
-      actionUrl: '/admin/catalog',
+      actionUrl: '/admin/catalog?status=LOANED',
       actionText: 'Ver Catálogo',
     });
   }

@@ -1,4 +1,5 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import {
   Inbox,
   Clock,
@@ -52,10 +53,30 @@ export const RequestsPage: React.FC = () => {
     staleTime: 10_000,
   });
 
-  // Filtros de estado y búsqueda
-  const [statusFilter, setStatusFilter] = useState<'ALL' | RequestStatus>('ALL');
-  const [searchQuery, setSearchQuery] = useState('');
+  const [searchParams, setSearchParams] = useSearchParams();
+
+  // Filtros de estado y búsqueda (soportando inicialización por URL ej. ?status=PENDING)
+  const paramStatus = searchParams.get('status') as RequestStatus | null;
+  const initialStatus: 'ALL' | RequestStatus =
+    paramStatus && ['PENDING', 'APPROVED', 'REJECTED', 'CANCELLED', 'READY_FOR_PICKUP'].includes(paramStatus)
+      ? paramStatus
+      : 'ALL';
+
+  const [statusFilter, setStatusFilter] = useState<'ALL' | RequestStatus>(initialStatus);
+  const [searchQuery, setSearchQuery] = useState(searchParams.get('q') || searchParams.get('search') || '');
   const [selectedRequest, setSelectedRequest] = useState<BorrowRequest | null>(null);
+
+  // Sincronizar reactivamente cuando cambien los searchParams
+  useEffect(() => {
+    const sParam = searchParams.get('status') as RequestStatus | null;
+    if (sParam && ['PENDING', 'APPROVED', 'REJECTED', 'CANCELLED', 'READY_FOR_PICKUP'].includes(sParam)) {
+      setStatusFilter(sParam);
+    }
+    const qParam = searchParams.get('q') || searchParams.get('search');
+    if (qParam !== null) {
+      setSearchQuery(qParam);
+    }
+  }, [searchParams]);
 
   // Modal para confirmación de rechazo con motivo opcional
   const [rejectingRequest, setRejectingRequest] = useState<BorrowRequest | null>(null);
@@ -398,6 +419,9 @@ export const RequestsPage: React.FC = () => {
               onClick={() => {
                 setStatusFilter('ALL');
                 setSearchQuery('');
+                if (searchParams.toString()) {
+                  setSearchParams({}, { replace: true });
+                }
               }}
             >
               <X size={14} />
@@ -441,6 +465,9 @@ export const RequestsPage: React.FC = () => {
               onClick={() => {
                 setStatusFilter('ALL');
                 setSearchQuery('');
+                if (searchParams.toString()) {
+                  setSearchParams({}, { replace: true });
+                }
               }}
             >
               Restablecer filtros

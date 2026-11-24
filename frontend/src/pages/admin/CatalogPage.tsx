@@ -1,5 +1,5 @@
-import React, { useState, useMemo, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Plus, SearchX, CheckCircle, X, FileSpreadsheet, Library, BookOpen, Building2 } from 'lucide-react';
 import { CatalogToolbar } from '../../features/catalog/components/CatalogToolbar';
 import { ResourceTable } from '../../features/catalog/components/ResourceTable';
@@ -32,10 +32,46 @@ export type CatalogMetricFilter = 'acervo' | 'sala' | 'otras' | null;
 
 export const CatalogPage: React.FC = () => {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const queryClient = useQueryClient();
-  const [filters, setFilters] = useState<CatalogFilterState>(INITIAL_FILTERS);
+
+  // Inicializar filtros a partir de query params (ej. desde alertas del dashboard: ?status=LOANED)
+  const initialStatusParam = searchParams.get('status') || '';
+  const normalizedInitialStatus =
+    initialStatusParam.toUpperCase() === 'EXHAUSTED' || initialStatusParam.toUpperCase() === 'AGOTADOS'
+      ? 'LOANED'
+      : initialStatusParam;
+
+  const [filters, setFilters] = useState<CatalogFilterState>({
+    searchQuery: searchParams.get('q') || searchParams.get('search') || '',
+    category: searchParams.get('category') || '',
+    status: normalizedInitialStatus,
+    publicationYear: '',
+  });
   const [metricFilter, setMetricFilter] = useState<CatalogMetricFilter>(null);
   const [currentPage, setCurrentPage] = useState<number>(1);
+
+  // Sincronizar filtros reactivamente cuando cambien los searchParams en la URL
+  useEffect(() => {
+    const statusParam = searchParams.get('status');
+    const categoryParam = searchParams.get('category');
+    const searchParam = searchParams.get('q') || searchParams.get('search');
+
+    if (statusParam !== null || categoryParam !== null || searchParam !== null) {
+      const normalized =
+        (statusParam || '').toUpperCase() === 'EXHAUSTED' || (statusParam || '').toUpperCase() === 'AGOTADOS'
+          ? 'LOANED'
+          : (statusParam || '');
+
+      setFilters((prev) => ({
+        ...prev,
+        status: statusParam !== null ? normalized : prev.status,
+        category: categoryParam !== null ? categoryParam : prev.category,
+        searchQuery: searchParam !== null ? searchParam : prev.searchQuery,
+      }));
+      setCurrentPage(1);
+    }
+  }, [searchParams]);
 
   // ── React Query: catálogo admin con caché ─────────────────────────────────
   // Regreso a la pantalla en < 2 min: datos visibles sin esperar red.
@@ -229,7 +265,13 @@ export const CatalogPage: React.FC = () => {
       }
 
       if (filters.status) {
-        if (resource.status !== filters.status) {
+        if (filters.status === 'LOANED' || filters.status === 'EXHAUSTED' || filters.status === 'agotados') {
+          // Ejemplares agotados: libros donde todas las copias están prestadas o 0 disponibles
+          const isExhausted = resource.availableCopies === 0 || resource.status === 'LOANED';
+          if (!isExhausted) {
+            return false;
+          }
+        } else if (resource.status !== filters.status) {
           return false;
         }
       }
@@ -265,6 +307,9 @@ export const CatalogPage: React.FC = () => {
     setFilters(INITIAL_FILTERS);
     setMetricFilter(null);
     setCurrentPage(1);
+    if (searchParams.toString()) {
+      setSearchParams({}, { replace: true });
+    }
   };
 
   const handleSaveResource = async (updated: Resource) => {

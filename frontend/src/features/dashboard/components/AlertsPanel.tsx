@@ -66,8 +66,8 @@ export const AlertsPanel: React.FC<AlertsPanelProps> = ({ alerts, lastSyncTime }
                 <span className="alert-text">{alertItem.text}</span>
               </div>
               {alertItem.actionUrl && (
-                <div style={{ display: 'flex', alignItems: 'center', color: '#64748B', marginLeft: 8 }}>
-                  <ArrowRight size={15} />
+                <div className="alert-arrow-wrapper">
+                  <ArrowRight size={16} className="alert-arrow-icon" />
                 </div>
               )}
             </div>

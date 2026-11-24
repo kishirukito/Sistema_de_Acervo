@@ -1,5 +1,5 @@
-import React, { useState, useMemo } from 'react';
-import { useNavigate } from 'react-router-dom';
+import React, { useState, useMemo, useEffect } from 'react';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { Plus, SearchX, CheckCircle2, Inbox } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { LoansSummary } from '../../features/loans/components/LoansSummary';
@@ -26,6 +26,7 @@ import { ADMIN_RETURNS_KEY } from '../../features/returns/returns.query';
 import type {
   Loan,
   LoansFilterState,
+  LoanStatus,
 } from '../../features/loans/loans.types';
 import '../../features/loans/loans.css';
 
@@ -38,6 +39,7 @@ const INITIAL_FILTERS: LoansFilterState = {
 
 export const LoansPage: React.FC = () => {
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const queryClient = useQueryClient();
 
   // ── React Query: préstamos admin con caché de 2 minutos ──────────────────
@@ -46,8 +48,35 @@ export const LoansPage: React.FC = () => {
   // KPIs derivados de la misma consulta — sin segunda petición a /api/v1/data/prestamos
   const loansSummary = useMemo(() => deriveLoansSummary(loansList), [loansList]);
 
-  const [filters, setFilters] = useState<LoansFilterState>(INITIAL_FILTERS);
+  // Inicializar filtros a partir de query params (ej. desde alertas: ?status=DUE_SOON)
+  const initialStatusParam = (searchParams.get('status') || '') as '' | LoanStatus;
+  const initialDateParam = searchParams.get('dateFilter') || '';
+  const initialSearchParam = searchParams.get('q') || searchParams.get('search') || '';
+
+  const [filters, setFilters] = useState<LoansFilterState>({
+    searchQuery: initialSearchParam,
+    status: initialStatusParam,
+    userCategory: '',
+    dateFilter: initialDateParam,
+  });
   const [currentPage, setCurrentPage] = useState<number>(1);
+
+  // Sincronizar filtros reactivamente cuando cambien los searchParams
+  useEffect(() => {
+    const statusParam = searchParams.get('status') as '' | LoanStatus | null;
+    const dateParam = searchParams.get('dateFilter');
+    const searchParam = searchParams.get('q') || searchParams.get('search');
+
+    if (statusParam !== null || dateParam !== null || searchParam !== null) {
+      setFilters((prev) => ({
+        ...prev,
+        status: statusParam !== null ? statusParam : prev.status,
+        dateFilter: dateParam !== null ? dateParam : prev.dateFilter,
+        searchQuery: searchParam !== null ? searchParam : prev.searchQuery,
+      }));
+      setCurrentPage(1);
+    }
+  }, [searchParams]);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [selectedLoanForDetail, setSelectedLoanForDetail] = useState<Loan | null>(null);
   const [selectedLoanForReturn, setSelectedLoanForReturn] = useState<Loan | null>(null);
@@ -70,6 +99,9 @@ export const LoansPage: React.FC = () => {
   const handleClearFilters = () => {
     setFilters(INITIAL_FILTERS);
     setCurrentPage(1);
+    if (searchParams.toString()) {
+      setSearchParams({}, { replace: true });
+    }
   };
 
   const filteredLoans = useMemo(() => {
@@ -90,7 +122,16 @@ export const LoansPage: React.FC = () => {
 
       // 2. Status Filter
       if (filters.status) {
-        if (loan.status !== filters.status) {
+        if (filters.status === 'DUE_SOON') {
+          const isDue =
+            loan.status === 'DUE_SOON' ||
+            (loan.status === 'ACTIVE' && Boolean(loan.dueDateNote?.includes('Vence')));
+          if (!isDue) return false;
+        } else if (filters.status === 'OVERDUE') {
+          const isOverdue =
+            loan.status === 'OVERDUE' || Boolean(loan.dueDateNote?.includes('vencido'));
+          if (!isOverdue) return false;
+        } else if (loan.status !== filters.status) {
           return false;
         }
       }

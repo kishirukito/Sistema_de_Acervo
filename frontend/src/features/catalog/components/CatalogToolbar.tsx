@@ -68,7 +68,7 @@ export const CatalogToolbar: React.FC<CatalogToolbarProps> = ({
             { value: '', label: 'Disponibilidad' },
             { value: 'AVAILABLE', label: 'Disponible' },
             { value: 'LOW_STOCK', label: 'Pocos ejemplares' },
-            { value: 'LOANED', label: 'Prestado' },
+            { value: 'LOANED', label: 'Ejemplares agotados' },
             { value: 'UNAVAILABLE', label: 'No disponible' },
           ]}
           fullWidth={false}
