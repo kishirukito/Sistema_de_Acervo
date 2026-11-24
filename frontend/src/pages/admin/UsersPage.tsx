@@ -216,13 +216,13 @@ export const UsersPage: React.FC = () => {
     setEditingUser(user);
   };
 
-  const handleEditUserSuccess = (updatedUser: ManagedUser) => {
-    // Actualización optimista en caché RQ
+  const handleEditUserSuccess = async (updatedUser: ManagedUser) => {
+    // Actualización optimista inmediata en caché RQ (tabla y contadores superiores)
     queryClient.setQueryData<ManagedUser[]>([ADMIN_USERS_KEY], (prev = []) =>
-      prev.map((u) => (u.id === updatedUser.id ? updatedUser : u))
+      prev.map((u) => (u.id === updatedUser.id ? { ...updatedUser } : u))
     );
 
-    // Mapear kind/category del frontend al rol de Supabase
+    // Mapear kind/category del frontend al rol esperado por el backend
     let mappedRol = 'lector';
     if (updatedUser.kind === 'ADMINISTRATIVE') {
       mappedRol = updatedUser.role === 'ADMIN' ? 'admin' : 'personal';
@@ -234,9 +234,14 @@ export const UsersPage: React.FC = () => {
       mappedRol = 'externo';
     }
 
-    // Persistir en Supabase e invalidar caché para confirmar desde servidor
-    // No enviamos email (campo gestionado por auth) ni valores null que rompen FK
-    updateManagedUser(updatedUser.id, {
+    // Sincronizar mock en memoria
+    const mockIdx = MOCK_MANAGED_USERS.findIndex((u) => u.id === updatedUser.id);
+    if (mockIdx !== -1) {
+      MOCK_MANAGED_USERS[mockIdx] = updatedUser;
+    }
+
+    // Persistir en Supabase y refrescar desde servidor
+    const ok = await updateManagedUser(updatedUser.id, {
       fullName: updatedUser.fullName,
       phone: updatedUser.phone || undefined,
       rol: mappedRol,
@@ -244,17 +249,15 @@ export const UsersPage: React.FC = () => {
       carrera_o_dependencia: updatedUser.dependenciaOArea || undefined,
       carreraId: updatedUser.carreraId || undefined,
       status: updatedUser.status,
-    }).then(() => {
-      invalidateAdminUsers(queryClient);
     });
 
-    // Sincronizar mock en memoria
-    const mockIdx = MOCK_MANAGED_USERS.findIndex((u) => u.id === updatedUser.id);
-    if (mockIdx !== -1) {
-      MOCK_MANAGED_USERS[mockIdx] = updatedUser;
-    }
+    await invalidateAdminUsers(queryClient);
 
-    showToast(`Usuario "${updatedUser.fullName}" actualizado con éxito.`);
+    if (ok) {
+      showToast(`Usuario "${updatedUser.fullName}" actualizado con éxito.`);
+    } else {
+      showToast(`No se pudo guardar el cambio de "${updatedUser.fullName}" en el servidor.`, 'error');
+    }
   };
 
   const handleToggleUserStatus = (user: ManagedUser) => {
@@ -303,6 +306,10 @@ export const UsersPage: React.FC = () => {
           : 'admin'
         : newUser.category === 'TEACHER'
         ? 'docente'
+        : newUser.category === 'GRADUATE'
+        ? 'egresado'
+        : newUser.category === 'EXTERNAL'
+        ? 'externo'
         : 'lector';
 
     try {
