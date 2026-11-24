@@ -650,16 +650,32 @@ class SupabaseService:
             clean_isbn = re.sub(r'[^A-Za-z0-9]', '', isbn)
             sufijo_isbn = clean_isbn[-4:] if len(clean_isbn) >= 4 else "001"
             ejemplares_batch = []
-            for i in range(total_copias):
-                letra_copia = chr(65 + i) if i < 26 else str(i + 1)
-                cod_inv = f"CIU-{sufijo_isbn}-{letra_copia}"
-                ejemplares_batch.append({
-                    "libro_id": libro_id,
-                    "codigo_inventario": cod_inv,
-                    "ubicacion_estante": ubicacion,
-                    "estado": "disponible",
-                    "observaciones": f"Ejemplar {letra_copia} ingresado al acervo"
-                })
+
+            ej_items_input = data.get("ejemplares_items") or data.get("items_ejemplares")
+            if isinstance(ej_items_input, list) and len(ej_items_input) > 0:
+                for i, item in enumerate(ej_items_input):
+                    letra_copia = chr(65 + i) if i < 26 else str(i + 1)
+                    cod_inv = str(item.get("codigo_inventario") or f"CIU-{sufijo_isbn}-{letra_copia}").strip()
+                    loc = str(item.get("ubicacion_estante") or item.get("location") or ubicacion).strip()
+                    est = str(item.get("estado") or "disponible").strip().lower()
+                    ejemplares_batch.append({
+                        "libro_id": libro_id,
+                        "codigo_inventario": cod_inv,
+                        "ubicacion_estante": loc,
+                        "estado": est if est else "disponible",
+                        "observaciones": f"Ejemplar {letra_copia} ingresado al acervo"
+                    })
+            else:
+                for i in range(total_copias):
+                    letra_copia = chr(65 + i) if i < 26 else str(i + 1)
+                    cod_inv = f"CIU-{sufijo_isbn}-{letra_copia}"
+                    ejemplares_batch.append({
+                        "libro_id": libro_id,
+                        "codigo_inventario": cod_inv,
+                        "ubicacion_estante": ubicacion,
+                        "estado": "disponible",
+                        "observaciones": f"Ejemplar {letra_copia} ingresado al acervo"
+                    })
 
             async def insert_ejemplares():
                 ej_resp = await client.post(
@@ -987,14 +1003,26 @@ class SupabaseService:
                             }
                         )
 
-            # 6. Actualizar ubicación en estante de ejemplares existentes
-            ubicacion = str(updates.get("ubicacion_estante") or updates.get("ubicacion") or updates.get("location") or "").strip()
-            if ubicacion:
-                await client.patch(
-                    f"{self.base_url}/ejemplares?libro_id=eq.{book_id}",
-                    headers=self.headers,
-                    json={"ubicacion_estante": ubicacion}
-                )
+            # 6. Actualizar ubicación en estante de ejemplares existentes (por ejemplar o global)
+            ejemplares_items = updates.get("ejemplares_items") or updates.get("items_ejemplares")
+            if isinstance(ejemplares_items, list) and len(ejemplares_items) > 0:
+                for ej_item in ejemplares_items:
+                    ej_id = ej_item.get("id")
+                    ej_loc = str(ej_item.get("ubicacion_estante") or ej_item.get("location") or "").strip()
+                    if ej_id and ej_loc:
+                        await client.patch(
+                            f"{self.base_url}/ejemplares?id=eq.{ej_id}",
+                            headers=self.headers,
+                            json={"ubicacion_estante": ej_loc}
+                        )
+            else:
+                ubicacion = str(updates.get("ubicacion_estante") or updates.get("ubicacion") or updates.get("location") or "").strip()
+                if ubicacion:
+                    await client.patch(
+                        f"{self.base_url}/ejemplares?libro_id=eq.{book_id}",
+                        headers=self.headers,
+                        json={"ubicacion_estante": ubicacion}
+                    )
 
             # 7. Ajuste dinámico de ejemplares (evitando conflicto 409 con préstamos)
             new_copies = None

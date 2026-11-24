@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field, model_validator
-from typing import Optional, Any, Dict
+from typing import Optional, Any, Dict, List
 
 class BookCreateSchema(BaseModel):
     titulo: str = Field(..., min_length=1, max_length=255, description="Título del libro (máx 255 caracteres)")
@@ -15,6 +15,7 @@ class BookCreateSchema(BaseModel):
     ubicacion: Optional[str] = Field(default=None, max_length=100)
     portada_url: Optional[str] = Field(default=None, max_length=1000)
     descripcion: Optional[str] = Field(default="", max_length=2000)
+    ejemplares_items: Optional[List[Dict[str, Any]]] = Field(default=None, description="Lista individualizada de ejemplares y ubicaciones")
 
     @model_validator(mode="before")
     @classmethod
@@ -61,6 +62,7 @@ class BookUpdateSchema(BaseModel):
     ubicacion: Optional[str] = Field(default=None, max_length=100)
     portada_url: Optional[str] = Field(default=None, max_length=1000)
     descripcion: Optional[str] = Field(default=None, max_length=2000)
+    ejemplares_items: Optional[List[Dict[str, Any]]] = Field(default=None, description="Lista individualizada de ejemplares y ubicaciones")
 
     @model_validator(mode="before")
     @classmethod
@@ -82,8 +84,15 @@ class BookUpdateSchema(BaseModel):
             normalized["total_copias"] = normalized["totalCopies"]
             normalized["cantidad_ejemplares"] = normalized["totalCopies"]
         if "ejemplares" in normalized:
-            normalized["total_copias"] = normalized["ejemplares"]
-            normalized["cantidad_ejemplares"] = normalized["ejemplares"]
+            if isinstance(normalized["ejemplares"], list):
+                normalized["ejemplares_items"] = normalized["ejemplares"]
+                if "total_copias" not in normalized:
+                    normalized["total_copias"] = len(normalized["ejemplares"])
+                if "cantidad_ejemplares" not in normalized:
+                    normalized["cantidad_ejemplares"] = len(normalized["ejemplares"])
+            elif isinstance(normalized["ejemplares"], (int, float)):
+                normalized["total_copias"] = int(normalized["ejemplares"])
+                normalized["cantidad_ejemplares"] = int(normalized["ejemplares"])
         if "coverUrl" in normalized and "portada_url" not in normalized:
             normalized["portada_url"] = normalized["coverUrl"]
         if "description" in normalized and "descripcion" not in normalized:

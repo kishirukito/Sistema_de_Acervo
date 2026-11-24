@@ -221,6 +221,12 @@ export async function updateResource(id: string, updates: Partial<Resource>): Pr
         cantidad_ejemplares: updates.totalCopies,
         ubicacion_estante: updates.location,
         descripcion: updates.description,
+        ejemplares_items: updates.ejemplares?.map((e) => ({
+          id: e.id,
+          codigo_inventario: e.codigo_inventario,
+          ubicacion_estante: e.ubicacion_estante,
+          estado: e.estado,
+        })),
       }),
     });
 

@@ -73,15 +73,93 @@ export const ResourceTable: React.FC<ResourceTableProps> = ({
 
                 {/* Copies available vs total */}
                 <td className="copies-cell">
-                  <span
-                    className={getCopiesColorClass(
-                      item.availableCopies,
-                      item.totalCopies
-                    )}
-                  >
-                    {item.availableCopies}
-                  </span>{' '}
-                  <span className="copies-total">de {item.totalCopies}</span>
+                  <div>
+                    <span
+                      className={getCopiesColorClass(
+                        item.availableCopies,
+                        item.totalCopies
+                      )}
+                    >
+                      {item.availableCopies}
+                    </span>{' '}
+                    <span className="copies-total">de {item.totalCopies}</span>
+                  </div>
+
+                  {/* Desglose de distribución por ejemplar */}
+                  {Array.isArray(item.ejemplares) && item.ejemplares.length > 0 && (
+                    <div
+                      style={{
+                        display: 'flex',
+                        gap: 4,
+                        flexWrap: 'wrap',
+                        marginTop: 4,
+                        fontSize: '0.6875rem',
+                      }}
+                    >
+                      {(() => {
+                        let enSala = 0;
+                        let enOtras = 0;
+                        let enAcervo = 0;
+                        for (const ej of item.ejemplares) {
+                          const u = (ej.ubicacion_estante || item.location || '').toLowerCase();
+                          if (u.includes('sala')) enSala++;
+                          else if (
+                            u.includes('otra') ||
+                            u.includes('convenio') ||
+                            u.includes('inter')
+                          )
+                            enOtras++;
+                          else enAcervo++;
+                        }
+                        return (
+                          <>
+                            {enAcervo > 0 && (
+                              <span
+                                style={{
+                                  backgroundColor: '#EFF6FF',
+                                  color: '#1D4ED8',
+                                  padding: '1px 5px',
+                                  borderRadius: 4,
+                                  fontWeight: 600,
+                                }}
+                                title={`${enAcervo} ejemplar(es) en estantería general / acervo`}
+                              >
+                                {enAcervo} acervo
+                              </span>
+                            )}
+                            {enSala > 0 && (
+                              <span
+                                style={{
+                                  backgroundColor: '#F5F3FF',
+                                  color: '#6D28D9',
+                                  padding: '1px 5px',
+                                  borderRadius: 4,
+                                  fontWeight: 600,
+                                }}
+                                title={`${enSala} ejemplar(es) en sala de lectura`}
+                              >
+                                {enSala} sala
+                              </span>
+                            )}
+                            {enOtras > 0 && (
+                              <span
+                                style={{
+                                  backgroundColor: '#ECFDF5',
+                                  color: '#047857',
+                                  padding: '1px 5px',
+                                  borderRadius: 4,
+                                  fontWeight: 600,
+                                }}
+                                title={`${enOtras} ejemplar(es) en otra biblioteca en convenio`}
+                              >
+                                {enOtras} otra bib.
+                              </span>
+                            )}
+                          </>
+                        );
+                      })()}
+                    </div>
+                  )}
                 </td>
 
                 {/* Status Badge */}

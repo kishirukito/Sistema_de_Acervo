@@ -21,6 +21,18 @@ export const BOOK_DESTINATION_OPTIONS = [
   { value: 'OTRA_BIBLIOTECA', label: 'En otra biblioteca (Convenio interbibliotecario)' },
 ];
 
+export interface NewBookEjemplarItem {
+  id: string;
+  copiaLetra: string;
+  destination: BookDestination;
+  location: string;
+}
+
+const getCopyLetter = (index: number): string => {
+  if (index < 26) return String.fromCharCode(65 + index);
+  return String(index + 1);
+};
+
 const bookSchema = z.object({
   isbn: z.string().min(10, 'El ISBN debe tener al menos 10 caracteres'),
   title: z.string().min(2, 'El título es obligatorio'),
@@ -89,6 +101,83 @@ export const AdminNewBookPage: React.FC = () => {
   const currentCategory = watch('category');
   const currentCoverUrl = watch('coverUrl');
   const currentDescription = watch('description');
+  const currentTotalCopies = watch('totalCopies');
+
+  // Estado para gestión individualizada de ejemplares
+  const [ejemplaresList, setEjemplaresList] = useState<NewBookEjemplarItem[]>([
+    { id: 'copy-0', copiaLetra: 'A', destination: 'ESTANTERIA', location: 'Estante A-1, Nivel 1' },
+    { id: 'copy-1', copiaLetra: 'B', destination: 'ESTANTERIA', location: 'Estante A-1, Nivel 1' },
+    { id: 'copy-2', copiaLetra: 'C', destination: 'ESTANTERIA', location: 'Estante A-1, Nivel 1' },
+  ]);
+
+  // Sincronizar cantidad de ejemplares cuando cambie totalCopies
+  useEffect(() => {
+    const count = Math.max(1, Math.min(50, Number(currentTotalCopies) || 1));
+    setEjemplaresList((prev) => {
+      if (prev.length === count) return prev;
+      if (prev.length < count) {
+        const toAdd: NewBookEjemplarItem[] = [];
+        for (let i = prev.length; i < count; i++) {
+          const letra = getCopyLetter(i);
+          toAdd.push({
+            id: `copy-${i}`,
+            copiaLetra: letra,
+            destination: 'ESTANTERIA',
+            location: 'Estante A-1, Nivel 1',
+          });
+        }
+        return [...prev, ...toAdd];
+      }
+      return prev.slice(0, count);
+    });
+  }, [currentTotalCopies]);
+
+  const handleEjemplarDestinationChange = (index: number, newDest: BookDestination) => {
+    setEjemplaresList((prev) =>
+      prev.map((item, idx) => {
+        if (idx !== index) return item;
+        let suggestedLoc = item.location;
+        if (newDest === 'SALA' && !suggestedLoc.toLowerCase().includes('sala')) {
+          suggestedLoc = 'Sala de lectura, Módulo central';
+        } else if (
+          newDest === 'OTRA_BIBLIOTECA' &&
+          !suggestedLoc.toLowerCase().includes('otra') &&
+          !suggestedLoc.toLowerCase().includes('convenio') &&
+          !suggestedLoc.toLowerCase().includes('inter')
+        ) {
+          suggestedLoc = 'Otra biblioteca - Convenio interinstitucional';
+        } else if (newDest === 'ESTANTERIA') {
+          if (
+            suggestedLoc.toLowerCase().includes('sala') ||
+            suggestedLoc.toLowerCase().includes('otra') ||
+            suggestedLoc.toLowerCase().includes('convenio') ||
+            suggestedLoc.toLowerCase().includes('inter')
+          ) {
+            suggestedLoc = 'Estante A-1, Nivel 1';
+          }
+        }
+        return { ...item, destination: newDest, location: suggestedLoc };
+      })
+    );
+  };
+
+  const handleEjemplarLocationChange = (index: number, newLoc: string) => {
+    setEjemplaresList((prev) =>
+      prev.map((item, idx) => (idx === index ? { ...item, location: newLoc } : item))
+    );
+  };
+
+  const handleApplyToAllCopies = (sourceIndex: number) => {
+    const src = ejemplaresList[sourceIndex];
+    if (!src) return;
+    setEjemplaresList((prev) =>
+      prev.map((item) => ({
+        ...item,
+        destination: src.destination,
+        location: src.location,
+      }))
+    );
+  };
 
   const descriptionRegister = register('description');
   const descriptionTextareaRef = useRef<HTMLTextAreaElement | null>(null);
@@ -178,26 +267,39 @@ export const AdminNewBookPage: React.FC = () => {
     const resolvedCat = resolveCategory(data.category) || BIBLIOGRAPHIC_CATEGORIES[0];
     const cleanedCoverUrl = data.coverUrl ? data.coverUrl.trim() : undefined;
 
-    // Normalizar la ubicación según el destino seleccionado
-    let finalLocation = data.location.trim();
-    if (data.destination === 'SALA' && !finalLocation.toLowerCase().includes('sala')) {
-      finalLocation = `Sala de lectura - ${finalLocation}`;
-    } else if (
-      data.destination === 'OTRA_BIBLIOTECA' &&
-      !finalLocation.toLowerCase().includes('otra') &&
-      !finalLocation.toLowerCase().includes('convenio') &&
-      !finalLocation.toLowerCase().includes('inter')
-    ) {
-      finalLocation = `Otra biblioteca (Convenio) - ${finalLocation}`;
-    }
+    // Normalizar cada ejemplar según su destino asignado
+    const finalEjemplares = ejemplaresList.map((ej) => {
+      let loc = ej.location.trim();
+      if (ej.destination === 'SALA' && !loc.toLowerCase().includes('sala')) {
+        loc = `Sala de lectura - ${loc}`;
+      } else if (
+        ej.destination === 'OTRA_BIBLIOTECA' &&
+        !loc.toLowerCase().includes('otra') &&
+        !loc.toLowerCase().includes('convenio') &&
+        !loc.toLowerCase().includes('inter')
+      ) {
+        loc = `Otra biblioteca (Convenio) - ${loc}`;
+      }
+      return {
+        codigo_inventario: `CIU-${data.isbn.replace(/[^A-Za-z0-9]/g, '').slice(-4) || '001'}-${ej.copiaLetra}`,
+        ubicacion_estante: loc,
+        estado: 'disponible',
+      };
+    });
+
+    const primaryLocation = finalEjemplares[0]?.ubicacion_estante || data.location.trim();
 
     const createdBook = await booksService.create({
       ...data,
-      location: finalLocation,
+      totalCopies: finalEjemplares.length,
+      availableCopies: finalEjemplares.length,
+      location: primaryLocation,
       coverUrl: cleanedCoverUrl || undefined,
       category: resolvedCat.code,
-      availableCopies: data.totalCopies,
-    });
+      ejemplares: finalEjemplares,
+      ejemplares_items: finalEjemplares,
+    } as any);
+
     navigate(`/admin/catalog/${createdBook.id || 'new'}/success`, {
       state: { book: createdBook },
     });
@@ -286,69 +388,130 @@ export const AdminNewBookPage: React.FC = () => {
               <Input
                 label="Número de Ejemplares"
                 type="number"
+                min={1}
+                max={50}
                 error={errors.totalCopies?.message}
                 {...register('totalCopies')}
               />
 
-              <Select
-                label="Destino / Modalidad del libro"
-                options={BOOK_DESTINATION_OPTIONS}
-                error={errors.destination?.message}
-                {...register('destination', {
-                  onChange: (e) => {
-                    const dest = e.target.value;
-                    const curLoc = (watch('location') || '').toLowerCase();
-                    if (dest === 'SALA') {
-                      if (!curLoc.includes('sala')) {
-                        setValue('location', 'Sala de lectura, Módulo central', {
-                          shouldDirty: true,
-                          shouldValidate: true,
-                        });
-                      }
-                    } else if (dest === 'OTRA_BIBLIOTECA') {
-                      if (
-                        !curLoc.includes('otra') &&
-                        !curLoc.includes('convenio') &&
-                        !curLoc.includes('inter')
-                      ) {
-                        setValue(
-                          'location',
-                          'Otra biblioteca - Convenio interinstitucional',
-                          {
-                            shouldDirty: true,
-                            shouldValidate: true,
-                          }
-                        );
-                      }
-                    } else {
-                      if (
-                        curLoc.includes('sala') ||
-                        curLoc.includes('otra') ||
-                        curLoc.includes('convenio') ||
-                        curLoc.includes('inter')
-                      ) {
-                        setValue('location', 'Estante A-1, Nivel 1', {
-                          shouldDirty: true,
-                          shouldValidate: true,
-                        });
-                      }
-                    }
-                  },
-                })}
-              />
+              {/* Sección de Ubicación y Destino por Ejemplar */}
+              <div
+                style={{
+                  gridColumn: '1 / -1',
+                  display: 'flex',
+                  flexDirection: 'column',
+                  gap: 12,
+                  padding: '16px',
+                  backgroundColor: '#F8FAFC',
+                  border: '1.5px solid #E2E8F0',
+                  borderRadius: '12px',
+                }}
+              >
+                <div
+                  style={{
+                    display: 'flex',
+                    justifyContent: 'space-between',
+                    alignItems: 'center',
+                    flexWrap: 'wrap',
+                    gap: 8,
+                  }}
+                >
+                  <div>
+                    <h4
+                      style={{
+                        margin: 0,
+                        fontSize: '0.9375rem',
+                        fontWeight: 600,
+                        color: '#1E293B',
+                      }}
+                    >
+                      Asignación y ubicación por ejemplar ({ejemplaresList.length} copias)
+                    </h4>
+                    <p
+                      style={{
+                        margin: '2px 0 0 0',
+                        fontSize: '0.8125rem',
+                        color: '#64748B',
+                      }}
+                    >
+                      Configura si cada copia física estará en estantería general, en sala de lectura o en otra biblioteca en convenio.
+                    </p>
+                  </div>
+                  {ejemplaresList.length > 1 && (
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={() => handleApplyToAllCopies(0)}
+                      title="Copia el destino y ubicación del Ejemplar A a todos los demás"
+                    >
+                      Copiar ubicación del Ejemplar A a todos
+                    </Button>
+                  )}
+                </div>
 
-              <Input
-                label="Ubicación física / Detalle de estante"
-                placeholder={
-                  watch('destination') === 'SALA'
-                    ? 'Ej. Sala de lectura, Mesa 3 o Módulo de consulta'
-                    : watch('destination') === 'OTRA_BIBLIOTECA'
-                    ? 'Ej. Otra biblioteca - Convenio Universidad / Instituto'
-                    : 'Ej. Estante A-3, Pasillo Central'
-                }
-                error={errors.location?.message}
-                {...register('location')}
-              />
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 10, marginTop: 4 }}>
+                  {ejemplaresList.map((ej, index) => (
+                    <div
+                      key={ej.id}
+                      style={{
+                        display: 'grid',
+                        gridTemplateColumns: '90px 1.2fr 1.8fr',
+                        gap: 12,
+                        alignItems: 'center',
+                        backgroundColor: '#FFFFFF',
+                        padding: '10px 14px',
+                        borderRadius: '8px',
+                        border: '1px solid #CBD5E1',
+                      }}
+                    >
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <span
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            width: 28,
+                            height: 28,
+                            borderRadius: '50%',
+                            backgroundColor: '#EFF6FF',
+                            color: '#2563EB',
+                            fontWeight: 700,
+                            fontSize: '0.8125rem',
+                          }}
+                        >
+                          {ej.copiaLetra}
+                        </span>
+                        <span style={{ fontSize: '0.8125rem', fontWeight: 600, color: '#334155' }}>
+                          Copia {ej.copiaLetra}
+                        </span>
+                      </div>
+
+                      <Select
+                        label=""
+                        options={BOOK_DESTINATION_OPTIONS}
+                        value={ej.destination}
+                        onChange={(e) =>
+                          handleEjemplarDestinationChange(index, e.target.value as BookDestination)
+                        }
+                      />
+
+                      <Input
+                        label=""
+                        value={ej.location}
+                        placeholder={
+                          ej.destination === 'SALA'
+                            ? 'Ej. Sala de lectura, Mesa 3'
+                            : ej.destination === 'OTRA_BIBLIOTECA'
+                            ? 'Ej. Otra biblioteca - Convenio Universidad'
+                            : 'Ej. Estante A-1, Nivel 1'
+                        }
+                        onChange={(e) => handleEjemplarLocationChange(index, e.target.value)}
+                      />
+                    </div>
+                  ))}
+                </div>
+              </div>
 
               <div style={{ gridColumn: '1 / -1', display: 'flex', flexDirection: 'column', gap: 8 }}>
                 <Input

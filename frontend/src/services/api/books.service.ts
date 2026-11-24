@@ -82,6 +82,7 @@ export const booksService = {
       ubicacion: data.location || 'Estante A-1, Nivel 1',
       descripcion: data.description || '',
       portada_url: data.coverUrl || '',
+      ejemplares_items: (data as any).ejemplares_items || (data as any).ejemplares,
     };
 
     // 1. Intento principal mediante Backend Proxy (Bypasses RLS completamente con Service Role)
