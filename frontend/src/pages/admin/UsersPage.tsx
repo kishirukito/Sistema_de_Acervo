@@ -8,7 +8,6 @@ import {
   CalendarCog,
 } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
-import { UsersMetrics } from '../../features/users/components/UsersMetrics';
 import { UserClassificationTabs } from '../../features/users/components/UserClassificationTabs';
 import { UsersToolbar } from '../../features/users/components/UsersToolbar';
 import { UsersTable } from '../../features/users/components/UsersTable';
@@ -27,7 +26,6 @@ import {
 } from '../../services/api/users-managed.service';
 import {
   useAdminUsers,
-  deriveUsersMetrics,
   invalidateAdminUsers,
   ADMIN_USERS_KEY,
 } from '../../features/users/users.query';
@@ -55,9 +53,6 @@ export const UsersPage: React.FC = () => {
 
   // ── React Query: lista de usuarios con caché de 2 minutos ────────────────
   const { data: usersList = [], isLoading } = useAdminUsers();
-
-  // KPIs derivados de la misma consulta — sin segunda petición a /api/v1/data/usuarios
-  const metrics = useMemo(() => deriveUsersMetrics(usersList), [usersList]);
 
   // Generaciones detectadas en los usuarios disponibles
   const availableGenerations = useMemo(
@@ -359,10 +354,7 @@ export const UsersPage: React.FC = () => {
         </div>
       </div>
 
-      {/* KPI Summary Cards */}
-      <UsersMetrics metrics={metrics} />
-
-      {/* Barra de Clasificación por Tipo de Usuario (Botones con Contadores) */}
+      {/* Tablero Interactivo de Clasificación de Usuarios (Ocupa el lugar de las métricas con tarjetas ampliadas) */}
       <UserClassificationTabs
         activeClassification={filters.classification}
         onChange={handleClassificationChange}

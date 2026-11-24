@@ -800,79 +800,127 @@
 }
 
 /* Classification Bar & Pills */
-.users-classification-bar {
-  display: flex;
-  align-items: center;
+.users-classification-grid {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr);
+  gap: 1rem;
   width: 100%;
-  overflow-x: auto;
-  padding-bottom: 2px;
 }
 
-.users-classification-track {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  background-color: #F1F5F9;
-  padding: 5px;
-  border-radius: 12px;
-  border: 1px solid #E2E8F0;
-  box-sizing: border-box;
-}
-
-.users-class-tab {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  padding: 6px 14px;
-  border-radius: 8px;
-  border: none;
-  background-color: transparent;
-  color: #64748B;
-  font-size: 0.8125rem;
-  font-weight: 500;
+.users-class-card {
+  background: #FFFFFF;
+  border: 1.5px solid #E2E8F0;
+  border-radius: 14px;
+  padding: 1.125rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 0.875rem;
   cursor: pointer;
-  transition: all 0.15s ease;
-  white-space: nowrap;
+  text-align: left;
+  transition: all 0.2s cubic-bezier(0.16, 1, 0.3, 1);
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+  position: relative;
+  min-height: 108px;
+  box-sizing: border-box;
+  font-family: inherit;
   user-select: none;
 }
 
-.users-class-tab:hover {
-  color: #1E293B;
-  background-color: rgba(255, 255, 255, 0.6);
+.users-class-card:hover {
+  border-color: #CBD5E1;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 20px -3px rgba(15, 23, 42, 0.08);
 }
 
-.users-class-tab:focus-visible {
-  outline: 2px solid #2563EB;
-  outline-offset: 1px;
+.users-class-card:focus-visible {
+  outline: none;
+  border-color: #2563EB;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.2);
 }
 
-.users-class-tab--active {
-  background-color: #FFFFFF !important;
-  color: #2563EB !important;
-  font-weight: 700;
-  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08), 0 1px 2px rgba(15, 23, 42, 0.04);
+.users-class-card--active {
+  background: #F0F7FF !important;
+  border-color: #2563EB !important;
+  box-shadow: 0 4px 16px rgba(37, 99, 235, 0.14) !important;
 }
 
-.users-class-tab-icon {
-  flex-shrink: 0;
+.users-class-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
 }
 
-.users-class-tab-badge {
-  display: inline-flex;
+.users-class-card-icon-wrap {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: flex;
   align-items: center;
   justify-content: center;
-  padding: 1px 7px;
-  border-radius: 9999px;
-  font-size: 0.6875rem;
-  font-weight: 700;
-  background-color: #E2E8F0;
-  color: #475569;
-  transition: all 0.15s ease;
+  flex-shrink: 0;
+  transition: transform 0.2s ease;
 }
 
-.users-class-tab--active .users-class-tab-badge {
-  background-color: #EFF6FF;
-  color: #2563EB;
+.users-class-card:hover .users-class-card-icon-wrap {
+  transform: scale(1.06);
+}
+
+.users-class-card-active-pill {
+  display: inline-flex;
+  align-items: center;
+  padding: 2px 8px;
+  background-color: #2563EB;
+  color: #FFFFFF;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  border-radius: 9999px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  animation: fadeInPill 0.15s ease-out;
+}
+
+@keyframes fadeInPill {
+  from { opacity: 0; transform: scale(0.9); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.users-class-card-content {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.users-class-card-value {
+  font-size: 1.75rem;
+  font-weight: 700;
+  color: #1E293B;
+  line-height: 1.1;
+  font-family: var(--font-family-heading, 'Poppins', sans-serif);
+  letter-spacing: -0.02em;
+}
+
+.users-class-card--active .users-class-card-value {
+  color: #1D4ED8;
+}
+
+.users-class-card-title {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #64748B;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.users-class-card--active .users-class-card-title {
+  color: #1E3A5F;
+  font-weight: 700;
+}
+
+.users-classification-bar {
+  display: none;
 }
 
 /* User Subtitle & Matrícula/Generation Columns */
@@ -933,6 +981,12 @@
   display: inline-block;
 }
 
+@media (max-width: 1200px) {
+  .users-classification-grid {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
 @media (max-width: 768px) {
   .users-header-actions {
     width: 100%;
@@ -945,6 +999,22 @@
   .users-register-btn {
     width: 100%;
     justify-content: center;
+  }
+}
+
+@media (max-width: 640px) {
+  .users-classification-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 0.625rem;
+  }
+
+  .users-class-card {
+    padding: 0.875rem 1rem;
+    min-height: 92px;
+  }
+
+  .users-class-card-value {
+    font-size: 1.45rem;
   }
 }
 

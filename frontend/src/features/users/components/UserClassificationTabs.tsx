@@ -1,20 +1,65 @@
-import React from 'react';
-import { Users, GraduationCap, School, ShieldCheck, UserCheck, UserX } from 'lucide-react';
+import React, { useMemo } from 'react';
+import {
+  Users,
+  GraduationCap,
+  School,
+  ShieldCheck,
+  UserCheck,
+  UserX,
+} from 'lucide-react';
 import type { UserClassification, ManagedUser } from '../users.types';
 
 interface ClassificationTabItem {
   id: UserClassification;
   label: string;
   icon: React.ComponentType<{ size?: number; className?: string }>;
+  color: string;
+  bgLight: string;
 }
 
 const CLASSIFICATION_ITEMS: ClassificationTabItem[] = [
-  { id: 'ALL', label: 'Todos', icon: Users },
-  { id: 'STUDENT', label: 'Alumnos', icon: GraduationCap },
-  { id: 'TEACHER', label: 'Docentes', icon: School },
-  { id: 'ADMINISTRATIVE', label: 'Administrativos', icon: ShieldCheck },
-  { id: 'GRADUATE', label: 'Egresados', icon: UserCheck },
-  { id: 'EXTERNAL', label: 'Externos', icon: UserX },
+  {
+    id: 'ALL',
+    label: 'Todos',
+    icon: Users,
+    color: '#2563EB',
+    bgLight: '#EFF6FF',
+  },
+  {
+    id: 'STUDENT',
+    label: 'Alumnos',
+    icon: GraduationCap,
+    color: '#7C3AED',
+    bgLight: '#F5F3FF',
+  },
+  {
+    id: 'TEACHER',
+    label: 'Docentes',
+    icon: School,
+    color: '#4F46E5',
+    bgLight: '#EEF2FF',
+  },
+  {
+    id: 'ADMINISTRATIVE',
+    label: 'Administrativos',
+    icon: ShieldCheck,
+    color: '#0284C7',
+    bgLight: '#E0F2FE',
+  },
+  {
+    id: 'GRADUATE',
+    label: 'Egresados',
+    icon: UserCheck,
+    color: '#059669',
+    bgLight: '#ECFDF5',
+  },
+  {
+    id: 'EXTERNAL',
+    label: 'Externos',
+    icon: UserX,
+    color: '#D97706',
+    bgLight: '#FEF3C7',
+  },
 ];
 
 interface UserClassificationTabsProps {
@@ -28,8 +73,8 @@ export const UserClassificationTabs: React.FC<UserClassificationTabsProps> = ({
   onChange,
   users,
 }) => {
-  // Calcular contadores reales para cada clasificación
-  const counts = React.useMemo(() => {
+  // Contadores reales y precisos para cada clasificación de usuario
+  const counts = useMemo(() => {
     let student = 0;
     let teacher = 0;
     let admin = 0;
@@ -64,34 +109,55 @@ export const UserClassificationTabs: React.FC<UserClassificationTabsProps> = ({
 
   return (
     <div
-      className="users-classification-bar"
+      className="users-classification-grid"
       role="tablist"
-      aria-label="Clasificación por tipo de usuario"
+      aria-label="Clasificación interactiva de usuarios por categoría"
     >
-      <div className="users-classification-track">
-        {CLASSIFICATION_ITEMS.map((item) => {
-          const isActive = activeClassification === item.id;
-          const count = counts[item.id] || 0;
-          const IconComponent = item.icon;
+      {CLASSIFICATION_ITEMS.map((item) => {
+        const isActive = activeClassification === item.id;
+        const count = counts[item.id] || 0;
+        const IconComponent = item.icon;
 
-          return (
-            <button
-              key={item.id}
-              type="button"
-              role="tab"
-              aria-selected={isActive}
-              className={`users-class-tab${isActive ? ' users-class-tab--active' : ''}`}
-              onClick={() => onChange(item.id)}
-            >
-              <IconComponent size={16} className="users-class-tab-icon" />
-              <span className="users-class-tab-label">{item.label}</span>
-              <span className="users-class-tab-badge" aria-label={`${count} usuarios`}>
+        return (
+          <button
+            key={item.id}
+            type="button"
+            role="tab"
+            id={`tab-classification-${item.id}`}
+            aria-selected={isActive}
+            aria-label={`${item.label}: ${count} usuarios registrados${isActive ? ', pestaña seleccionada' : ''}`}
+            className={`users-class-card${isActive ? ' users-class-card--active' : ''}`}
+            onClick={() => onChange(item.id)}
+          >
+            <div className="users-class-card-top">
+              <div
+                className="users-class-card-icon-wrap"
+                style={{
+                  backgroundColor: item.bgLight,
+                  color: item.color,
+                }}
+                aria-hidden="true"
+              >
+                <IconComponent size={20} />
+              </div>
+              {isActive && (
+                <span className="users-class-card-active-pill" aria-hidden="true">
+                  Activo
+                </span>
+              )}
+            </div>
+
+            <div className="users-class-card-content">
+              <span className="users-class-card-value">
                 {count}
               </span>
-            </button>
-          );
-        })}
-      </div>
+              <span className="users-class-card-title">
+                {item.label}
+              </span>
+            </div>
+          </button>
+        );
+      })}
     </div>
   );
 };
