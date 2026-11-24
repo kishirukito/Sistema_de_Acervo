@@ -225,7 +225,7 @@ export const UsersPage: React.FC = () => {
     // Mapear kind/category del frontend al rol de Supabase
     let mappedRol = 'lector';
     if (updatedUser.kind === 'ADMINISTRATIVE') {
-      mappedRol = 'admin';
+      mappedRol = updatedUser.role === 'ADMIN' ? 'admin' : 'personal';
     } else if (updatedUser.category === 'TEACHER') {
       mappedRol = 'docente';
     } else if (updatedUser.category === 'GRADUATE') {
@@ -235,14 +235,14 @@ export const UsersPage: React.FC = () => {
     }
 
     // Persistir en Supabase e invalidar caché para confirmar desde servidor
+    // No enviamos email (campo gestionado por auth) ni valores null que rompen FK
     updateManagedUser(updatedUser.id, {
       fullName: updatedUser.fullName,
-      email: updatedUser.email,
-      phone: updatedUser.phone,
+      phone: updatedUser.phone || undefined,
       rol: mappedRol,
-      matricula_o_nomina: updatedUser.matricula ?? undefined,
-      carrera_o_dependencia: updatedUser.dependenciaOArea ?? undefined,
-      carreraId: updatedUser.carreraId ?? null,
+      matricula_o_nomina: updatedUser.matricula || undefined,
+      carrera_o_dependencia: updatedUser.dependenciaOArea || undefined,
+      carreraId: updatedUser.carreraId || undefined,
       status: updatedUser.status,
     }).then(() => {
       invalidateAdminUsers(queryClient);

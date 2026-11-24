@@ -31,6 +31,15 @@ function mapEstadoToStatus(estado: string): UserStatus {
   return 'INACTIVE';
 }
 
+function mapRolToCategory(rol: string): 'TEACHER' | 'STUDENT' | 'EXTERNAL' | 'ROOM' | 'GRADUATE' {
+  switch (rol) {
+    case 'docente': return 'TEACHER';
+    case 'egresado': return 'GRADUATE';
+    case 'externo': return 'EXTERNAL';
+    default: return 'STUDENT';
+  }
+}
+
 function mapUsuarioToManagedUser(row: any, index: number): ManagedUser {
   const kind = mapRolToKind(row.rol);
   const initials = getInitials(row.nombre_completo || '');
@@ -77,12 +86,15 @@ function mapUsuarioToManagedUser(row: any, index: number): ManagedUser {
     };
   }
 
-  let category: 'TEACHER' | 'STUDENT' | 'EXTERNAL' | 'ROOM' | 'GRADUATE' = 'STUDENT';
-  const dep = (row.dependencia_o_area || row.carrera_o_dependencia || '').toLowerCase();
-  if (dep.includes('docente') || dep.includes('profesor')) category = 'TEACHER';
-  else if (dep.includes('egresado')) category = 'GRADUATE';
-  else if (dep.includes('externo')) category = 'EXTERNAL';
-  else if (dep.includes('sala')) category = 'ROOM';
+  // Categoría determinada primero por rol, luego por dependencia_o_area como fallback
+  let category: 'TEACHER' | 'STUDENT' | 'EXTERNAL' | 'ROOM' | 'GRADUATE' = mapRolToCategory(row.rol);
+  if (category === 'STUDENT') {
+    const dep = (row.dependencia_o_area || row.carrera_o_dependencia || '').toLowerCase();
+    if (dep.includes('docente') || dep.includes('profesor')) category = 'TEACHER';
+    else if (dep.includes('egresado')) category = 'GRADUATE';
+    else if (dep.includes('externo')) category = 'EXTERNAL';
+    else if (dep.includes('sala')) category = 'ROOM';
+  }
 
   return {
     ...base,
@@ -201,12 +213,26 @@ export async function updateManagedUser(
       ...(token ? { Authorization: `Bearer ${token}` } : {}),
     };
 
+    // Eliminar claves con valor null/undefined para no romper FK constraints en Supabase
+    const cleanPayload: Record<string, unknown> = {};
+    for (const [key, value] of Object.entries(updates)) {
+      if (value !== null && value !== undefined && value !== '') {
+        cleanPayload[key] = value;
+      }
+    }
+
+    if (Object.keys(cleanPayload).length === 0) return true; // nada que actualizar
+
     const res = await fetch(`/api/v1/data/usuarios/${encodeURIComponent(userId)}`, {
       method: 'PATCH',
       headers,
-      body: JSON.stringify(updates),
+      body: JSON.stringify(cleanPayload),
     });
 
+    if (!res.ok) {
+      const errData = await res.json().catch(() => ({}));
+      console.error('[UsersService] PATCH failed:', res.status, errData);
+    }
     return res.ok;
   } catch (err) {
     console.error('[UsersService] Update failed:', err);
@@ -221,43 +247,18 @@ export async function updateManagedUser(
 export async function fetchPendingSanctionsUserIds(): Promise<Set<string>> {
   const result = new Set<string>();
   try {
-    // 1. Intentar vía backend reportes/siabuc
-    const token = localStorage.getItem('acervo_token');
-    const headers: Record<string, string> = {
-      ...(token ? { Authorization: `Bearer ${token}` } : {}),
-    };
-    const res = await fetch('/api/v1/reports/siabuc', { headers });
-    if (res.ok) {
-      const data = await res.json();
-      const detalle = data?.sanciones?.detalle;
-      if (Array.isArray(detalle)) {
-        for (const item of detalle) {
-          if (item?.usuario_id && item?.estado_pago === 'pendiente') {
-            result.add(String(item.usuario_id));
-          }
-        }
+    // Consultar sanciones pendientes vía Supabase directamente
+    const { data } = await supabase
+      .from('sanciones_multas')
+      .select('usuario_id, estado_pago')
+      .eq('estado_pago', 'pendiente');
+    if (Array.isArray(data)) {
+      for (const item of data) {
+        if (item.usuario_id) result.add(String(item.usuario_id));
       }
     }
-  } catch (err) {
-    console.warn('[UsersService] Could not fetch sanctions from SIABUC proxy, checking Supabase fallback:', err);
+  } catch {
+    // Ignorar si la tabla no existe o no tiene registros
   }
-
-  // Fallback con cliente Supabase si aún está vacío
-  if (result.size === 0) {
-    try {
-      const { data } = await supabase
-        .from('sanciones_multas')
-        .select('usuario_id, estado_pago')
-        .eq('estado_pago', 'pendiente');
-      if (Array.isArray(data)) {
-        for (const item of data) {
-          if (item.usuario_id) result.add(String(item.usuario_id));
-        }
-      }
-    } catch {
-      // Ignorar si la tabla no existe o no tiene registros
-    }
-  }
-
   return result;
 }
