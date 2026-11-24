@@ -222,10 +222,28 @@ export const UsersPage: React.FC = () => {
       prev.map((u) => (u.id === updatedUser.id ? updatedUser : u))
     );
 
+    // Mapear kind/category del frontend al rol de Supabase
+    let mappedRol = 'lector';
+    if (updatedUser.kind === 'ADMINISTRATIVE') {
+      mappedRol = 'admin';
+    } else if (updatedUser.category === 'TEACHER') {
+      mappedRol = 'docente';
+    } else if (updatedUser.category === 'GRADUATE') {
+      mappedRol = 'egresado';
+    } else if (updatedUser.category === 'EXTERNAL') {
+      mappedRol = 'externo';
+    }
+
     // Persistir en Supabase e invalidar caché para confirmar desde servidor
     updateManagedUser(updatedUser.id, {
       fullName: updatedUser.fullName,
+      email: updatedUser.email,
       phone: updatedUser.phone,
+      rol: mappedRol,
+      matricula_o_nomina: updatedUser.matricula ?? undefined,
+      carrera_o_dependencia: updatedUser.dependenciaOArea ?? undefined,
+      carreraId: updatedUser.carreraId ?? null,
+      status: updatedUser.status,
     }).then(() => {
       invalidateAdminUsers(queryClient);
     });

@@ -182,7 +182,17 @@ export async function createManagedUser(user: any): Promise<any> {
  */
 export async function updateManagedUser(
   userId: string,
-  updates: { status?: UserStatus; fullName?: string; phone?: string; carrera_o_dependencia?: string }
+  updates: {
+    status?: UserStatus;
+    fullName?: string;
+    email?: string;
+    phone?: string;
+    rol?: string;
+    matricula_o_nomina?: string;
+    carrera_o_dependencia?: string;
+    carreraId?: string | null;
+    expiresAt?: string | null;
+  }
 ): Promise<boolean> {
   try {
     const token = localStorage.getItem('acervo_token');
