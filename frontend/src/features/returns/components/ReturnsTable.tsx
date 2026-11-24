@@ -30,7 +30,7 @@ export const ReturnsTable: React.FC<ReturnsTableProps> = ({
           </thead>
           <tbody>
             {records.map((record) => {
-              const isOverdue = record.isOverdue || record.status === 'OVERDUE';
+              const isOverdue = record.status === 'OVERDUE';
 
               return (
                 <tr key={record.id} className="returns-table-row">

@@ -175,7 +175,8 @@ export const ReturnsPage: React.FC = () => {
       // 2. Status Filter
       if (filters.status) {
         if (filters.status === 'OVERDUE') {
-          if (!record.isOverdue && record.status !== 'OVERDUE') {
+          // Un préstamo devuelto NUNCA es un préstamo vencido activo
+          if (record.status !== 'OVERDUE') {
             return false;
           }
         } else if (filters.status === 'RETURNED') {
@@ -183,8 +184,12 @@ export const ReturnsPage: React.FC = () => {
             return false;
           }
         } else if (filters.status === 'ACTIVE') {
-          // Pendientes activos no vencidos
-          if (record.status === 'RETURNED' || record.isOverdue || record.status === 'OVERDUE') {
+          // Pendientes activos no vencidos ni devueltos
+          if (record.status !== 'ACTIVE') {
+            return false;
+          }
+        } else if (filters.status === 'DUE_SOON') {
+          if (record.status !== 'DUE_SOON') {
             return false;
           }
         } else if (record.status !== filters.status) {
@@ -207,7 +212,7 @@ export const ReturnsPage: React.FC = () => {
       // 4. Due Date Filter
       if (filters.dueDateFilter) {
         if (filters.dueDateFilter === 'OVERDUE_ONLY') {
-          if (!record.isOverdue && record.status !== 'OVERDUE') return false;
+          if (record.status !== 'OVERDUE') return false;
         } else if (!checkDueDateFilter(record.rawDueDate, record.dueDate, filters.dueDateFilter)) {
           return false;
         }

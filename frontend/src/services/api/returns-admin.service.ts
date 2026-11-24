@@ -55,13 +55,14 @@ function mapPrestamoToReturnRecord(row: any, index: number): ReturnRecord {
   const dueDate = row.fecha_limite_devolucion ? new Date(row.fecha_limite_devolucion) : now;
   const diffMs = dueDate.getTime() - now.getTime();
   const diffDays = Math.round(diffMs / (1000 * 60 * 60 * 24));
-  const isOverdue = diffDays < 0;
+  const isReturned = row.estado === 'devuelto' || Boolean(row.fecha_devolucion_real);
+  const isOverdue = !isReturned && diffDays < 0;
 
   let status: LoanStatus = 'ACTIVE';
   let daysDiffText = '';
   let daysDiffType: 'remaining' | 'overdue' | 'due-soon' = 'remaining';
 
-  if (row.estado === 'devuelto') {
+  if (isReturned) {
     status = 'RETURNED';
     daysDiffText = 'Devuelto';
     daysDiffType = 'remaining';

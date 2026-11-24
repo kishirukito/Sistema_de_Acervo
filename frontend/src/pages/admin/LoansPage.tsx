@@ -167,11 +167,13 @@ export const LoansPage: React.FC = () => {
       // 2. Status Filter
       if (filters.status) {
         if (filters.status === 'DUE_SOON') {
+          if (loan.status === 'RETURNED') return false;
           const isDue =
             loan.status === 'DUE_SOON' ||
             (loan.status === 'ACTIVE' && Boolean(loan.dueDateNote?.includes('Vence')));
           if (!isDue) return false;
         } else if (filters.status === 'OVERDUE') {
+          if (loan.status === 'RETURNED') return false;
           const isOverdue =
             loan.status === 'OVERDUE' || Boolean(loan.dueDateNote?.includes('vencido'));
           if (!isOverdue) return false;
@@ -190,6 +192,7 @@ export const LoansPage: React.FC = () => {
       // 4. Date Filter
       if (filters.dateFilter) {
         if (filters.dateFilter === 'OVERDUE_ONLY') {
+          if (loan.status === 'RETURNED') return false;
           const isOverdue =
             loan.status === 'OVERDUE' || Boolean(loan.dueDateNote?.includes('vencido'));
           if (!isOverdue) return false;
