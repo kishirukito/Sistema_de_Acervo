@@ -1138,17 +1138,21 @@ class SupabaseService:
 
     async def update_user(self, user_id: str, updates: Dict[str, Any]) -> Dict[str, Any]:
         """
-        Actualiza el estado o información de un usuario en Supabase (ej. activo/inactivo/suspendido).
+        Actualiza la información de un usuario en Supabase.
+        Solo actualiza los campos que tengan valor real (nunca envía null para FK).
         """
-        check_url = f"{self.base_url}/usuarios?id=eq.{user_id}&select=id,nombre_completo,estado"
+        check_url = f"{self.base_url}/usuarios?id=eq.{user_id}&select=id,nombre_completo,estado,rol,carrera_id"
         async with httpx.AsyncClient(timeout=10.0) as client:
             check_resp = await client.get(check_url, headers=self.headers)
             if not check_resp.is_success or not check_resp.json():
                 return {"status": "not_found"}
 
             payload: Dict[str, Any] = {}
-            if "estado" in updates or "status" in updates:
-                st = str(updates.get("estado") or updates.get("status")).lower()
+
+            # Estado
+            st_raw = updates.get("estado") or updates.get("status")
+            if st_raw:
+                st = str(st_raw).lower()
                 if st in ["active", "activo"]:
                     payload["estado"] = "activo"
                 elif st in ["inactive", "inactivo"]:
@@ -1156,16 +1160,19 @@ class SupabaseService:
                 elif st in ["suspended", "suspendido"]:
                     payload["estado"] = "suspendido"
 
-            if "nombre_completo" in updates or "fullName" in updates:
-                payload["nombre_completo"] = str(updates.get("nombre_completo") or updates.get("fullName")).strip()
-            if "email" in updates:
-                payload["email"] = str(updates.get("email")).strip().lower()
-            if "matricula_o_nomina" in updates or "identifier" in updates:
-                mat = updates.get("matricula_o_nomina") if "matricula_o_nomina" in updates else updates.get("identifier")
-                if mat is not None:
-                    payload["matricula_o_nomina"] = str(mat).strip()
-            if "rol" in updates or "role" in updates:
-                raw_rol = str(updates.get("rol") or updates.get("role") or "").lower().strip()
+            # Nombre completo
+            full_name = updates.get("nombre_completo") or updates.get("fullName")
+            if full_name:
+                payload["nombre_completo"] = str(full_name).strip()
+
+            # Matrícula / nómina (solo si tiene valor)
+            mat = updates.get("matricula_o_nomina") or updates.get("identifier")
+            if mat:
+                payload["matricula_o_nomina"] = str(mat).strip()
+
+            # Rol (mapeado a valores válidos en Supabase)
+            raw_rol = str(updates.get("rol") or updates.get("role") or "").lower().strip()
+            if raw_rol:
                 ROL_MAP = {
                     "admin": "admin", "administrador": "admin", "superadmin": "admin",
                     "docente": "docente", "maestro": "docente", "profesor": "docente",
@@ -1176,29 +1183,41 @@ class SupabaseService:
                 }
                 if raw_rol in ROL_MAP:
                     payload["rol"] = ROL_MAP[raw_rol]
-            if "telefono" in updates or "phone" in updates:
-                payload["telefono"] = updates.get("telefono") or updates.get("phone")
-            if "avatar_url" in updates or "avatarUrl" in updates:
-                payload["avatar_url"] = updates.get("avatar_url") or updates.get("avatarUrl")
-            if "dependencia_o_area" in updates or "departmentOrCareer" in updates:
-                payload["dependencia_o_area"] = updates.get("dependencia_o_area") or updates.get("departmentOrCareer")
-            elif "carrera_o_dependencia" in updates:
-                payload["dependencia_o_area"] = updates.get("carrera_o_dependencia")
-            if "carrera_id" in updates or "carreraId" in updates:
-                c_val = updates.get("carrera_id") if "carrera_id" in updates else updates.get("carreraId")
-                payload["carrera_id"] = str(c_val).strip() if c_val else None
-            if "vigencia_hasta" in updates or "expiresAt" in updates:
-                raw_vig = updates.get("vigencia_hasta") or updates.get("expiresAt")
-                if raw_vig:
-                    payload["vigencia_hasta"] = validate_and_normalize_date(raw_vig, "vigencia_hasta")
+
+            # Teléfono (solo si tiene valor)
+            phone = updates.get("telefono") or updates.get("phone")
+            if phone:
+                payload["telefono"] = str(phone).strip()
+
+            # Avatar (solo si tiene valor)
+            avatar = updates.get("avatar_url") or updates.get("avatarUrl")
+            if avatar:
+                payload["avatar_url"] = str(avatar).strip()
+
+            # Dependencia / área (solo si tiene valor)
+            dep = (updates.get("dependencia_o_area")
+                   or updates.get("departmentOrCareer")
+                   or updates.get("carrera_o_dependencia"))
+            if dep:
+                payload["dependencia_o_area"] = str(dep).strip()
+
+            # Carrera FK — NUNCA enviar null para evitar violación de FK NOT NULL
+            c_val = updates.get("carrera_id") or updates.get("carreraId")
+            if c_val:
+                payload["carrera_id"] = str(c_val).strip()
+
+            # Vigencia (solo si tiene valor)
+            raw_vig = updates.get("vigencia_hasta") or updates.get("expiresAt")
+            if raw_vig:
+                payload["vigencia_hasta"] = validate_and_normalize_date(raw_vig, "vigencia_hasta")
 
             if not payload:
                 return {"status": "no_changes", "id": user_id}
 
             patch_url = f"{self.base_url}/usuarios?id=eq.{user_id}"
-            print(f"[UPDATE_USER] PATCH {patch_url} payload={payload}")
+            print(f"[UPDATE_USER] PATCH payload={payload}")
             patch_resp = await client.patch(patch_url, headers=self.headers, json=payload)
-            print(f"[UPDATE_USER] Supabase response {patch_resp.status_code}: {patch_resp.text[:500]}")
+            print(f"[UPDATE_USER] Supabase {patch_resp.status_code}: {patch_resp.text[:500]}")
             if not patch_resp.is_success:
                 raise Exception(f"Supabase PATCH error {patch_resp.status_code}: {patch_resp.text}")
             updated_items = patch_resp.json()
