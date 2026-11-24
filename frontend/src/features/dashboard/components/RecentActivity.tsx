@@ -29,8 +29,8 @@ export const RecentActivity: React.FC<RecentActivityProps> = ({ items }) => {
         <button
           type="button"
           className="dashboard-card-link"
-          onClick={() => navigate('/admin/loans')}
-          aria-label="Ver todos los préstamos y devoluciones"
+          onClick={() => navigate('/admin/activity')}
+          aria-label="Ver historial completo de préstamos y devoluciones"
         >
           Ver todo
         </button>
@@ -79,7 +79,7 @@ export const RecentActivity: React.FC<RecentActivityProps> = ({ items }) => {
           <button
             type="button"
             className="activity-footer-btn"
-            onClick={() => navigate('/admin/loans')}
+            onClick={() => navigate('/admin/activity')}
           >
             Ver historial completo →
           </button>

@@ -24,6 +24,7 @@ import { ReturnSuccessPage } from '../pages/admin/ReturnSuccessPage';
 import { AdminSmartSearchPage } from '../pages/admin/AdminSmartSearchPage';
 import { AdminReportsPage } from '../pages/admin/AdminReportsPage';
 import { AdminProfilePage } from '../pages/admin/AdminProfilePage';
+import { AdminActivityHistoryPage } from '../pages/admin/AdminActivityHistoryPage';
 import { SearchPage } from '../pages/search/SearchPage';
 
 // User pages
@@ -105,6 +106,14 @@ export const router = createBrowserRouter([
       {
         path: 'dashboard',
         element: <AdminDashboardPage />,
+      },
+      {
+        path: 'activity',
+        element: <AdminActivityHistoryPage />,
+      },
+      {
+        path: 'historial',
+        element: <AdminActivityHistoryPage />,
       },
       {
         path: 'catalog',

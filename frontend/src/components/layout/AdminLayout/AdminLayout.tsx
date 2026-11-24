@@ -22,6 +22,8 @@ const ADMIN_ROUTE_TITLES: Record<string, string> = {
   '/admin/search': 'Búsqueda Inteligente',
   '/search': 'Búsqueda Inteligente',
   '/admin/reports': 'Reportes',
+  '/admin/activity': 'Historial de circulación',
+  '/admin/historial': 'Historial de circulación',
   '/admin/profile': 'Mi perfil',
 };
 
@@ -40,7 +42,17 @@ export const AdminLayout: React.FC = () => {
   }
 
   let currentTitle: React.ReactNode = ADMIN_ROUTE_TITLES[location.pathname];
-  if (location.pathname === '/admin/loans/new') {
+  if (location.pathname === '/admin/activity' || location.pathname === '/admin/historial') {
+    currentTitle = (
+      <span className="app-topbar-breadcrumb">
+        <Link to="/admin/dashboard" className="app-topbar-breadcrumb-parent">
+          Dashboard
+        </Link>
+        <span className="app-topbar-breadcrumb-sep">/</span>
+        <span className="app-topbar-breadcrumb-active">Historial de circulación</span>
+      </span>
+    );
+  } else if (location.pathname === '/admin/loans/new') {
     currentTitle = (
       <span className="app-topbar-breadcrumb">
         <Link to="/admin/loans" className="app-topbar-breadcrumb-parent">
