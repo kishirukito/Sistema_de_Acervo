@@ -1,3 +1,4 @@
+import * as XLSX from 'xlsx';
 import type { ReportTemplateData } from './reports-templates.types';
 import type { QuickReportItem, SiabucReportData } from './reports.types';
 import type { Loan } from '../loans/loans.types';
@@ -78,9 +79,13 @@ export const ALL_QUICK_REPORT_TEMPLATES: (QuickReportItem & { badge: string; des
 export function buildReportTemplateData(
   reportId: string,
   _siabucData: SiabucReportData,
-  loansList: Loan[] = []
+  loansList: Loan[] = [],
+  dateRange?: { startDate?: string; endDate?: string }
 ): ReportTemplateData {
   const currentYear = new Date().getFullYear();
+  const customPeriod = (dateRange?.startDate && dateRange?.endDate)
+    ? `Del ${dateRange.startDate} al ${dateRange.endDate}`
+    : `Periodo Anual ${currentYear}`;
 
   switch (reportId) {
     // --------------------------------------------------------------------------
@@ -164,7 +169,7 @@ export function buildReportTemplateData(
         code: 'REP-CIR-01',
         title: 'Reporte de Préstamos por Carrera y Demanda Estudiantil',
         categoryBadge: 'Circulación Académica',
-        periodLabel: `Periodo Anual ${currentYear}`,
+        periodLabel: (dateRange?.startDate && dateRange?.endDate) ? customPeriod : `Periodo Anual ${currentYear}`,
         description: 'Auditoría detallada de población estudiantil atendida, acervo solicitado, modalidades de lectura y clasificaciones Dewey más demandadas.',
         kpis: [
           { label: 'AÑO DE INFORME', value: currentYear },
@@ -331,7 +336,7 @@ export function buildReportTemplateData(
         code: 'REP-FIN-02',
         title: 'Reporte Contable de Multas, Sanciones y Recaudación',
         categoryBadge: 'Administrativo y Financiero',
-        periodLabel: `Ejercicio Fiscal ${currentYear}`,
+        periodLabel: (dateRange?.startDate && dateRange?.endDate) ? customPeriod : `Ejercicio Fiscal ${currentYear}`,
         description: 'Auditoría financiera de multas generadas por morosidad o daño material, folios de recibo y recaudación presupuestal.',
         kpis: [
           { label: 'AÑO FISCAL', value: currentYear },
@@ -475,7 +480,7 @@ export function buildReportTemplateData(
         code: 'REP-PAT-03',
         title: 'Estado Físico de Ejemplares y Control Patrimonial',
         categoryBadge: 'Inventario Físico y Activos',
-        periodLabel: `Corte de Inventario ${currentYear}`,
+        periodLabel: (dateRange?.startDate && dateRange?.endDate) ? customPeriod : `Corte de Inventario ${currentYear}`,
         description: 'Censo patrimonial de activos bibliográficos: ubicación en estantería, condición física de preservación, desgaste y valuación contable.',
         kpis: [
           { label: 'AÑO DE REVISIÓN', value: currentYear },
@@ -606,7 +611,7 @@ export function buildReportTemplateData(
         code: 'REP-ROT-04',
         title: 'Frecuencia de Consulta, Rotación y Sugerencias de Compra',
         categoryBadge: 'Desarrollo de Colecciones',
-        periodLabel: `Diagnóstico Semestral ${currentYear}`,
+        periodLabel: (dateRange?.startDate && dateRange?.endDate) ? customPeriod : `Diagnóstico Semestral ${currentYear}`,
         description: 'Tasa de rotación del material bibliográfico, tiempos en estante vs. préstamo, colas de espera y sugerencias de compra para títulos de alta demanda.',
         kpis: [
           { label: 'AÑO DE ANÁLISIS', value: currentYear },
@@ -730,7 +735,7 @@ export function buildReportTemplateData(
         code: 'REP-MOR-05',
         title: 'Reporte de Morosidad y Seguimiento a Préstamos Vencidos',
         categoryBadge: 'Cobranza y Recuperación',
-        periodLabel: `Corte Semanal al ${new Date().toLocaleDateString('es-MX')}`,
+        periodLabel: (dateRange?.startDate && dateRange?.endDate) ? customPeriod : `Corte Semanal al ${new Date().toLocaleDateString('es-MX')}`,
         description: 'Padrón urgente de usuarios con libros no devueltos a tiempo, días acumulados y datos de contacto para citación previa a cierre de actas.',
         kpis: [
           { label: 'FECHA DE CORTE', value: 'Hoy' },
@@ -840,7 +845,7 @@ export function buildReportTemplateData(
         code: 'REP-RED-06',
         title: 'Reporte de Convenios y Préstamos Interbibliotecarios',
         categoryBadge: 'Cooperación Institucional',
-        periodLabel: `Red Universitaria ${currentYear}`,
+        periodLabel: (dateRange?.startDate && dateRange?.endDate) ? customPeriod : `Red Universitaria ${currentYear}`,
         description: 'Monitoreo de alianzas interbibliotecarias, flujo de acervo compartido, titulares responsables y estado de vigencia legal.',
         kpis: [
           { label: 'AÑO DE CONVENIO', value: currentYear },
@@ -952,7 +957,7 @@ export function buildReportTemplateData(
         code: 'CED-EST-OFICIAL',
         title: 'Cédula Estadística Semestral de Servicios Bibliotecarios',
         categoryBadge: 'Formato Oficial Acreditación SIABUC',
-        periodLabel: `Semestre Académico ${currentYear}-2`,
+        periodLabel: (dateRange?.startDate && dateRange?.endDate) ? customPeriod : `Semestre Académico ${currentYear}-2`,
         description: 'Documento oficial para dirección académica y comités de acreditación: crecimiento de volúmenes, usuarios beneficiados, circulación sala vs domicilio y servicios de tecnología.',
         kpis: [
           { label: 'EJERCICIO', value: `${currentYear}-2` },
@@ -1064,4 +1069,71 @@ export function exportReportTemplateToCsv(data: ReportTemplateData): void {
   link.click();
   document.body.removeChild(link);
   URL.revokeObjectURL(url);
+}
+
+/**
+ * Exporta el reporte como un archivo nativo de Microsoft Excel (.xlsx),
+ * con cálculo dinámico de anchos de columna para evitar textos amontonados
+ * y sin advertencias de compatibilidad.
+ */
+export function exportReportTemplateToExcelXlsx(data: ReportTemplateData): void {
+  const aoa: any[][] = [];
+
+  // 1. Encabezado institucional
+  aoa.push(['UNIVERSIDAD POLITÉCNICA DE DURANGO — SISTEMA DE ACERVO BIBLIOTECARIO']);
+  aoa.push([`INFORME OFICIAL: ${data.title.toUpperCase()}`]);
+  aoa.push([`Código: ${data.code}`, `Categoría: ${data.categoryBadge}`, `Periodo: ${data.periodLabel}`]);
+  aoa.push([`Fecha y hora de emisión: ${new Date().toLocaleString('es-MX')}`]);
+  aoa.push([]); // Fila vacía
+
+  // 2. Banner de Indicadores Clave (KPIs)
+  aoa.push(['=== RESUMEN DE INDICADORES CLAVE (KPIS) ===']);
+  aoa.push(data.kpis.map((k) => k.label));
+  aoa.push(data.kpis.map((k) => k.value));
+  aoa.push([]); // Fila vacía
+
+  // 3. Tabla detallada de registros
+  aoa.push(['=== TABLA DETALLADA DE REGISTROS ===']);
+  aoa.push(data.columns.map((c) => c.header));
+
+  data.rows.forEach((row) => {
+    aoa.push(data.columns.map((c) => row[c.key] ?? '—'));
+  });
+
+  // 4. Fila de Totales / Resumen
+  if (data.totalSummaryRow) {
+    aoa.push(data.columns.map((c) => data.totalSummaryRow?.[c.key] ?? '—'));
+  }
+
+  // 5. Convertir a Worksheet de SheetJS
+  const ws = XLSX.utils.aoa_to_sheet(aoa);
+
+  // 6. Cálculo dinámico de ancho de columnas (Auto-width)
+  const maxCols = Math.max(data.columns.length, data.kpis.length, 6);
+  const colWidths: { wch: number }[] = [];
+
+  for (let c = 0; c < maxCols; c++) {
+    let maxLen = 14;
+    for (let r = 0; r < aoa.length; r++) {
+      const cell = aoa[r]?.[c];
+      if (cell !== undefined && cell !== null) {
+        if (r < 2 && c === 0) continue;
+        if (String(cell).startsWith('===') && c === 0) continue;
+        const len = String(cell).length;
+        if (len > maxLen) {
+          maxLen = len;
+        }
+      }
+    }
+    colWidths.push({ wch: Math.min(Math.max(maxLen + 3, 14), 50) });
+  }
+
+  ws['!cols'] = colWidths;
+
+  // 7. Crear Workbook y descargar archivo .xlsx nativo
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Informe Ejecutivo');
+
+  const xlsxFileName = data.defaultFileName.replace(/\.csv$/, '.xlsx');
+  XLSX.writeFile(wb, xlsxFileName, { bookType: 'xlsx' });
 }

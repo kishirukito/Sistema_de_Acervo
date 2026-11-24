@@ -1,125 +1,141 @@
-import React from 'react';
+import React, { useState } from 'react';
 import {
-  BarChart3,
-  Download,
+  FileSpreadsheet,
+  Calendar,
+  ArrowRight,
   BookOpen,
   ClipboardCheck,
   Package,
   RotateCcw,
   AlertTriangle,
   Building2,
-  FileSpreadsheet,
-  Eye,
+  BarChart3,
 } from 'lucide-react';
-import type { QuickReportItem } from '../reports.types';
 import { ALL_QUICK_REPORT_TEMPLATES } from '../reports-templates.data';
 
 interface QuickReportsCardProps {
-  onDownloadReport: (report: QuickReportItem) => void;
-  onViewTemplate?: (report: QuickReportItem) => void;
+  onOpenMasterModal: (initialReportId?: string) => void;
 }
 
 export const QuickReportsCard: React.FC<QuickReportsCardProps> = ({
-  onDownloadReport,
-  onViewTemplate,
+  onOpenMasterModal,
 }) => {
-  const renderIcon = (name: string, color: string) => {
-    switch (name) {
-      case 'BookOpen':
-        return <BookOpen size={16} color={color} />;
-      case 'ClipboardCheck':
-        return <ClipboardCheck size={16} color={color} />;
-      case 'Package':
-        return <Package size={16} color={color} />;
-      case 'RotateCcw':
-        return <RotateCcw size={16} color={color} />;
-      case 'AlertTriangle':
-        return <AlertTriangle size={16} color={color} />;
-      case 'Building2':
-        return <Building2 size={16} color={color} />;
-      case 'BarChart3':
-        return <BarChart3 size={16} color={color} />;
-      default:
-        return <FileSpreadsheet size={16} color={color} />;
-    }
-  };
+  const [selectedQuickId, setSelectedQuickId] = useState<string>('rep-carreras');
 
   return (
-    <div className="reports-quick-card">
-      <div className="reports-quick-header">
-        <div className="reports-quick-icon-box" aria-hidden="true">
-          <BarChart3 size={18} />
+    <div className="reports-compact-card">
+      {/* Encabezado Compacto */}
+      <div className="reports-compact-header">
+        <div className="reports-compact-icon" aria-hidden="true">
+          <FileSpreadsheet size={18} />
         </div>
-        <div>
-          <h3 className="reports-quick-title">Reportes Rápidos y Plantillas Oficiales</h3>
-          <p className="reports-quick-subtitle">
-            Formatos ejecutivos estandarizados (SIABUC / Acreditación) con descarga en un clic
+        <div className="reports-compact-titles">
+          <h3 className="reports-compact-title">Módulo de Reportes y Exportación</h3>
+          <p className="reports-compact-subtitle">
+            Formatos oficiales ejecutivos (SIABUC / Acreditación) con rango de fechas
           </p>
         </div>
       </div>
 
-      <div className="reports-quick-list">
-        {ALL_QUICK_REPORT_TEMPLATES.map((report) => (
-          <div
-            key={report.id}
-            className="reports-quick-item"
-            onClick={() => onViewTemplate && onViewTemplate(report)}
-            role="button"
-            tabIndex={0}
-            title={`Ver plantilla ejecutiva de ${report.title}`}
-            onKeyDown={(e) => {
-              if (e.key === 'Enter' || e.key === ' ') {
-                e.preventDefault();
-                onViewTemplate && onViewTemplate(report);
-              }
-            }}
+      {/* Selector rápido y vista de chips compactos */}
+      <div className="reports-compact-body">
+        <label className="reports-compact-label" htmlFor="quick-report-select">
+          Seleccionar plantilla a generar:
+        </label>
+        <div className="reports-compact-select-row">
+          <select
+            id="quick-report-select"
+            className="reports-compact-select"
+            value={selectedQuickId}
+            onChange={(e) => setSelectedQuickId(e.target.value)}
           >
-            <div className="reports-quick-item-left">
-              <div
-                className="reports-quick-item-icon"
-                style={{ backgroundColor: report.iconBgColor }}
-                aria-hidden="true"
-              >
-                {renderIcon(report.iconName, report.iconColor)}
-              </div>
+            {ALL_QUICK_REPORT_TEMPLATES.map((item) => (
+              <option key={item.id} value={item.id}>
+                {item.title} ({item.badge})
+              </option>
+            ))}
+          </select>
+        </div>
 
-              <div className="reports-quick-item-text-group">
-                <div className="reports-quick-item-title-row">
-                  <span className="reports-quick-item-name">{report.title}</span>
-                  <span className="reports-quick-item-badge">{report.badge}</span>
-                </div>
-                <p className="reports-quick-item-desc">{report.description}</p>
-              </div>
-            </div>
+        {/* Chips de Categorías Rápidas */}
+        <div className="reports-compact-chips-grid">
+          <button
+            type="button"
+            className={`reports-compact-chip ${selectedQuickId === 'rep-carreras' ? 'active' : ''}`}
+            onClick={() => { setSelectedQuickId('rep-carreras'); onOpenMasterModal('rep-carreras'); }}
+            title="Préstamos por Carrera"
+          >
+            <BookOpen size={12} />
+            <span>Carreras</span>
+          </button>
+          <button
+            type="button"
+            className={`reports-compact-chip ${selectedQuickId === 'rep-sanciones' ? 'active' : ''}`}
+            onClick={() => { setSelectedQuickId('rep-sanciones'); onOpenMasterModal('rep-sanciones'); }}
+            title="Multas y Sanciones"
+          >
+            <ClipboardCheck size={12} />
+            <span>Sanciones</span>
+          </button>
+          <button
+            type="button"
+            className={`reports-compact-chip ${selectedQuickId === 'rep-inventario' ? 'active' : ''}`}
+            onClick={() => { setSelectedQuickId('rep-inventario'); onOpenMasterModal('rep-inventario'); }}
+            title="Control Patrimonial"
+          >
+            <Package size={12} />
+            <span>Inventario</span>
+          </button>
+          <button
+            type="button"
+            className={`reports-compact-chip ${selectedQuickId === 'rep-acervo' ? 'active' : ''}`}
+            onClick={() => { setSelectedQuickId('rep-acervo'); onOpenMasterModal('rep-acervo'); }}
+            title="Rotación de Acervo"
+          >
+            <RotateCcw size={12} />
+            <span>Rotación</span>
+          </button>
+          <button
+            type="button"
+            className={`reports-compact-chip ${selectedQuickId === 'rep-morosidad' ? 'active' : ''}`}
+            onClick={() => { setSelectedQuickId('rep-morosidad'); onOpenMasterModal('rep-morosidad'); }}
+            title="Morosidad y Vencidos"
+          >
+            <AlertTriangle size={12} />
+            <span>Morosidad</span>
+          </button>
+          <button
+            type="button"
+            className={`reports-compact-chip ${selectedQuickId === 'rep-convenios' ? 'active' : ''}`}
+            onClick={() => { setSelectedQuickId('rep-convenios'); onOpenMasterModal('rep-convenios'); }}
+            title="Convenios Interbibliotecarios"
+          >
+            <Building2 size={12} />
+            <span>Convenios</span>
+          </button>
+          <button
+            type="button"
+            className={`reports-compact-chip ${selectedQuickId === 'rep-cedula' ? 'active' : ''}`}
+            onClick={() => { setSelectedQuickId('rep-cedula'); onOpenMasterModal('rep-cedula'); }}
+            title="Cédula Oficial"
+          >
+            <BarChart3 size={12} />
+            <span>Cédula</span>
+          </button>
+        </div>
 
-            <div className="reports-quick-item-actions">
-              <button
-                type="button"
-                className="reports-quick-btn-view"
-                title="Abrir plantilla interactiva"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onViewTemplate && onViewTemplate(report);
-                }}
-              >
-                <Eye size={14} />
-                <span>Ver plantilla</span>
-              </button>
-
-              <button
-                type="button"
-                className="reports-quick-btn-download"
-                title="Descargar archivo CSV / Excel enriquecido"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onDownloadReport(report);
-                }}
-              >
-                <Download size={14} />
-              </button>
-            </div>
+        {/* Botón Principal de Apertura */}
+        <button
+          type="button"
+          className="reports-compact-main-btn"
+          onClick={() => onOpenMasterModal(selectedQuickId)}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <Calendar size={16} />
+            <span>Configurar fechas y previsualizar reporte</span>
           </div>
-        ))}
+          <ArrowRight size={16} />
+        </button>
       </div>
     </div>
   );

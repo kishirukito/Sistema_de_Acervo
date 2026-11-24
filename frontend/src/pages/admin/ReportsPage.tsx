@@ -19,11 +19,6 @@ import { CategoriesBarChart } from '../../features/reports/components/Categories
 import { OverdueLoansTable } from '../../features/reports/components/OverdueLoansTable';
 import { QuickReportsCard } from '../../features/reports/components/QuickReportsCard';
 import { ReportTemplateModal } from '../../features/reports/components/ReportTemplateModal';
-import {
-  buildReportTemplateData,
-  exportReportTemplateToCsv,
-} from '../../features/reports/reports-templates.data';
-import type { ReportTemplateData } from '../../features/reports/reports-templates.types';
 import { useAdminLoans } from '../../features/loans/admin-loans.query';
 
 import { CirculacionStatsView } from '../../features/reports/components/CirculacionStatsView';
@@ -33,7 +28,7 @@ import { ServiciosStatsView } from '../../features/reports/components/ServiciosS
 import { ReportDataEntryModal } from '../../features/reports/components/ReportDataEntryModal';
 import { LoadingSpinner } from '../../components/ui/LoadingSpinner';
 
-import type { ReportsFilterState, QuickReportItem } from '../../features/reports/reports.types';
+import type { ReportsFilterState } from '../../features/reports/reports.types';
 import { fetchSiabucReports, DEFAULT_SIABUC_DATA } from '../../services/api/reports.service';
 import '../../features/reports/reports.css';
 
@@ -45,8 +40,9 @@ export const ReportsPage: React.FC = () => {
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<ActiveTab>('resumen');
 
-  // Interactive executive template modal state
-  const [selectedTemplateReport, setSelectedTemplateReport] = useState<ReportTemplateData | null>(null);
+  // Modal maestro interactivo de generación y previsualización de reportes
+  const [isMasterReportModalOpen, setIsMasterReportModalOpen] = useState(false);
+  const [activeMasterReportId, setActiveMasterReportId] = useState<string>('rep-carreras');
 
   // Data entry modal state
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -155,15 +151,11 @@ export const ReportsPage: React.FC = () => {
     showToast('Reporte completo descargado con éxito');
   };
 
-  const handleViewTemplate = (item: QuickReportItem) => {
-    const templateData = buildReportTemplateData(item.id, siabucData, loansList);
-    setSelectedTemplateReport(templateData);
-  };
-
-  const handleDownloadQuickReport = (item: QuickReportItem) => {
-    const templateData = buildReportTemplateData(item.id, siabucData, loansList);
-    exportReportTemplateToCsv(templateData);
-    showToast(`Descargando ${item.title} (formato enriquecido)...`);
+  const handleOpenMasterModal = (initialReportId?: string) => {
+    if (initialReportId) {
+      setActiveMasterReportId(initialReportId);
+    }
+    setIsMasterReportModalOpen(true);
   };
 
   return (
@@ -315,8 +307,7 @@ export const ReportsPage: React.FC = () => {
                   </div>
 
                   <QuickReportsCard
-                    onDownloadReport={handleDownloadQuickReport}
-                    onViewTemplate={handleViewTemplate}
+                    onOpenMasterModal={handleOpenMasterModal}
                   />
                 </div>
               </div>
@@ -365,8 +356,11 @@ export const ReportsPage: React.FC = () => {
 
       {/* Interactive Executive Report Template Modal */}
       <ReportTemplateModal
-        reportData={selectedTemplateReport}
-        onClose={() => setSelectedTemplateReport(null)}
+        isOpen={isMasterReportModalOpen}
+        initialReportId={activeMasterReportId}
+        siabucData={siabucData}
+        loansList={loansList}
+        onClose={() => setIsMasterReportModalOpen(false)}
       />
 
       {/* Toast notification banner */}

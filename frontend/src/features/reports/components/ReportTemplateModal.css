@@ -10,13 +10,13 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: rgba(15, 23, 42, 0.65);
-  backdrop-filter: blur(4px);
+  background-color: rgba(15, 23, 42, 0.7);
+  backdrop-filter: blur(5px);
   z-index: 9999;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 1.5rem;
+  padding: 1.25rem;
   box-sizing: border-box;
   animation: reportModalFadeIn 0.2s ease-out;
 }
@@ -30,12 +30,12 @@
   background: #FFFFFF;
   border-radius: 16px;
   width: 100%;
-  max-width: 1300px;
-  max-height: 92vh;
+  max-width: 1320px;
+  max-height: 94vh;
   display: flex;
   flex-direction: column;
-  box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.25);
-  border: 1px solid #E2E8F0;
+  box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.3);
+  border: 1px solid #CBD5E1;
   overflow: hidden;
   box-sizing: border-box;
 }
@@ -44,7 +44,7 @@
    HEADER
    -------------------------------------------------------------------------- */
 .report-modal-header {
-  padding: 1.25rem 1.75rem;
+  padding: 1.15rem 1.75rem;
   background: #FFFFFF;
   border-bottom: 1px solid #E2E8F0;
   display: flex;
@@ -92,6 +92,8 @@
   font-size: 0.75rem;
   font-weight: 600;
   color: #64748B;
+  display: inline-flex;
+  align-items: center;
 }
 
 .report-modal-title {
@@ -130,13 +132,24 @@
   border: none;
 }
 
-.report-modal-btn--export {
+.report-modal-btn--export-excel {
   background-color: #10B981;
   color: #FFFFFF;
 }
 
-.report-modal-btn--export:hover {
+.report-modal-btn--export-excel:hover {
   background-color: #059669;
+}
+
+.report-modal-btn--csv {
+  background-color: #FFFFFF;
+  color: #475569;
+  border: 1px solid #CBD5E1;
+}
+
+.report-modal-btn--csv:hover {
+  background-color: #F8FAFC;
+  color: #0F172A;
 }
 
 .report-modal-btn--print {
@@ -167,6 +180,176 @@
 .report-modal-close-btn:hover {
   background-color: #F1F5F9;
   color: #0F172A;
+}
+
+/* --------------------------------------------------------------------------
+   BARRA DE CONFIGURACIÓN Y FECHAS
+   -------------------------------------------------------------------------- */
+.report-config-bar {
+  background: #F8FAFC;
+  border-bottom: 1px solid #E2E8F0;
+  padding: 0.85rem 1.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.5rem;
+  flex-wrap: wrap;
+  flex-shrink: 0;
+}
+
+.report-config-type-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  min-width: 280px;
+  flex: 1;
+}
+
+.report-config-dates-group {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  flex: 1.5;
+}
+
+.report-config-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: #475569;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.report-config-select {
+  height: 36px;
+  padding: 0 10px;
+  border: 1px solid #CBD5E1;
+  border-radius: 6px;
+  background-color: #FFFFFF;
+  color: #1E293B;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  outline: none;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.report-config-select:focus {
+  border-color: #2563EB;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+}
+
+.report-date-inputs-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.report-date-field {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background-color: #FFFFFF;
+  border: 1px solid #CBD5E1;
+  border-radius: 6px;
+  padding: 0 8px;
+  height: 36px;
+}
+
+.report-date-field-tag {
+  font-size: 0.71875rem;
+  font-weight: 600;
+  color: #64748B;
+}
+
+.report-date-input {
+  border: none;
+  outline: none;
+  font-size: 0.8125rem;
+  color: #1E293B;
+  font-weight: 500;
+  background: transparent;
+  cursor: pointer;
+}
+
+.report-date-separator {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #94A3B8;
+}
+
+.report-presets-row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.report-preset-btn {
+  padding: 5px 9px;
+  border-radius: 5px;
+  border: 1px solid #E2E8F0;
+  background-color: #FFFFFF;
+  color: #475569;
+  font-size: 0.71875rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.report-preset-btn:hover {
+  background-color: #F1F5F9;
+  color: #0F172A;
+}
+
+.report-preset-btn.active {
+  background-color: #EFF6FF;
+  border-color: #93C5FD;
+  color: #1D4ED8;
+}
+
+/* Barra de pestañas por icono */
+.report-tabs-quick-bar {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 0.4rem 1.75rem;
+  background-color: #FFFFFF;
+  border-bottom: 1px solid #F1F5F9;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+  flex-shrink: 0;
+}
+
+.report-tab-quick-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 5px 11px;
+  border-radius: 6px;
+  border: 1px solid transparent;
+  background: transparent;
+  color: #64748B;
+  font-size: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all 0.15s ease;
+}
+
+.report-tab-quick-item:hover {
+  background-color: #F8FAFC;
+  color: #1E293B;
+}
+
+.report-tab-quick-item.active {
+  background-color: #EFF6FF;
+  border-color: #DBEAFE;
+  color: #1D4ED8;
+  font-weight: 700;
 }
 
 /* --------------------------------------------------------------------------
@@ -410,7 +593,7 @@
 
 .report-table-search {
   position: relative;
-  min-width: 260px;
+  min-width: 280px;
 }
 
 .report-search-icon {
@@ -538,6 +721,7 @@
   justify-content: space-between;
   gap: 1rem;
   flex-shrink: 0;
+  flex-wrap: wrap;
 }
 
 .report-footer-left {
@@ -546,6 +730,12 @@
   gap: 8px;
   font-size: 0.75rem;
   color: #64748B;
+}
+
+.report-footer-right {
+  display: flex;
+  align-items: center;
+  gap: 8px;
 }
 
 /* --------------------------------------------------------------------------
@@ -574,8 +764,11 @@
     visibility: visible;
   }
   .report-modal-header-actions,
+  .report-config-bar,
+  .report-tabs-quick-bar,
   .report-modal-close-btn,
-  .report-modal-footer {
+  .report-modal-footer,
+  .report-table-search {
     display: none !important;
   }
 }
@@ -590,7 +783,11 @@
   }
 }
 
-@media (max-width: 640px) {
+@media (max-width: 768px) {
+  .report-config-bar {
+    flex-direction: column;
+    align-items: stretch;
+  }
   .report-modal-header {
     flex-direction: column;
     align-items: stretch;
