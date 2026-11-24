@@ -79,14 +79,14 @@ def export_report_to_xlsx(model: Dict[str, Any]) -> bytes:
     border = _thin_border()
 
     # Encabezado Institucional
-    ws_res.merge_cells("A1:F1")
+    ws_res.merge_cells("A1:H1")
     ws_res["A1"] = "UNIVERSIDAD POLITÉCNICA DE DURANGO — SISTEMA DE ACERVO BIBLIOTECARIO"
     ws_res["A1"].font = title_font
     ws_res["A1"].fill = header_fill
     ws_res["A1"].alignment = Alignment(horizontal="left", vertical="center", indent=1)
     ws_res.row_dimensions[1].height = 28
 
-    ws_res.merge_cells("A2:F2")
+    ws_res.merge_cells("A2:H2")
     ws_res["A2"] = f"{model['title']} ({model['code']})"
     ws_res["A2"].font = Font(name="Calibri", size=12, bold=True, color=_BLUE_DARK)
     ws_res["A2"].fill = kpi_fill
@@ -99,9 +99,14 @@ def export_report_to_xlsx(model: Dict[str, Any]) -> bytes:
     ]
     for r_idx, (l1, v1, l2, v2) in enumerate(meta_rows, start=3):
         ws_res.cell(row=r_idx, column=1, value=l1).font = bold_font
-        ws_res.cell(row=r_idx, column=2, value=v1).font = sub_font
+        c_v1 = ws_res.cell(row=r_idx, column=2, value=v1)
+        c_v1.font = sub_font
+        c_v1.alignment = Alignment(wrap_text=True, vertical="center")
         ws_res.cell(row=r_idx, column=4, value=l2).font = bold_font
-        ws_res.cell(row=r_idx, column=5, value=v2).font = sub_font
+        ws_res.merge_cells(start_row=r_idx, start_column=5, end_row=r_idx, end_column=8)
+        c_v2 = ws_res.cell(row=r_idx, column=5, value=v2)
+        c_v2.font = sub_font
+        c_v2.alignment = Alignment(wrap_text=True, vertical="center")
 
     # Indicadores principales
     row_cursor = 6
@@ -139,15 +144,16 @@ def export_report_to_xlsx(model: Dict[str, Any]) -> bytes:
             c_val.fill = alt_fill
         row_cursor += 1
 
-    # Recomendaciones y hallazgos breves
+    # Recomendaciones y hallazgos breves (contenidos en A:B para no chocar con gráficas en D)
     row_cursor += 1
     ws_res.cell(row=row_cursor, column=1, value="HALLAZGOS Y RECOMENDACIONES").font = section_font
     row_cursor += 1
     for rec in model.get("recommendations", []):
-        ws_res.merge_cells(start_row=row_cursor, start_column=1, end_row=row_cursor, end_column=6)
+        ws_res.merge_cells(start_row=row_cursor, start_column=1, end_row=row_cursor, end_column=2)
         c_rec = ws_res.cell(row=row_cursor, column=1, value=f"• {rec}")
         c_rec.font = regular_font
-        c_rec.alignment = Alignment(wrap_text=True)
+        c_rec.alignment = Alignment(wrap_text=True, vertical="top")
+        ws_res.row_dimensions[row_cursor].height = 30
         row_cursor += 1
 
     # Datos y Gráficas nativas de Excel
@@ -194,9 +200,11 @@ def export_report_to_xlsx(model: Dict[str, Any]) -> bytes:
 
         xl_chart.title = chart_spec["title"]
         xl_chart.y_axis.title = chart_spec.get("series_name", "Valor")
+        xl_chart.x_axis.delete = False
+        xl_chart.y_axis.delete = False
         xl_chart.legend = None
-        xl_chart.width = 15
-        xl_chart.height = 8
+        xl_chart.width = 16
+        xl_chart.height = 8.5
 
         data_ref = Reference(ws_res, min_col=2, min_row=hdr_row, max_row=data_end)
         cats_ref = Reference(ws_res, min_col=1, min_row=data_start, max_row=data_end)
@@ -204,15 +212,17 @@ def export_report_to_xlsx(model: Dict[str, Any]) -> bytes:
         xl_chart.set_categories(cats_ref)
 
         ws_res.add_chart(xl_chart, f"{get_column_letter(chart_anchor_col)}{chart_anchor_row}")
-        chart_anchor_row += 16
+        chart_anchor_row += 18
         row_cursor += 1
 
     ws_res.column_dimensions["A"].width = 36
-    ws_res.column_dimensions["B"].width = 24
+    ws_res.column_dimensions["B"].width = 38
     ws_res.column_dimensions["C"].width = 4
-    ws_res.column_dimensions["D"].width = 24
-    ws_res.column_dimensions["E"].width = 24
+    ws_res.column_dimensions["D"].width = 20
+    ws_res.column_dimensions["E"].width = 20
     ws_res.column_dimensions["F"].width = 20
+    ws_res.column_dimensions["G"].width = 16
+    ws_res.column_dimensions["H"].width = 16
 
     # ------------------------------------------------------------------
     # HOJA 2: DETALLE
