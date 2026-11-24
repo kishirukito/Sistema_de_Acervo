@@ -1166,23 +1166,16 @@ class SupabaseService:
                     payload["matricula_o_nomina"] = str(mat).strip()
             if "rol" in updates or "role" in updates:
                 raw_rol = str(updates.get("rol") or updates.get("role") or "").lower().strip()
-                ROL_TO_TIPO = {
-                    "admin": 1, "personal": 1, "administrador": 1,
-                    "docente": 2, "maestro": 2, "profesor": 2,
-                    "lector": 3, "alumno": 3, "estudiante": 3,
-                    "egresado": 4, "tesista": 4,
-                    "externo": 5,
+                ROL_MAP = {
+                    "admin": "admin", "administrador": "admin", "superadmin": "admin",
+                    "docente": "docente", "maestro": "docente", "profesor": "docente",
+                    "lector": "lector", "alumno": "lector", "estudiante": "lector",
+                    "egresado": "egresado", "tesista": "egresado",
+                    "externo": "externo",
+                    "personal": "personal",
                 }
-                if raw_rol in ROL_TO_TIPO:
-                    if raw_rol in ["administrador"]:
-                        payload["rol"] = "admin"
-                    elif raw_rol in ["maestro", "profesor"]:
-                        payload["rol"] = "docente"
-                    elif raw_rol in ["alumno", "estudiante"]:
-                        payload["rol"] = "lector"
-                    else:
-                        payload["rol"] = raw_rol
-                    payload["tipo_usuario_id"] = ROL_TO_TIPO[raw_rol]
+                if raw_rol in ROL_MAP:
+                    payload["rol"] = ROL_MAP[raw_rol]
             if "telefono" in updates or "phone" in updates:
                 payload["telefono"] = updates.get("telefono") or updates.get("phone")
             if "avatar_url" in updates or "avatarUrl" in updates:
@@ -1203,21 +1196,10 @@ class SupabaseService:
                 return {"status": "no_changes", "id": user_id}
 
             patch_url = f"{self.base_url}/usuarios?id=eq.{user_id}"
+            print(f"[UPDATE_USER] PATCH {patch_url} payload={payload}")
             patch_resp = await client.patch(patch_url, headers=self.headers, json=payload)
+            print(f"[UPDATE_USER] Supabase response {patch_resp.status_code}: {patch_resp.text[:500]}")
             if not patch_resp.is_success:
-                # Si falla con tipo_usuario_id, intentar sin ese campo
-                if "tipo_usuario_id" in payload:
-                    payload_sin_tipo = {k: v for k, v in payload.items() if k != "tipo_usuario_id"}
-                    if payload_sin_tipo:
-                        patch_resp2 = await client.patch(patch_url, headers=self.headers, json=payload_sin_tipo)
-                        if patch_resp2.is_success:
-                            updated_items = patch_resp2.json()
-                            return {
-                                "status": "success",
-                                "id": user_id,
-                                "data": updated_items[0] if updated_items else payload_sin_tipo
-                            }
-                # Propagar el error real de Supabase
                 raise Exception(f"Supabase PATCH error {patch_resp.status_code}: {patch_resp.text}")
             updated_items = patch_resp.json()
             return {
