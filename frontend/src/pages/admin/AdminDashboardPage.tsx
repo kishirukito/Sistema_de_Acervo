@@ -62,7 +62,7 @@ export const AdminDashboardPage: React.FC = () => {
         <QuickActions />
       </header>
 
-      {/* 4 Metric Cards */}
+      {/* 3 Metric Cards: Total de libros, Préstamos activos y Préstamos vencidos */}
       <section className="dashboard-metrics-grid" aria-label="Métricas generales">
         {metrics.length === 0 && isLoading ? (
           <div style={{ gridColumn: '1 / -1', padding: '2.5rem 0' }}>
@@ -75,8 +75,8 @@ export const AdminDashboardPage: React.FC = () => {
         )}
       </section>
 
-      {/* 3 Charts Grid: Préstamos, Catálogo y Usuarios Activos */}
-      <section className="dashboard-charts-grid" aria-label="Estadísticas e historial">
+      {/* 2 Charts Grid: Préstamos por mes y Libros por categoría (Mayor espacio horizontal) */}
+      <section className="dashboard-charts-grid" aria-label="Estadísticas de circulación y catálogo">
         <MonthlyLoansChart
           data={monthlyLoans}
           title="Préstamos por mes"
@@ -87,17 +87,19 @@ export const AdminDashboardPage: React.FC = () => {
           title="Libros por categoría"
           subtitle="Distribución del acervo en catálogo (Dewey)"
         />
-        <ActiveUsersTypeChart
-          data={activeUsersByType}
-          title="Usuarios activos por tipo"
-          subtitle="Distribución de la comunidad lectora en tiempo real"
-        />
       </section>
 
-      {/* Bottom Grid: Recent Activity & Alerts */}
-      <section className="dashboard-bottom-grid" aria-label="Actividad y Alertas">
+      {/* Bottom Grid: Actividad Reciente (izq) y Columna Lateral (der: Gráfica de Usuarios y debajo Alertas) */}
+      <section className="dashboard-bottom-grid" aria-label="Actividad, Usuarios Activos y Alertas">
         <RecentActivity items={recentActivities} />
-        <AlertsPanel alerts={alerts} lastSyncTime={lastSyncTime} />
+        <div className="dashboard-side-column">
+          <ActiveUsersTypeChart
+            data={activeUsersByType}
+            title="Usuarios activos por tipo"
+            subtitle="Distribución de la comunidad lectora"
+          />
+          <AlertsPanel alerts={alerts} lastSyncTime={lastSyncTime} />
+        </div>
       </section>
     </div>
   );

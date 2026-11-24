@@ -28,7 +28,7 @@ const TYPE_ICONS: Record<UserTypeId, React.ComponentType<{ size?: number; classN
 export const ActiveUsersTypeChart: React.FC<ActiveUsersTypeChartProps> = ({
   data,
   title = 'Usuarios activos por tipo',
-  subtitle = 'Distribución de la comunidad lectora en tiempo real',
+  subtitle = 'Distribución de la comunidad lectora',
 }) => {
   const [viewMode, setViewMode] = useState<'donut' | 'bar'>('donut');
   const [selectedType, setSelectedType] = useState<UserTypeId | null>(null);
@@ -46,10 +46,10 @@ export const ActiveUsersTypeChart: React.FC<ActiveUsersTypeChartProps> = ({
 
     const size = 200;
     const center = size / 2;
-    const radius = 75;
-    const innerRadius = 50;
+    const radius = 76;
+    const innerRadius = 52;
 
-    let cumulativeAngle = -Math.PI / 2; // Empezar arriba (12 en punto)
+    let cumulativeAngle = -Math.PI / 2; // Iniciar arriba (12 en punto)
 
     return data
       .filter((item) => item.count > 0)
@@ -60,7 +60,7 @@ export const ActiveUsersTypeChart: React.FC<ActiveUsersTypeChartProps> = ({
         cumulativeAngle += sliceAngle;
 
         const isHovered = activeFocus === item.id;
-        const currentRadius = isHovered ? radius + 4 : radius;
+        const currentRadius = isHovered ? radius + 5 : radius;
 
         // Puntos exteriores e interiores
         const x1 = center + currentRadius * Math.cos(startAngle);
@@ -75,7 +75,7 @@ export const ActiveUsersTypeChart: React.FC<ActiveUsersTypeChartProps> = ({
 
         const largeArcFlag = sliceAngle > Math.PI ? 1 : 0;
 
-        // Path SVG para sector de dona
+        // Path SVG para el sector de la dona
         const pathData = [
           `M ${x1} ${y1}`,
           `A ${currentRadius} ${currentRadius} 0 ${largeArcFlag} 1 ${x2} ${y2}`,
@@ -100,20 +100,20 @@ export const ActiveUsersTypeChart: React.FC<ActiveUsersTypeChartProps> = ({
   }, [data, activeFocus]);
 
   return (
-    <div className="chart-card active-users-chart-card">
-      {/* Header con título y controles dinámicos de vista */}
-      <div className="active-users-chart-header">
+    <div className="dashboard-card active-users-side-card">
+      {/* Header de la gráfica con título y controles */}
+      <div className="active-users-side-header">
         <div className="active-users-title-block">
           <div className="active-users-title-row">
-            <h3 className="chart-card-title">{title}</h3>
+            <h3 className="dashboard-card-title">{title}</h3>
             <span className="active-users-badge-total" title="Total de usuarios activos registrados">
               {totalActive} {totalActive === 1 ? 'activo' : 'activos'}
             </span>
           </div>
-          <span className="chart-card-subtitle">{subtitle}</span>
+          <span className="active-users-subtitle">{subtitle}</span>
         </div>
 
-        {/* Botones de alternancia de vista dinámica */}
+        {/* Toggle para cambiar entre Anillo y Barras */}
         <div className="active-users-view-controls" role="group" aria-label="Modo de visualización">
           <button
             type="button"
@@ -144,11 +144,12 @@ export const ActiveUsersTypeChart: React.FC<ActiveUsersTypeChartProps> = ({
           <p>No hay usuarios activos registrados actualmente.</p>
         </div>
       ) : (
-        <div className="active-users-body">
-          {/* MODO 1: GRÁFICA CIRCULAR / DONUT INTERACTIVO */}
+        <div className="active-users-side-body">
+          {/* MODO 1: ANILLO CON NOMBRES DEBAJO */}
           {viewMode === 'donut' && (
-            <div className="active-users-donut-layout">
-              <div className="active-users-svg-wrap">
+            <div className="active-users-vertical-layout">
+              {/* Gráfica de anillo centrada arriba */}
+              <div className="active-users-center-svg-wrap">
                 <svg
                   viewBox="0 0 200 200"
                   className="active-users-donut-svg"
@@ -159,9 +160,9 @@ export const ActiveUsersTypeChart: React.FC<ActiveUsersTypeChartProps> = ({
                       key={slice.id}
                       d={slice.pathData}
                       fill={slice.color}
-                      opacity={activeFocus && !slice.isHovered ? 0.38 : 1}
+                      opacity={activeFocus && !slice.isHovered ? 0.35 : 1}
                       stroke="#FFFFFF"
-                      strokeWidth={slice.isHovered ? 2 : 1.5}
+                      strokeWidth={slice.isHovered ? 2.5 : 1.5}
                       className="active-users-slice-path"
                       onMouseEnter={() => setHoveredType(slice.id)}
                       onMouseLeave={() => setHoveredType(null)}
@@ -174,8 +175,8 @@ export const ActiveUsersTypeChart: React.FC<ActiveUsersTypeChartProps> = ({
                     />
                   ))}
 
-                  {/* Anillo de contraste interno */}
-                  <circle cx="100" cy="100" r="49" fill="#FFFFFF" />
+                  {/* Círculo interno blanco */}
+                  <circle cx="100" cy="100" r="51" fill="#FFFFFF" />
                 </svg>
 
                 {/* Centro dinámico del Donut */}
@@ -206,8 +207,8 @@ export const ActiveUsersTypeChart: React.FC<ActiveUsersTypeChartProps> = ({
                 </div>
               </div>
 
-              {/* Leyenda interactiva lateral */}
-              <div className="active-users-legend-list">
+              {/* Nombres y categorías colocadas DEBAJO de la gráfica de anillo */}
+              <div className="active-users-categories-bottom">
                 {data.map((item) => {
                   const Icon = TYPE_ICONS[item.id] || Users;
                   const isHovered = activeFocus === item.id;
@@ -217,7 +218,7 @@ export const ActiveUsersTypeChart: React.FC<ActiveUsersTypeChartProps> = ({
                     <button
                       key={item.id}
                       type="button"
-                      className={`active-users-legend-item ${isHovered ? 'active' : ''} ${
+                      className={`active-users-category-row ${isHovered ? 'active' : ''} ${
                         isDimmed ? 'dimmed' : ''
                       }`}
                       onMouseEnter={() => setHoveredType(item.id)}
@@ -226,18 +227,21 @@ export const ActiveUsersTypeChart: React.FC<ActiveUsersTypeChartProps> = ({
                         setSelectedType((prev) => (prev === item.id ? null : item.id))
                       }
                     >
-                      <div className="active-users-legend-left">
+                      <div className="active-users-cat-left">
                         <div
-                          className="active-users-legend-icon"
+                          className="active-users-cat-icon"
                           style={{ backgroundColor: item.bgLight, color: item.color }}
                         >
                           <Icon size={14} />
                         </div>
-                        <span className="active-users-legend-label">{item.label}</span>
+                        <span className="active-users-cat-name">{item.label}</span>
                       </div>
-                      <div className="active-users-legend-right">
-                        <span className="active-users-legend-count">{item.count}</span>
-                        <span className="active-users-legend-pct">({item.percentage}%)</span>
+
+                      <div className="active-users-cat-right">
+                        <span className="active-users-cat-count" style={{ color: item.color }}>
+                          {item.count}
+                        </span>
+                        <span className="active-users-cat-pct">({item.percentage}%)</span>
                       </div>
                     </button>
                   );
@@ -246,7 +250,7 @@ export const ActiveUsersTypeChart: React.FC<ActiveUsersTypeChartProps> = ({
             </div>
           )}
 
-          {/* MODO 2: BARRAS COMPARATIVAS HORIZONTALES */}
+          {/* MODO 2: BARRAS HORIZONTALES */}
           {viewMode === 'bar' && (
             <div className="active-users-bars-layout">
               {data.map((item) => {

@@ -166,11 +166,7 @@ export async function fetchDashboardSnapshot(): Promise<DashboardSnapshot> {
     }
   }
 
-  // 3. Usuarios metrics
-  const totalUsers = usuarios.length;
-  const activeUsers = usuarios.filter((u: any) => u.estado === 'activo').length;
-
-  // 4. KPI Cards
+  // 3. KPI Cards (3 Métricas principales: Total de libros, Préstamos activos y Préstamos vencidos)
   const metrics: MetricData[] = [
     {
       id: 'metric-books',
@@ -191,16 +187,6 @@ export async function fetchDashboardSnapshot(): Promise<DashboardSnapshot> {
       iconType: 'book-open',
       accentColor: '#27AE60',
       badgeBgColor: '#DDF5E7',
-    },
-    {
-      id: 'metric-users',
-      title: 'USUARIOS REGISTRADOS',
-      value: totalUsers,
-      trend: `${activeUsers} usuarios activos`,
-      trendType: 'positive',
-      iconType: 'clipboard',
-      accentColor: '#2F80ED',
-      badgeBgColor: '#EFF6FF',
     },
     {
       id: 'metric-overdue',
