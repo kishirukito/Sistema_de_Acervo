@@ -13,6 +13,14 @@ import { requestAISummary } from '../../services/api/ai.service';
 import { BIBLIOGRAPHIC_CATEGORIES, resolveCategory } from '../../constants';
 import { useActiveCategoriesForSelect } from '../../features/categories/categories.query';
 
+export type BookDestination = 'ESTANTERIA' | 'SALA' | 'OTRA_BIBLIOTECA';
+
+export const BOOK_DESTINATION_OPTIONS = [
+  { value: 'ESTANTERIA', label: 'En estantería (Biblioteca general / Acervo)' },
+  { value: 'SALA', label: 'En sala (Consulta interna de lectura)' },
+  { value: 'OTRA_BIBLIOTECA', label: 'En otra biblioteca (Convenio interbibliotecario)' },
+];
+
 const bookSchema = z.object({
   isbn: z.string().min(10, 'El ISBN debe tener al menos 10 caracteres'),
   title: z.string().min(2, 'El título es obligatorio'),
@@ -20,6 +28,7 @@ const bookSchema = z.object({
   publisher: z.string().min(2, 'La editorial es obligatoria'),
   publishYear: z.coerce.number().min(1000, 'Año inválido').max(2035, 'Año no válido'),
   category: z.string().min(1, 'Selecciona una categoría válida'),
+  destination: z.enum(['ESTANTERIA', 'SALA', 'OTRA_BIBLIOTECA']).default('ESTANTERIA'),
   totalCopies: z.coerce.number().min(1, 'Debe haber al menos 1 ejemplar'),
   location: z.string().min(2, 'La ubicación física es requerida (ej. Estante A-1)'),
   coverUrl: z
@@ -67,6 +76,7 @@ export const AdminNewBookPage: React.FC = () => {
       publisher: '',
       publishYear: new Date().getFullYear(),
       category: '000',
+      destination: 'ESTANTERIA',
       totalCopies: 3,
       location: 'Estante A-1, Nivel 1',
       coverUrl: '',
@@ -167,8 +177,23 @@ export const AdminNewBookPage: React.FC = () => {
   const onSubmit = async (data: BookFormData) => {
     const resolvedCat = resolveCategory(data.category) || BIBLIOGRAPHIC_CATEGORIES[0];
     const cleanedCoverUrl = data.coverUrl ? data.coverUrl.trim() : undefined;
+
+    // Normalizar la ubicación según el destino seleccionado
+    let finalLocation = data.location.trim();
+    if (data.destination === 'SALA' && !finalLocation.toLowerCase().includes('sala')) {
+      finalLocation = `Sala de lectura - ${finalLocation}`;
+    } else if (
+      data.destination === 'OTRA_BIBLIOTECA' &&
+      !finalLocation.toLowerCase().includes('otra') &&
+      !finalLocation.toLowerCase().includes('convenio') &&
+      !finalLocation.toLowerCase().includes('inter')
+    ) {
+      finalLocation = `Otra biblioteca (Convenio) - ${finalLocation}`;
+    }
+
     const createdBook = await booksService.create({
       ...data,
+      location: finalLocation,
       coverUrl: cleanedCoverUrl || undefined,
       category: resolvedCat.code,
       availableCopies: data.totalCopies,
@@ -265,9 +290,62 @@ export const AdminNewBookPage: React.FC = () => {
                 {...register('totalCopies')}
               />
 
+              <Select
+                label="Destino / Modalidad del libro"
+                options={BOOK_DESTINATION_OPTIONS}
+                error={errors.destination?.message}
+                {...register('destination', {
+                  onChange: (e) => {
+                    const dest = e.target.value;
+                    const curLoc = (watch('location') || '').toLowerCase();
+                    if (dest === 'SALA') {
+                      if (!curLoc.includes('sala')) {
+                        setValue('location', 'Sala de lectura, Módulo central', {
+                          shouldDirty: true,
+                          shouldValidate: true,
+                        });
+                      }
+                    } else if (dest === 'OTRA_BIBLIOTECA') {
+                      if (
+                        !curLoc.includes('otra') &&
+                        !curLoc.includes('convenio') &&
+                        !curLoc.includes('inter')
+                      ) {
+                        setValue(
+                          'location',
+                          'Otra biblioteca - Convenio interinstitucional',
+                          {
+                            shouldDirty: true,
+                            shouldValidate: true,
+                          }
+                        );
+                      }
+                    } else {
+                      if (
+                        curLoc.includes('sala') ||
+                        curLoc.includes('otra') ||
+                        curLoc.includes('convenio') ||
+                        curLoc.includes('inter')
+                      ) {
+                        setValue('location', 'Estante A-1, Nivel 1', {
+                          shouldDirty: true,
+                          shouldValidate: true,
+                        });
+                      }
+                    }
+                  },
+                })}
+              />
+
               <Input
-                label="Ubicación Física"
-                placeholder="Ej. Estante A-3, Pasillo Central"
+                label="Ubicación física / Detalle de estante"
+                placeholder={
+                  watch('destination') === 'SALA'
+                    ? 'Ej. Sala de lectura, Mesa 3 o Módulo de consulta'
+                    : watch('destination') === 'OTRA_BIBLIOTECA'
+                    ? 'Ej. Otra biblioteca - Convenio Universidad / Instituto'
+                    : 'Ej. Estante A-3, Pasillo Central'
+                }
                 error={errors.location?.message}
                 {...register('location')}
               />

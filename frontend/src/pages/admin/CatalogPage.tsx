@@ -75,9 +75,14 @@ export const CatalogPage: React.FC = () => {
 
     for (const book of resourcesList) {
       totalDisponibles += book.availableCopies || 0;
-      if (Array.isArray(book.ejemplares)) {
+      const bookLoc = (book.location || '').toLowerCase();
+      const isBookInSala = bookLoc.includes('sala');
+      const isBookInOther =
+        bookLoc.includes('otra') || bookLoc.includes('convenio') || bookLoc.includes('inter');
+
+      if (Array.isArray(book.ejemplares) && book.ejemplares.length > 0) {
         for (const ej of book.ejemplares) {
-          const ubicacion = (ej.ubicacion_estante || '').toLowerCase();
+          const ubicacion = (ej.ubicacion_estante || book.location || '').toLowerCase();
           const estado = (ej.estado || '').toLowerCase();
 
           // Ejemplar ubicado en sala y disponible para consulta interna
@@ -87,17 +92,26 @@ export const CatalogPage: React.FC = () => {
           // Ejemplar en convenio con otra institución
           if (
             (ubicacion.includes('otra') || ubicacion.includes('convenio') || ubicacion.includes('inter')) &&
-            estado === 'prestado'
+            (estado === 'prestado' || estado === 'disponible')
           ) {
             ejemplaresEnOtrasBibliotecasFisicos++;
           }
+        }
+      } else {
+        if (isBookInSala) {
+          ejemplaresEnSalaFisicos += book.availableCopies || 1;
+        } else if (isBookInOther) {
+          ejemplaresEnOtrasBibliotecasFisicos += book.availableCopies || 1;
         }
       }
     }
 
     const totalEnSala = prestamosEnSala + ejemplaresEnSalaFisicos;
     const totalEnOtrasBibliotecas = Math.max(prestamosOtrasBibliotecas, ejemplaresEnOtrasBibliotecasFisicos);
-    const totalEnAcervo = Math.max(0, totalDisponibles - ejemplaresEnSalaFisicos);
+    const totalEnAcervo = Math.max(
+      0,
+      totalDisponibles - ejemplaresEnSalaFisicos - ejemplaresEnOtrasBibliotecasFisicos
+    );
 
     return {
       acervo: totalEnAcervo,
@@ -133,14 +147,25 @@ export const CatalogPage: React.FC = () => {
     return resourcesList.filter((resource) => {
       // 0. Filtro superior de métricas interactivas (Acervo, Sala, Otras bibliotecas)
       if (metricFilter === 'acervo') {
+        const bookLoc = (resource.location || '').toLowerCase();
+        const isSpecialLoc =
+          bookLoc.includes('sala') ||
+          bookLoc.includes('otra') ||
+          bookLoc.includes('convenio') ||
+          bookLoc.includes('inter');
+
         const hasAvailableAcervo =
           resource.availableCopies > 0 &&
+          !isSpecialLoc &&
           (!resource.ejemplares ||
             resource.ejemplares.length === 0 ||
             resource.ejemplares.some(
               (ej) =>
                 ej.estado === 'disponible' &&
-                !(ej.ubicacion_estante || '').toLowerCase().includes('sala')
+                !(ej.ubicacion_estante || '').toLowerCase().includes('sala') &&
+                !(ej.ubicacion_estante || '').toLowerCase().includes('otra') &&
+                !(ej.ubicacion_estante || '').toLowerCase().includes('convenio') &&
+                !(ej.ubicacion_estante || '').toLowerCase().includes('inter')
             ));
         if (!hasAvailableAcervo) return false;
       } else if (metricFilter === 'sala') {
@@ -165,12 +190,16 @@ export const CatalogPage: React.FC = () => {
             l.status !== 'RETURNED' &&
             (l.tipoPrestamoClave === 'interbibliotecario' || Boolean(l.institucionId))
         );
-        const hasEjemplarInOther = Boolean(
-          resource.ejemplares?.some((ej) => {
-            const u = (ej.ubicacion_estante || '').toLowerCase();
-            return u.includes('otra') || u.includes('convenio') || u.includes('inter');
-          })
-        );
+        const hasEjemplarInOther =
+          Boolean(
+            resource.ejemplares?.some((ej) => {
+              const u = (ej.ubicacion_estante || '').toLowerCase();
+              return u.includes('otra') || u.includes('convenio') || u.includes('inter');
+            })
+          ) ||
+          (resource.location || '').toLowerCase().includes('otra') ||
+          (resource.location || '').toLowerCase().includes('convenio') ||
+          (resource.location || '').toLowerCase().includes('inter');
 
         if (!hasLoanInOther && !hasEjemplarInOther) return false;
       }

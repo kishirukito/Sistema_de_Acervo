@@ -21,6 +21,21 @@ import { BIBLIOGRAPHIC_CATEGORIES, resolveCategory } from '../../../constants';
 import { useActiveCategoriesForSelect } from '../../categories/categories.query';
 import './EditResourceModal.css';
 
+export type EditBookDestination = 'ESTANTERIA' | 'SALA' | 'OTRA_BIBLIOTECA';
+
+export const EDIT_BOOK_DESTINATION_OPTIONS = [
+  { value: 'ESTANTERIA', label: 'En estantería (Biblioteca general / Acervo)' },
+  { value: 'SALA', label: 'En sala (Consulta interna de lectura)' },
+  { value: 'OTRA_BIBLIOTECA', label: 'En otra biblioteca (Convenio interbibliotecario)' },
+];
+
+const inferDestinationFromLocation = (loc?: string): EditBookDestination => {
+  const l = (loc || '').toLowerCase();
+  if (l.includes('sala')) return 'SALA';
+  if (l.includes('otra') || l.includes('convenio') || l.includes('inter')) return 'OTRA_BIBLIOTECA';
+  return 'ESTANTERIA';
+};
+
 const editResourceSchema = z.object({
   title: z.string().min(2, 'El título debe tener al menos 2 caracteres'),
   author: z.string().min(2, 'El autor es obligatorio'),
@@ -31,6 +46,7 @@ const editResourceSchema = z.object({
     .min(1000, 'Ingresa un año válido')
     .max(2035, 'El año no puede ser superior a 2035'),
   category: z.string().min(1, 'Selecciona una categoría válida'),
+  destination: z.enum(['ESTANTERIA', 'SALA', 'OTRA_BIBLIOTECA']).default('ESTANTERIA'),
   totalCopies: z.coerce
     .number()
     .min(1, 'El número total de ejemplares debe ser al menos 1'),
@@ -77,6 +93,7 @@ export const EditResourceModal: React.FC<EditResourceModalProps> = ({
     handleSubmit,
     reset,
     setValue,
+    watch,
     formState: { errors, isDirty, isSubmitting },
   } = useForm<EditResourceFormData>({
     resolver: zodResolver(editResourceSchema) as any,
@@ -121,6 +138,7 @@ export const EditResourceModal: React.FC<EditResourceModalProps> = ({
       );
 
       const catCode = resolveCategory(resource.category)?.code || resolveCategory(resource.categoryLabel)?.code || '000';
+      const initialDest = inferDestinationFromLocation(resource.location);
 
       reset({
         title: resource.title,
@@ -129,6 +147,7 @@ export const EditResourceModal: React.FC<EditResourceModalProps> = ({
         publisher: resource.publisher || matchedBook?.publisher || '',
         publicationYear: resource.publicationYear,
         category: catCode,
+        destination: initialDest,
         totalCopies: resource.totalCopies,
         location: resource.location,
         description: resource.description || matchedBook?.description || '',
@@ -180,6 +199,19 @@ export const EditResourceModal: React.FC<EditResourceModalProps> = ({
 
     const resolvedCat = resolveCategory(data.category) || BIBLIOGRAPHIC_CATEGORIES[0];
 
+    // Normalizar la ubicación según el destino seleccionado
+    let finalLocation = data.location.trim();
+    if (data.destination === 'SALA' && !finalLocation.toLowerCase().includes('sala')) {
+      finalLocation = `Sala de lectura - ${finalLocation}`;
+    } else if (
+      data.destination === 'OTRA_BIBLIOTECA' &&
+      !finalLocation.toLowerCase().includes('otra') &&
+      !finalLocation.toLowerCase().includes('convenio') &&
+      !finalLocation.toLowerCase().includes('inter')
+    ) {
+      finalLocation = `Otra biblioteca (Convenio) - ${finalLocation}`;
+    }
+
     const updatedResource: Resource = {
       ...resource,
       title: data.title.trim(),
@@ -191,7 +223,7 @@ export const EditResourceModal: React.FC<EditResourceModalProps> = ({
       categoryLabel: resolvedCat.label,
       totalCopies: Number(data.totalCopies),
       availableCopies: newAvailableCopies,
-      location: data.location.trim(),
+      location: finalLocation,
       status: newStatus,
       description: data.description?.trim() || undefined,
       coverUrl: coverUrl.trim() || resource.coverUrl,
@@ -310,15 +342,67 @@ export const EditResourceModal: React.FC<EditResourceModalProps> = ({
               {...register('totalCopies')}
             />
 
+            {/* Destino / Modalidad */}
+            <Select
+              label="Destino / Modalidad del libro"
+              options={EDIT_BOOK_DESTINATION_OPTIONS}
+              error={errors.destination?.message}
+              {...register('destination', {
+                onChange: (e) => {
+                  const dest = e.target.value;
+                  const curLoc = (watch('location') || '').toLowerCase();
+                  if (dest === 'SALA') {
+                    if (!curLoc.includes('sala')) {
+                      setValue('location', 'Sala de lectura, Módulo central', {
+                        shouldDirty: true,
+                        shouldValidate: true,
+                      });
+                    }
+                  } else if (dest === 'OTRA_BIBLIOTECA') {
+                    if (
+                      !curLoc.includes('otra') &&
+                      !curLoc.includes('convenio') &&
+                      !curLoc.includes('inter')
+                    ) {
+                      setValue(
+                        'location',
+                        'Otra biblioteca - Convenio interinstitucional',
+                        {
+                          shouldDirty: true,
+                          shouldValidate: true,
+                        }
+                      );
+                    }
+                  } else {
+                    if (
+                      curLoc.includes('sala') ||
+                      curLoc.includes('otra') ||
+                      curLoc.includes('convenio') ||
+                      curLoc.includes('inter')
+                    ) {
+                      setValue('location', 'Estante A-1, Nivel 1', {
+                        shouldDirty: true,
+                        shouldValidate: true,
+                      });
+                    }
+                  }
+                },
+              })}
+            />
+
             {/* Location */}
-            <div className="edit-modal-col-span-2">
-              <Input
-                label="Ubicación física en acervo"
-                placeholder="Ej. Estante D-3, Nivel 3"
-                error={errors.location?.message}
-                {...register('location')}
-              />
-            </div>
+            <Input
+              label="Ubicación física / Detalle de estante"
+              placeholder={
+                watch('destination') === 'SALA'
+                  ? 'Ej. Sala de lectura, Mesa 3 o Módulo de consulta'
+                  : watch('destination') === 'OTRA_BIBLIOTECA'
+                  ? 'Ej. Otra biblioteca - Convenio Universidad / Instituto'
+                  : 'Ej. Estante D-3, Nivel 3'
+              }
+              error={errors.location?.message}
+              {...register('location')}
+            />
 
             {/* Cover Image URL */}
             <div className="edit-modal-col-span-2">
