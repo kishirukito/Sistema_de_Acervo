@@ -453,12 +453,12 @@ export const RequestsPage: React.FC = () => {
             <table className="requests-table" aria-label="Tabla de solicitudes de alumnos">
               <thead>
                 <tr>
-                  <th scope="col" style={{ width: '13%' }}>FOLIO / FECHA</th>
-                  <th scope="col" style={{ width: '22%' }}>ALUMNO / SOLICITANTE</th>
-                  <th scope="col" style={{ width: '22%' }}>LIBRO SOLICITADO</th>
+                  <th scope="col" style={{ width: '14%' }}>FOLIO / FECHA</th>
+                  <th scope="col" style={{ width: '25%' }}>ALUMNO / SOLICITANTE</th>
+                  <th scope="col" style={{ width: '25%' }}>LIBRO SOLICITADO</th>
                   <th scope="col" style={{ width: '13%' }}>FECHA SUGERIDA</th>
                   <th scope="col" style={{ width: '10%' }}>ESTADO</th>
-                  <th scope="col" style={{ width: '20%', minWidth: '240px' }} className="requests-th-center">ACCIONES</th>
+                  <th scope="col" style={{ width: '13%', minWidth: '125px' }} className="requests-th-center">ACCIONES</th>
                 </tr>
               </thead>
               <tbody>
