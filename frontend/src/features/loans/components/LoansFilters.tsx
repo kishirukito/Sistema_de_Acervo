@@ -71,15 +71,17 @@ export const LoansFilters: React.FC<LoansFiltersProps> = ({
             }
             options={[
               { value: '', label: 'Fecha de préstamo' },
-              { value: 'SEP_2026', label: 'Septiembre 2026' },
+              { value: 'TODAY', label: 'Hoy' },
+              { value: 'THIS_WEEK', label: 'Esta semana' },
               { value: 'THIS_MONTH', label: 'Este mes' },
               { value: 'LAST_MONTH', label: 'Mes anterior' },
+              { value: 'SEP_2026', label: 'Septiembre 2026' },
             ]}
             fullWidth={false}
             aria-label="Filtrar por fecha de préstamo"
           />
 
-          {/* Dropdown 3: Fecha límite / Categoría */}
+          {/* Dropdown 3: Categoría de usuario */}
           <CustomSelect
             value={filters.userCategory}
             onChange={(val) =>
@@ -89,7 +91,7 @@ export const LoansFilters: React.FC<LoansFiltersProps> = ({
               })
             }
             options={[
-              { value: '', label: 'Fecha límite / Categoría' },
+              { value: '', label: 'Categoría de usuario' },
               { value: 'STUDENT', label: 'Alumnos' },
               { value: 'TEACHER', label: 'Docentes' },
               { value: 'ROOM', label: 'Salas' },
@@ -97,7 +99,7 @@ export const LoansFilters: React.FC<LoansFiltersProps> = ({
               { value: 'GRADUATE', label: 'Egresados' },
             ]}
             fullWidth={false}
-            aria-label="Filtrar por fecha límite o categoría"
+            aria-label="Filtrar por categoría de usuario"
           />
 
           {/* Limpiar filtros */}

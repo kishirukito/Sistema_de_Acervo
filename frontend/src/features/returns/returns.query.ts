@@ -33,8 +33,26 @@ export function useAdminReturns() {
  * que fetchReturnsSummary() hacía internamente.
  */
 export function deriveReturnsSummary(records: ReturnRecord[]): ReturnsSummaryData {
-  const overdue = records.filter(r => r.isOverdue).length;
-  return { pendingReturnsCount: records.length, overdueCount: overdue, returnedTodayCount: 0 };
+  let pending = 0;
+  let overdue = 0;
+  let returnedToday = 0;
+  const now = new Date();
+  const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+
+  for (const r of records) {
+    if (r.status === 'RETURNED') {
+      if (r.rawReturnDate && r.rawReturnDate.startsWith(todayStr)) {
+        returnedToday++;
+      }
+    } else {
+      pending++;
+      if (r.isOverdue || r.status === 'OVERDUE') {
+        overdue++;
+      }
+    }
+  }
+
+  return { pendingReturnsCount: pending, overdueCount: overdue, returnedTodayCount: returnedToday };
 }
 
 /** Invalida la caché de devoluciones (úsalo después de procesar una devolución). */

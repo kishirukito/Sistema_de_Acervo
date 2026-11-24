@@ -109,16 +109,36 @@ export const ReturnsTable: React.FC<ReturnsTableProps> = ({
 
                   {/* ACCIÓN */}
                   <td className="returns-td-action returns-td-center">
-                    <button
-                      type="button"
-                      onClick={() => onProcessReturn(record)}
-                      className="returns-action-btn"
-                      aria-label={`Registrar devolución para el folio ${record.folio} de ${record.userName}`}
-                      title="Registrar devolución del libro"
-                    >
-                      <CheckCircle2 size={14} />
-                      <span>Registrar devolución</span>
-                    </button>
+                    {record.status === 'RETURNED' ? (
+                      <span
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '6px',
+                          padding: '0.4rem 0.85rem',
+                          borderRadius: '6px',
+                          backgroundColor: '#F0FDF4',
+                          color: '#16A34A',
+                          fontWeight: 600,
+                          fontSize: '0.8rem',
+                          border: '1px solid #BBF7D0',
+                        }}
+                      >
+                        <CheckCircle2 size={14} />
+                        <span>Devuelto</span>
+                      </span>
+                    ) : (
+                      <button
+                        type="button"
+                        onClick={() => onProcessReturn(record)}
+                        className="returns-action-btn"
+                        aria-label={`Registrar devolución para el folio ${record.folio} de ${record.userName}`}
+                        title="Registrar devolución del libro"
+                      >
+                        <CheckCircle2 size={14} />
+                        <span>Registrar devolución</span>
+                      </button>
+                    )}
                   </td>
                 </tr>
               );

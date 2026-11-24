@@ -80,6 +80,44 @@
   align-items: center;
   gap: 1.25rem;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+  position: relative;
+}
+
+.returns-summary-card--interactive {
+  cursor: pointer;
+  transition: transform 0.15s ease, box-shadow 0.15s ease, border-color 0.15s ease;
+  user-select: none;
+}
+
+.returns-summary-card--interactive:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  border-color: #CBD5E1;
+}
+
+.returns-summary-card--interactive:focus-visible {
+  outline: 2px solid #27AE60;
+  outline-offset: 2px;
+}
+
+.returns-summary-card--active-selected {
+  border-color: #27AE60 !important;
+  background-color: #F8FAFC;
+  box-shadow: 0 0 0 2px rgba(39, 174, 96, 0.25) !important;
+}
+
+.returns-summary-filter-pill {
+  position: absolute;
+  top: 8px;
+  right: 12px;
+  background-color: #27AE60;
+  color: #FFFFFF;
+  font-size: 0.65rem;
+  font-weight: 700;
+  padding: 2px 7px;
+  border-radius: 999px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
 }
 
 .returns-summary-icon-wrap {

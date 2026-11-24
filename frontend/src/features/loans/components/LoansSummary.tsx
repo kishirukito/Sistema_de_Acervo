@@ -1,16 +1,51 @@
 import React from 'react';
 import { BookOpen, Clock, AlertTriangle, CheckCircle2 } from 'lucide-react';
-import type { LoansSummaryData } from '../loans.types';
+import type { LoansSummaryData, LoanStatus } from '../loans.types';
 
 interface LoansSummaryProps {
   summary: LoansSummaryData;
+  activeFilter?: string;
+  onSelectFilter?: (status: '' | LoanStatus) => void;
 }
 
-export const LoansSummary: React.FC<LoansSummaryProps> = ({ summary }) => {
+export const LoansSummary: React.FC<LoansSummaryProps> = ({
+  summary,
+  activeFilter,
+  onSelectFilter,
+}) => {
+  const handleCardClick = (targetStatus: LoanStatus) => {
+    if (!onSelectFilter) return;
+    if (activeFilter === targetStatus) {
+      onSelectFilter('');
+    } else {
+      onSelectFilter(targetStatus);
+    }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent, targetStatus: LoanStatus) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      handleCardClick(targetStatus);
+    }
+  };
+
   return (
     <div className="loans-summary-grid">
       {/* 1. Préstamos activos */}
-      <div className="loans-summary-card">
+      <div
+        className={`loans-summary-card loans-summary-card--interactive ${
+          activeFilter === 'ACTIVE' ? 'loans-summary-card--active-selected' : ''
+        }`}
+        role="button"
+        tabIndex={0}
+        onClick={() => handleCardClick('ACTIVE')}
+        onKeyDown={(e) => handleKeyDown(e, 'ACTIVE')}
+        title="Clic para filtrar por préstamos activos"
+        aria-pressed={activeFilter === 'ACTIVE'}
+      >
+        {activeFilter === 'ACTIVE' && (
+          <span className="loans-summary-filter-pill">Filtrado</span>
+        )}
         <div className="loans-summary-icon-wrap loans-summary-icon-wrap--active" aria-hidden="true">
           <BookOpen size={20} color="#2F80ED" />
         </div>
@@ -24,7 +59,20 @@ export const LoansSummary: React.FC<LoansSummaryProps> = ({ summary }) => {
       </div>
 
       {/* 2. Próximos a vencer */}
-      <div className="loans-summary-card">
+      <div
+        className={`loans-summary-card loans-summary-card--interactive ${
+          activeFilter === 'DUE_SOON' ? 'loans-summary-card--active-selected' : ''
+        }`}
+        role="button"
+        tabIndex={0}
+        onClick={() => handleCardClick('DUE_SOON')}
+        onKeyDown={(e) => handleKeyDown(e, 'DUE_SOON')}
+        title="Clic para filtrar por préstamos próximos a vencer"
+        aria-pressed={activeFilter === 'DUE_SOON'}
+      >
+        {activeFilter === 'DUE_SOON' && (
+          <span className="loans-summary-filter-pill">Filtrado</span>
+        )}
         <div className="loans-summary-icon-wrap loans-summary-icon-wrap--warning" aria-hidden="true">
           <Clock size={20} color="#D97706" />
         </div>
@@ -38,7 +86,20 @@ export const LoansSummary: React.FC<LoansSummaryProps> = ({ summary }) => {
       </div>
 
       {/* 3. Préstamos vencidos */}
-      <div className="loans-summary-card">
+      <div
+        className={`loans-summary-card loans-summary-card--interactive ${
+          activeFilter === 'OVERDUE' ? 'loans-summary-card--active-selected' : ''
+        }`}
+        role="button"
+        tabIndex={0}
+        onClick={() => handleCardClick('OVERDUE')}
+        onKeyDown={(e) => handleKeyDown(e, 'OVERDUE')}
+        title="Clic para filtrar por préstamos vencidos"
+        aria-pressed={activeFilter === 'OVERDUE'}
+      >
+        {activeFilter === 'OVERDUE' && (
+          <span className="loans-summary-filter-pill">Filtrado</span>
+        )}
         <div className="loans-summary-icon-wrap loans-summary-icon-wrap--danger" aria-hidden="true">
           <AlertTriangle size={20} color="#DC2626" />
         </div>
@@ -52,7 +113,20 @@ export const LoansSummary: React.FC<LoansSummaryProps> = ({ summary }) => {
       </div>
 
       {/* 4. Devueltos este mes */}
-      <div className="loans-summary-card">
+      <div
+        className={`loans-summary-card loans-summary-card--interactive ${
+          activeFilter === 'RETURNED' ? 'loans-summary-card--active-selected' : ''
+        }`}
+        role="button"
+        tabIndex={0}
+        onClick={() => handleCardClick('RETURNED')}
+        onKeyDown={(e) => handleKeyDown(e, 'RETURNED')}
+        title="Clic para filtrar por préstamos devueltos"
+        aria-pressed={activeFilter === 'RETURNED'}
+      >
+        {activeFilter === 'RETURNED' && (
+          <span className="loans-summary-filter-pill">Filtrado</span>
+        )}
         <div className="loans-summary-icon-wrap loans-summary-icon-wrap--success" aria-hidden="true">
           <CheckCircle2 size={20} color="#16A34A" />
         </div>

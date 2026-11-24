@@ -37,6 +37,50 @@ const INITIAL_FILTERS: LoansFilterState = {
   dateFilter: '',
 };
 
+function checkDateFilter(rawDateStr?: string, formattedStr?: string, filter?: string): boolean {
+  if (!filter) return true;
+  if (filter === 'OVERDUE_ONLY') return true;
+
+  let d: Date | null = null;
+  if (rawDateStr) {
+    const parsed = new Date(rawDateStr);
+    if (!isNaN(parsed.getTime())) d = parsed;
+  }
+  if (!d && formattedStr) {
+    const parsed = new Date(formattedStr);
+    if (!isNaN(parsed.getTime())) d = parsed;
+  }
+  if (!d) return false;
+
+  const now = new Date();
+  if (filter === 'TODAY') {
+    return (
+      d.getFullYear() === now.getFullYear() &&
+      d.getMonth() === now.getMonth() &&
+      d.getDate() === now.getDate()
+    );
+  }
+  if (filter === 'THIS_WEEK') {
+    const startOfWeek = new Date(now);
+    startOfWeek.setDate(now.getDate() - now.getDay());
+    startOfWeek.setHours(0, 0, 0, 0);
+    const endOfWeek = new Date(startOfWeek);
+    endOfWeek.setDate(startOfWeek.getDate() + 7);
+    return d >= startOfWeek && d <= endOfWeek;
+  }
+  if (filter === 'THIS_MONTH') {
+    return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
+  }
+  if (filter === 'LAST_MONTH') {
+    const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    return d.getFullYear() === lastMonth.getFullYear() && d.getMonth() === lastMonth.getMonth();
+  }
+  if (filter === 'SEP_2026') {
+    return d.getFullYear() === 2026 && d.getMonth() === 8;
+  }
+  return true;
+}
+
 export const LoansPage: React.FC = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -145,7 +189,11 @@ export const LoansPage: React.FC = () => {
 
       // 4. Date Filter
       if (filters.dateFilter) {
-        if (filters.dateFilter === 'OVERDUE_ONLY' && loan.status !== 'OVERDUE') {
+        if (filters.dateFilter === 'OVERDUE_ONLY') {
+          const isOverdue =
+            loan.status === 'OVERDUE' || Boolean(loan.dueDateNote?.includes('vencido'));
+          if (!isOverdue) return false;
+        } else if (!checkDateFilter(loan.rawCheckoutDate, loan.checkoutDate, filters.dateFilter)) {
           return false;
         }
       }
@@ -303,7 +351,11 @@ export const LoansPage: React.FC = () => {
       </div>
 
       {/* Summary KPI Cards */}
-      <LoansSummary summary={loansSummary} />
+      <LoansSummary
+        summary={loansSummary}
+        activeFilter={filters.status}
+        onSelectFilter={(status) => handleFilterChange({ ...filters, status })}
+      />
 
       {/* Filters Toolbar */}
           <LoansFilters

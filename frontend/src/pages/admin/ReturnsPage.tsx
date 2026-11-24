@@ -26,6 +26,46 @@ const INITIAL_FILTERS: ReturnsFilterState = {
   userCategory: '',
 };
 
+function checkDueDateFilter(rawDueDateStr?: string, formattedStr?: string, filter?: string): boolean {
+  if (!filter) return true;
+  if (filter === 'OVERDUE_ONLY') return true;
+
+  let d: Date | null = null;
+  if (rawDueDateStr) {
+    const parsed = new Date(rawDueDateStr);
+    if (!isNaN(parsed.getTime())) d = parsed;
+  }
+  if (!d && formattedStr) {
+    const parsed = new Date(formattedStr);
+    if (!isNaN(parsed.getTime())) d = parsed;
+  }
+  if (!d) return false;
+
+  const now = new Date();
+  if (filter === 'DUE_TODAY') {
+    return (
+      d.getFullYear() === now.getFullYear() &&
+      d.getMonth() === now.getMonth() &&
+      d.getDate() === now.getDate()
+    );
+  }
+  if (filter === 'THIS_WEEK') {
+    const startOfWeek = new Date(now);
+    startOfWeek.setDate(now.getDate() - now.getDay());
+    startOfWeek.setHours(0, 0, 0, 0);
+    const endOfWeek = new Date(startOfWeek);
+    endOfWeek.setDate(startOfWeek.getDate() + 7);
+    return d >= startOfWeek && d <= endOfWeek;
+  }
+  if (filter === 'THIS_MONTH') {
+    return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();
+  }
+  if (filter === 'OCT_2026') {
+    return d.getFullYear() === 2026 && d.getMonth() === 9;
+  }
+  return true;
+}
+
 export const ReturnsPage: React.FC = () => {
   const navigate = useNavigate();
   const location = useLocation();
@@ -138,7 +178,21 @@ export const ReturnsPage: React.FC = () => {
           if (!record.isOverdue && record.status !== 'OVERDUE') {
             return false;
           }
+        } else if (filters.status === 'RETURNED') {
+          if (record.status !== 'RETURNED') {
+            return false;
+          }
+        } else if (filters.status === 'ACTIVE') {
+          // Pendientes activos no vencidos
+          if (record.status === 'RETURNED' || record.isOverdue || record.status === 'OVERDUE') {
+            return false;
+          }
         } else if (record.status !== filters.status) {
+          return false;
+        }
+      } else {
+        // Por defecto en Devoluciones solo mostrar préstamos pendientes (no devueltos)
+        if (record.status === 'RETURNED') {
           return false;
         }
       }
@@ -152,7 +206,9 @@ export const ReturnsPage: React.FC = () => {
 
       // 4. Due Date Filter
       if (filters.dueDateFilter) {
-        if (filters.dueDateFilter === 'OVERDUE_ONLY' && !record.isOverdue && record.status !== 'OVERDUE') {
+        if (filters.dueDateFilter === 'OVERDUE_ONLY') {
+          if (!record.isOverdue && record.status !== 'OVERDUE') return false;
+        } else if (!checkDueDateFilter(record.rawDueDate, record.dueDate, filters.dueDateFilter)) {
           return false;
         }
       }
@@ -207,7 +263,11 @@ export const ReturnsPage: React.FC = () => {
       </div>
 
       {/* Summary KPI Cards */}
-      <ReturnsSummary summary={returnsSummary} />
+      <ReturnsSummary
+        summary={returnsSummary}
+        activeFilter={filters.status}
+        onSelectFilter={(status) => handleFilterChange({ ...filters, status })}
+      />
 
       {/* Filters Toolbar */}
       <ReturnsFilters

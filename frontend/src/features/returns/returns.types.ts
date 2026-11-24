@@ -23,6 +23,9 @@ export interface ReturnRecord {
   isbn?: string;
   checkoutDate: string;  // e.g. "25 sep. 2026"
   dueDate: string;       // e.g. "02 oct. 2026"
+  rawCheckoutDate?: string;
+  rawDueDate?: string;
+  rawReturnDate?: string;
   isOverdue: boolean;
   daysDiffText: string;  // e.g. "3 días restantes", "7 días de retraso"
   daysDiffType: 'remaining' | 'overdue' | 'due-soon';

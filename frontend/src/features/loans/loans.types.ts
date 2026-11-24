@@ -45,6 +45,9 @@ export interface Loan {
   resourceAuthor: string;
   checkoutDate: string; // Formatted display e.g. "25 sep. 2026"
   dueDate: string;      // Formatted display e.g. "02 oct. 2026"
+  rawCheckoutDate?: string;
+  rawDueDate?: string;
+  rawReturnDate?: string;
   dueDateNote?: string; // e.g. "3d restantes", "7d vencido", "Vence en 2d"
   returnDate?: string;
   status: LoanStatus;

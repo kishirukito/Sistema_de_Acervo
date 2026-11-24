@@ -2,7 +2,7 @@
  * Returns Admin Service — Uses Python backend or Supabase directly.
  */
 
-import type { ReturnRecord, ReturnsSummaryData, LoanStatus } from '../../features/returns/returns.types';
+import type { ReturnRecord, ReturnsSummaryData, LoanStatus, NormalUserCategory } from '../../features/returns/returns.types';
 
 const AVATAR_COLORS = ['#2F80ED', '#27AE60', '#D97706', '#8B5CF6', '#06B6D4', '#EC4899'];
 
@@ -18,6 +18,25 @@ function formatDate(iso: string): string {
   const day = String(d.getDate()).padStart(2, '0');
   const months = ['ene.', 'feb.', 'mar.', 'abr.', 'may.', 'jun.', 'jul.', 'ago.', 'sep.', 'oct.', 'nov.', 'dic.'];
   return `${day} ${months[d.getMonth()]} ${d.getFullYear()}`;
+}
+
+function resolveUserCategory(usuario: any): NormalUserCategory {
+  const dep = (usuario?.dependencia_o_area || usuario?.carrera_o_dependencia || '').toLowerCase();
+  const rol = (usuario?.rol || '').toLowerCase();
+
+  if (dep.includes('docente') || dep.includes('profesor') || dep.includes('maestro') || rol.includes('docente')) {
+    return 'TEACHER';
+  }
+  if (dep.includes('egresado') || rol.includes('egresado')) {
+    return 'GRADUATE';
+  }
+  if (dep.includes('externo') || rol.includes('externo')) {
+    return 'EXTERNAL';
+  }
+  if (dep.includes('sala')) {
+    return 'ROOM';
+  }
+  return 'STUDENT';
 }
 
 function mapPrestamoToReturnRecord(row: any, index: number): ReturnRecord {
@@ -67,7 +86,7 @@ function mapPrestamoToReturnRecord(row: any, index: number): ReturnRecord {
     userId: row.usuario_id || '',
     userName,
     userEmail: usuario.email || '',
-    userCategory: 'STUDENT',
+    userCategory: resolveUserCategory(usuario),
     userInitials: getInitials(userName),
     userAvatarColor: AVATAR_COLORS[index % AVATAR_COLORS.length],
     resourceId: ejemplar.codigo_inventario || row.ejemplar_id || '',
@@ -76,6 +95,9 @@ function mapPrestamoToReturnRecord(row: any, index: number): ReturnRecord {
     isbn: libro.isbn || undefined,
     checkoutDate: formatDate(row.fecha_prestamo),
     dueDate: formatDate(row.fecha_limite_devolucion),
+    rawCheckoutDate: row.fecha_prestamo || undefined,
+    rawDueDate: row.fecha_limite_devolucion || undefined,
+    rawReturnDate: row.fecha_devolucion_real || undefined,
     isOverdue,
     daysDiffText,
     daysDiffType,
@@ -143,9 +165,7 @@ export async function fetchReturnRecords(): Promise<ReturnRecord[]> {
     if (res.ok) {
       const data = await res.json();
       if (Array.isArray(data)) {
-        return data
-          .filter((p: any) => p.estado !== 'devuelto')
-          .map((row: any, i: number) => mapPrestamoToReturnRecord(row, i));
+        return data.map((row: any, i: number) => mapPrestamoToReturnRecord(row, i));
       }
     }
   } catch (err) {
@@ -157,6 +177,25 @@ export async function fetchReturnRecords(): Promise<ReturnRecord[]> {
 
 export async function fetchReturnsSummary(): Promise<ReturnsSummaryData> {
   const records = await fetchReturnRecords();
-  const overdue = records.filter(r => r.isOverdue).length;
-  return { pendingReturnsCount: records.length, overdueCount: overdue, returnedTodayCount: 0 };
+  const now = new Date();
+  const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+
+  let pending = 0;
+  let overdue = 0;
+  let returnedToday = 0;
+
+  for (const r of records) {
+    if (r.status === 'RETURNED') {
+      if (r.rawReturnDate && r.rawReturnDate.startsWith(todayStr)) {
+        returnedToday++;
+      }
+    } else {
+      pending++;
+      if (r.isOverdue || r.status === 'OVERDUE') {
+        overdue++;
+      }
+    }
+  }
+
+  return { pendingReturnsCount: pending, overdueCount: overdue, returnedTodayCount: returnedToday };
 }

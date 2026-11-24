@@ -57,6 +57,7 @@ export const ReturnsFilters: React.FC<ReturnsFiltersProps> = ({
               { value: 'ACTIVE', label: 'Activo' },
               { value: 'DUE_SOON', label: 'Próximo a vencer' },
               { value: 'OVERDUE', label: 'Vencido' },
+              { value: 'RETURNED', label: 'Devuelto' },
             ]}
             fullWidth={false}
             aria-label="Filtrar por estado"
@@ -71,14 +72,16 @@ export const ReturnsFilters: React.FC<ReturnsFiltersProps> = ({
             options={[
               { value: '', label: 'Fecha límite' },
               { value: 'OVERDUE_ONLY', label: 'Solo vencidos' },
+              { value: 'DUE_TODAY', label: 'Vence hoy' },
               { value: 'THIS_WEEK', label: 'Esta semana' },
+              { value: 'THIS_MONTH', label: 'Este mes' },
               { value: 'OCT_2026', label: 'Octubre 2026' },
             ]}
             fullWidth={false}
             aria-label="Filtrar por fecha límite"
           />
 
-          {/* Dropdown 3: Usuario / Categoría */}
+          {/* Dropdown 3: Categoría de usuario */}
           <CustomSelect
             value={filters.userCategory}
             onChange={(val) =>
@@ -88,12 +91,12 @@ export const ReturnsFilters: React.FC<ReturnsFiltersProps> = ({
               })
             }
             options={[
-              { value: '', label: 'Usuario' },
-              { value: 'STUDENT', label: 'Alumno' },
-              { value: 'TEACHER', label: 'Docente' },
-              { value: 'EXTERNAL', label: 'Persona externa' },
-              { value: 'ROOM', label: 'Sala' },
-              { value: 'GRADUATE', label: 'Egresado' },
+              { value: '', label: 'Categoría de usuario' },
+              { value: 'STUDENT', label: 'Alumnos' },
+              { value: 'TEACHER', label: 'Docentes' },
+              { value: 'EXTERNAL', label: 'Personas externas' },
+              { value: 'ROOM', label: 'Salas' },
+              { value: 'GRADUATE', label: 'Egresados' },
             ]}
             fullWidth={false}
             aria-label="Filtrar por tipo o categoría de usuario"
