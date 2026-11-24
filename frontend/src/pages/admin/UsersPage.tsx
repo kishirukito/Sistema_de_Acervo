@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect } from 'react';
 import {
   Plus,
   SearchX,
@@ -54,13 +54,25 @@ export const UsersPage: React.FC = () => {
   // ── React Query: lista de usuarios con caché de 2 minutos ────────────────
   const { data: usersList = [], isLoading } = useAdminUsers();
 
-  // Generaciones detectadas en los usuarios disponibles
-  const availableGenerations = useMemo(
-    () => getAvailableGenerations(usersList),
-    [usersList]
-  );
-
   const [filters, setFilters] = useState<UsersFilterState>(INITIAL_FILTERS);
+
+  // Generaciones detectadas dinámicamente en los usuarios presentes en el sistema
+  // Se recalculan de forma reactiva al registrar nuevos usuarios o desactivar generaciones pasadas
+  const availableGenerations = useMemo(() => {
+    const isShowingInactive = filters.status === 'INACTIVE';
+    return getAvailableGenerations(usersList, { onlyActive: !isShowingInactive });
+  }, [usersList, filters.status]);
+
+  // Si la generación previamente seleccionada ya no existe en las generaciones disponibles del sistema,
+  // se restablece automáticamente para mantener la consistencia
+  useEffect(() => {
+    if (filters.generation && availableGenerations.length > 0) {
+      const selectedYear = parseInt(filters.generation, 10);
+      if (!availableGenerations.includes(selectedYear)) {
+        setFilters((prev) => ({ ...prev, generation: '' }));
+      }
+    }
+  }, [availableGenerations, filters.generation]);
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [toastMessage, setToastMessage] = useState<string | null>(null);
   const [toastType, setToastType] = useState<'success' | 'error'>('success');
@@ -433,6 +445,22 @@ export const UsersPage: React.FC = () => {
         onClose={() => setIsGenConfigOpen(false)}
         users={usersList}
         onSuccess={(count, generationYear) => {
+          // Actualización optimista de estado INACTIVE para reflejar la eliminación de la generación al instante
+          queryClient.setQueryData<ManagedUser[]>([ADMIN_USERS_KEY], (prev = []) =>
+            prev.map((u) => {
+              const gen = extractGeneration(u.matricula || u.borrowerCode);
+              if (
+                gen &&
+                gen.year === generationYear &&
+                u.status === 'ACTIVE' &&
+                u.activeLoans === 0 &&
+                !u.hasOverdueLoan
+              ) {
+                return { ...u, status: 'INACTIVE' as const };
+              }
+              return u;
+            })
+          );
           invalidateAdminUsers(queryClient);
           showToast(
             `Se desactivaron exitosamente ${count} usuarios de la Generación ${generationYear}.`,

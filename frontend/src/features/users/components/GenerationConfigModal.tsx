@@ -39,8 +39,11 @@ export const GenerationConfigModal: React.FC<GenerationConfigModalProps> = ({
 }) => {
   const currentYear = useMemo(() => new Date().getFullYear(), []);
 
-  // Lista de generaciones disponibles en el sistema
-  const availableYears = useMemo(() => getAvailableGenerations(users), [users]);
+  // Lista de generaciones disponibles en el sistema con usuarios activos
+  const availableYears = useMemo(
+    () => getAvailableGenerations(users, { onlyActive: true }),
+    [users]
+  );
 
   // Generación seleccionada (por defecto la generación pasada más reciente si existe)
   const defaultSelectedYear = useMemo(() => {

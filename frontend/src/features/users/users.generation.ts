@@ -68,18 +68,46 @@ export function extractGeneration(matriculaOrCode?: string | null): UserGenerati
   };
 }
 
+export interface GetAvailableGenerationsOptions {
+  /**
+   * Si es true (por defecto), solo considera usuarios con estado 'ACTIVE' o 'SUSPENDED'.
+   * Excluye a los usuarios 'INACTIVE' (eliminados de las generaciones vigentes del sistema).
+   */
+  onlyActive?: boolean;
+  /**
+   * Opcionalmente filtrar por categoría institucional (ej. 'STUDENT').
+   */
+  category?: string;
+}
+
 /**
- * Obtiene la lista de años de generación únicos presentes en la lista de usuarios,
+ * Obtiene la lista de años de generación únicos presentes actualmente en el sistema,
  * ordenados de mayor a menor (los más recientes primero).
+ * Se actualiza reactivamente al agregar nuevos alumnos o al desactivar/eliminar generaciones viejas.
  */
-export function getAvailableGenerations(users: ManagedUser[]): number[] {
+export function getAvailableGenerations(
+  users: ManagedUser[],
+  options?: GetAvailableGenerationsOptions
+): number[] {
+  const onlyActive = options?.onlyActive ?? true;
   const yearsSet = new Set<number>();
+
   for (const u of users) {
+    // Si se requieren solo las generaciones presentes y vigentes, excluir usuarios inactivos
+    if (onlyActive && u.status === 'INACTIVE') {
+      continue;
+    }
+
+    if (options?.category && u.category && u.category !== options.category) {
+      continue;
+    }
+
     const gen = extractGeneration(u.matricula || u.borrowerCode);
     if (gen) {
       yearsSet.add(gen.year);
     }
   }
+
   return Array.from(yearsSet).sort((a, b) => b - a);
 }
 
