@@ -7,6 +7,7 @@ import {
   MonthlyLoansChart,
   CategoryConsultsChart,
 } from '../../features/dashboard/components/SimpleChart';
+import { ActiveUsersTypeChart } from '../../features/dashboard/components/ActiveUsersTypeChart';
 import { RecentActivity } from '../../features/dashboard/components/RecentActivity';
 import { AlertsPanel } from '../../features/dashboard/components/AlertsPanel';
 import { fetchDashboardSnapshot } from '../../services/api/dashboard.service';
@@ -33,6 +34,7 @@ export const AdminDashboardPage: React.FC = () => {
   const metrics           = data?.metrics           ?? [];
   const monthlyLoans      = data?.monthlyLoans      ?? [];
   const categoryConsults  = data?.categoryConsults  ?? [];
+  const activeUsersByType = data?.activeUsersByType ?? [];
   const recentActivities  = data?.recentActivities  ?? [];
   const alerts            = data?.alerts            ?? [];
   const lastSyncTime      = data?.lastSyncTime      ?? '';
@@ -73,7 +75,7 @@ export const AdminDashboardPage: React.FC = () => {
         )}
       </section>
 
-      {/* 2 Charts Grid */}
+      {/* 3 Charts Grid: Préstamos, Catálogo y Usuarios Activos */}
       <section className="dashboard-charts-grid" aria-label="Estadísticas e historial">
         <MonthlyLoansChart
           data={monthlyLoans}
@@ -84,6 +86,11 @@ export const AdminDashboardPage: React.FC = () => {
           data={categoryConsults}
           title="Libros por categoría"
           subtitle="Distribución del acervo en catálogo (Dewey)"
+        />
+        <ActiveUsersTypeChart
+          data={activeUsersByType}
+          title="Usuarios activos por tipo"
+          subtitle="Distribución de la comunidad lectora en tiempo real"
         />
       </section>
 

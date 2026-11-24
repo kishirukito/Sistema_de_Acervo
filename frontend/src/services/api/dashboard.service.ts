@@ -8,6 +8,7 @@ import type {
   MetricData,
   MonthlyLoanData,
   CategoryConsultData,
+  ActiveUserTypeData,
   RecentActivityItem,
   DashboardAlert,
   ActivityStatus,
@@ -21,6 +22,7 @@ export interface DashboardSnapshot {
   metrics: MetricData[];
   monthlyLoans: MonthlyLoanData[];
   categoryConsults: CategoryConsultData[];
+  activeUsersByType: ActiveUserTypeData[];
   recentActivities: RecentActivityItem[];
   alerts: DashboardAlert[];
   lastSyncTime: string;
@@ -325,6 +327,78 @@ export async function fetchDashboardSnapshot(): Promise<DashboardSnapshot> {
     });
   }
 
+  // 7. Active Users by Classification Type (100% dinámico con datos reales)
+  let studentCount = 0;
+  let teacherCount = 0;
+  let adminCount = 0;
+  let graduateCount = 0;
+  let externalCount = 0;
+
+  for (const u of usuarios) {
+    const estado = String(u.estado || '').toLowerCase();
+    if (estado === 'activo') {
+      const rol = String(u.rol || '').toLowerCase();
+      const dep = String(u.dependencia_o_area || u.carrera_o_dependencia || '').toLowerCase();
+
+      if (rol === 'admin' || rol === 'personal') {
+        adminCount++;
+      } else if (dep.includes('docente') || dep.includes('profesor') || dep.includes('maestro')) {
+        teacherCount++;
+      } else if (dep.includes('egresado')) {
+        graduateCount++;
+      } else if (dep.includes('externo')) {
+        externalCount++;
+      } else {
+        studentCount++; // Por defecto alumno
+      }
+    }
+  }
+
+  const activeTotal = studentCount + teacherCount + adminCount + graduateCount + externalCount;
+
+  const activeUsersByType: ActiveUserTypeData[] = [
+    {
+      id: 'STUDENT',
+      label: 'Alumnos',
+      count: studentCount,
+      percentage: activeTotal > 0 ? Math.round((studentCount / activeTotal) * 1000) / 10 : 0,
+      color: '#7C3AED',
+      bgLight: '#F5F3FF',
+    },
+    {
+      id: 'TEACHER',
+      label: 'Docentes',
+      count: teacherCount,
+      percentage: activeTotal > 0 ? Math.round((teacherCount / activeTotal) * 1000) / 10 : 0,
+      color: '#4F46E5',
+      bgLight: '#EEF2FF',
+    },
+    {
+      id: 'ADMINISTRATIVE',
+      label: 'Administrativos',
+      count: adminCount,
+      percentage: activeTotal > 0 ? Math.round((adminCount / activeTotal) * 1000) / 10 : 0,
+      color: '#0284C7',
+      bgLight: '#E0F2FE',
+    },
+    {
+      id: 'GRADUATE',
+      label: 'Egresados',
+      count: graduateCount,
+      percentage: activeTotal > 0 ? Math.round((graduateCount / activeTotal) * 1000) / 10 : 0,
+      color: '#059669',
+      bgLight: '#ECFDF5',
+    },
+    {
+      id: 'EXTERNAL',
+      label: 'Externos',
+      count: externalCount,
+      percentage: activeTotal > 0 ? Math.round((externalCount / activeTotal) * 1000) / 10 : 0,
+      color: '#D97706',
+      bgLight: '#FEF3C7',
+    },
+  ];
+
   // 9. Last sync timestamp in Spanish (HH:MM hrs)
   const hours = String(now.getHours()).padStart(2, '0');
   const minutes = String(now.getMinutes()).padStart(2, '0');
@@ -334,6 +408,7 @@ export async function fetchDashboardSnapshot(): Promise<DashboardSnapshot> {
     metrics,
     monthlyLoans,
     categoryConsults,
+    activeUsersByType,
     recentActivities,
     alerts,
     lastSyncTime,

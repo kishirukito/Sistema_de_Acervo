@@ -47,3 +47,14 @@ export interface CategoryConsultData {
   category: string;
   count: number;
 }
+
+export type UserTypeId = 'STUDENT' | 'TEACHER' | 'ADMINISTRATIVE' | 'GRADUATE' | 'EXTERNAL';
+
+export interface ActiveUserTypeData {
+  id: UserTypeId;
+  label: string;
+  count: number;
+  percentage: number;
+  color: string;
+  bgLight: string;
+}
