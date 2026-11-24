@@ -23,7 +23,7 @@ export const RecentActivity: React.FC<RecentActivityProps> = ({ items }) => {
   };
 
   return (
-    <div className="dashboard-card">
+    <div className="dashboard-card recent-activity-card">
       <div className="dashboard-card-header">
         <h3 className="dashboard-card-title">Actividad reciente</h3>
         <button
@@ -70,6 +70,21 @@ export const RecentActivity: React.FC<RecentActivityProps> = ({ items }) => {
           </tbody>
         </table>
       </div>
+
+      {items.length > 0 && (
+        <div className="activity-card-footer">
+          <span className="activity-footer-text">
+            Mostrando los últimos {items.length} movimientos de circulación
+          </span>
+          <button
+            type="button"
+            className="activity-footer-btn"
+            onClick={() => navigate('/admin/loans')}
+          >
+            Ver historial completo →
+          </button>
+        </div>
+      )}
     </div>
   );
 };

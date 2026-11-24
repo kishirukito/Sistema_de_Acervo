@@ -209,7 +209,7 @@
   grid-template-columns: 1fr 380px;
   gap: 1.25rem;
   width: 100%;
-  align-items: flex-start;
+  align-items: stretch;
 }
 
 .dashboard-side-column {
@@ -229,6 +229,53 @@
   gap: 1.25rem;
   height: auto;
   box-shadow: 0 2px 8px -2px rgba(16, 24, 40, 0.04);
+}
+
+/* Recent Activity Card expandida a la altura de alertas */
+.recent-activity-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  height: 100%;
+}
+
+.recent-activity-card .activity-table-wrapper {
+  flex: 1;
+}
+
+.activity-card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 0.85rem;
+  margin-top: auto;
+  border-top: 1px solid #F1F5F9;
+  font-size: 0.8125rem;
+  color: #64748B;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.activity-footer-text {
+  color: #64748B;
+  font-weight: 500;
+}
+
+.activity-footer-btn {
+  background: none;
+  border: none;
+  color: #2F80ED;
+  font-weight: 600;
+  font-size: 0.8125rem;
+  cursor: pointer;
+  padding: 2px 4px;
+  border-radius: 4px;
+  transition: all 0.15s ease;
+}
+
+.activity-footer-btn:hover {
+  color: #1C6DD0;
+  text-decoration: underline;
 }
 
 .dashboard-card-header {

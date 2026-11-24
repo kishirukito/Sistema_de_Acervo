@@ -231,14 +231,14 @@ export async function fetchDashboardSnapshot(): Promise<DashboardSnapshot> {
     .map(([category, count]) => ({ category, count }))
     .sort((a, b) => b.count - a.count);
 
-  // 7. Recent Activities (Top 6–8 real movements)
+  // 7. Recent Activities (Top 10–12 real movements para equilibrar la altura)
   const sortedPrestamos = [...prestamos].sort((a, b) => {
     const dateA = new Date(a.fecha_devolucion_real || a.fecha_prestamo || 0).getTime();
     const dateB = new Date(b.fecha_devolucion_real || b.fecha_prestamo || 0).getTime();
     return dateB - dateA;
   });
 
-  const recentActivities: RecentActivityItem[] = sortedPrestamos.slice(0, 8).map((p, idx) => {
+  const recentActivities: RecentActivityItem[] = sortedPrestamos.slice(0, 11).map((p, idx) => {
     const isReturned = p.estado === 'devuelto' || Boolean(p.fecha_devolucion_real);
     const dueDate = p.fecha_limite_devolucion ? new Date(p.fecha_limite_devolucion) : null;
     const isOverdue = !isReturned && (p.estado === 'vencido' || (dueDate !== null && dueDate < now));
