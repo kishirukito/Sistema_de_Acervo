@@ -37,19 +37,40 @@ const INITIAL_FILTERS: LoansFilterState = {
   dateFilter: '',
 };
 
+function parseDateRobust(rawStr?: string, formattedStr?: string): Date | null {
+  if (rawStr) {
+    const match = String(rawStr).match(/^(\d{4})-(\d{2})-(\d{2})/);
+    if (match) {
+      const year = parseInt(match[1], 10);
+      const month = parseInt(match[2], 10) - 1;
+      const day = parseInt(match[3], 10);
+      return new Date(year, month, day, 12, 0, 0, 0);
+    }
+    const d = new Date(rawStr);
+    if (!isNaN(d.getTime())) return d;
+  }
+  if (formattedStr) {
+    const match = String(formattedStr).match(/(\d{1,2})\s+([a-zA-Záéíóúñ\.]+)\s+(\d{4})/i);
+    if (match) {
+      const day = parseInt(match[1], 10);
+      const monthStr = match[2].toLowerCase().replace('.', '');
+      const monthMap: Record<string, number> = {
+        ene: 0, feb: 1, mar: 2, abr: 3, may: 4, jun: 5,
+        jul: 6, ago: 7, sep: 8, oct: 9, nov: 10, dic: 11,
+      };
+      const month = monthMap[monthStr.slice(0, 3)] ?? 0;
+      const year = parseInt(match[3], 10);
+      return new Date(year, month, day, 12, 0, 0, 0);
+    }
+  }
+  return null;
+}
+
 function checkDateFilter(rawDateStr?: string, formattedStr?: string, filter?: string): boolean {
   if (!filter) return true;
   if (filter === 'OVERDUE_ONLY') return true;
 
-  let d: Date | null = null;
-  if (rawDateStr) {
-    const parsed = new Date(rawDateStr);
-    if (!isNaN(parsed.getTime())) d = parsed;
-  }
-  if (!d && formattedStr) {
-    const parsed = new Date(formattedStr);
-    if (!isNaN(parsed.getTime())) d = parsed;
-  }
+  const d = parseDateRobust(rawDateStr, formattedStr);
   if (!d) return false;
 
   const now = new Date();
@@ -61,12 +82,18 @@ function checkDateFilter(rawDateStr?: string, formattedStr?: string, filter?: st
     );
   }
   if (filter === 'THIS_WEEK') {
-    const startOfWeek = new Date(now);
-    startOfWeek.setDate(now.getDate() - now.getDay());
-    startOfWeek.setHours(0, 0, 0, 0);
-    const endOfWeek = new Date(startOfWeek);
-    endOfWeek.setDate(startOfWeek.getDate() + 7);
-    return d >= startOfWeek && d <= endOfWeek;
+    const dayOfWeek = (now.getDay() + 6) % 7; // Lunes = 0, ..., Domingo = 6
+    const startOfWeek = new Date(now.getFullYear(), now.getMonth(), now.getDate() - dayOfWeek, 0, 0, 0, 0);
+    const endOfWeek = new Date(startOfWeek.getFullYear(), startOfWeek.getMonth(), startOfWeek.getDate() + 6, 23, 59, 59, 999);
+
+    if (d >= startOfWeek && d <= endOfWeek) return true;
+
+    // Próximos 7 días a partir de hoy
+    const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
+    const endOfNext7Days = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 7, 23, 59, 59, 999);
+    if (d >= startOfToday && d <= endOfNext7Days) return true;
+
+    return false;
   }
   if (filter === 'THIS_MONTH') {
     return d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth();

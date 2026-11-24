@@ -1,6 +1,6 @@
 import React from 'react';
 import { Search, X } from 'lucide-react';
-import type { ReturnsFilterState, LoanStatus, NormalUserCategory } from '../returns.types';
+import type { ReturnsFilterState, ReturnFilterStatus, NormalUserCategory } from '../returns.types';
 import { CustomSelect } from '../../../components/ui/CustomSelect';
 
 interface ReturnsFiltersProps {
@@ -50,14 +50,15 @@ export const ReturnsFilters: React.FC<ReturnsFiltersProps> = ({
           <CustomSelect
             value={filters.status}
             onChange={(val) =>
-              onFilterChange({ ...filters, status: val as '' | LoanStatus })
+              onFilterChange({ ...filters, status: val as '' | ReturnFilterStatus })
             }
             options={[
               { value: '', label: 'Estado' },
               { value: 'ACTIVE', label: 'Activo' },
               { value: 'DUE_SOON', label: 'Próximo a vencer' },
               { value: 'OVERDUE', label: 'Vencido' },
-              { value: 'RETURNED', label: 'Devuelto' },
+              { value: 'RETURNED_TODAY', label: 'Devueltos hoy' },
+              { value: 'RETURNED', label: 'Devueltos (todos)' },
             ]}
             fullWidth={false}
             aria-label="Filtrar por estado"

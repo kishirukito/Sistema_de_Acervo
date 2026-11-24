@@ -1,5 +1,7 @@
 export type LoanStatus = 'ACTIVE' | 'DUE_SOON' | 'OVERDUE' | 'RETURNED';
 
+export type ReturnFilterStatus = LoanStatus | 'RETURNED_TODAY';
+
 export type NormalUserCategory =
   | 'TEACHER'
   | 'STUDENT'
@@ -41,7 +43,7 @@ export interface ReturnRecord {
 
 export interface ReturnsFilterState {
   searchQuery: string;
-  status: '' | LoanStatus;
+  status: '' | ReturnFilterStatus;
   dueDateFilter: string;
   userCategory: '' | NormalUserCategory;
 }

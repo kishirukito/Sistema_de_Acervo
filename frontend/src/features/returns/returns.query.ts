@@ -27,6 +27,41 @@ export function useAdminReturns() {
   });
 }
 
+export function isDateToday(rawDateStr?: string, formattedStr?: string): boolean {
+  if (!rawDateStr && !formattedStr) return false;
+  const now = new Date();
+
+  if (rawDateStr) {
+    const d = new Date(rawDateStr);
+    if (!isNaN(d.getTime())) {
+      if (
+        d.getFullYear() === now.getFullYear() &&
+        d.getMonth() === now.getMonth() &&
+        d.getDate() === now.getDate()
+      ) {
+        return true;
+      }
+    }
+    const localTodayYmd = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
+    if (rawDateStr.startsWith(localTodayYmd)) {
+      return true;
+    }
+  }
+
+  if (formattedStr) {
+    const months = ['ene.', 'feb.', 'mar.', 'abr.', 'may.', 'jun.', 'jul.', 'ago.', 'sep.', 'oct.', 'nov.', 'dic.'];
+    const day = String(now.getDate()).padStart(2, '0');
+    const month = months[now.getMonth()];
+    const year = now.getFullYear();
+    const todayFormatted = `${day} ${month} ${year}`;
+    if (formattedStr.toLowerCase().trim() === todayFormatted.toLowerCase().trim()) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
 /**
  * Deriva el resumen KPI desde los registros ya cargados.
  * Nunca hace petición adicional; elimina la segunda llamada a fetchReturnRecords()
@@ -36,17 +71,15 @@ export function deriveReturnsSummary(records: ReturnRecord[]): ReturnsSummaryDat
   let pending = 0;
   let overdue = 0;
   let returnedToday = 0;
-  const now = new Date();
-  const todayStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}-${String(now.getDate()).padStart(2, '0')}`;
 
   for (const r of records) {
     if (r.status === 'RETURNED') {
-      if (r.rawReturnDate && r.rawReturnDate.startsWith(todayStr)) {
+      if (isDateToday(r.rawReturnDate, r.returnDate)) {
         returnedToday++;
       }
     } else {
       pending++;
-      if (r.isOverdue || r.status === 'OVERDUE') {
+      if (r.status === 'OVERDUE') {
         overdue++;
       }
     }
