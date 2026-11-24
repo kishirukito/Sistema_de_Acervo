@@ -18,6 +18,13 @@ import { LoanStatusDonutChart } from '../../features/reports/components/LoanStat
 import { CategoriesBarChart } from '../../features/reports/components/CategoriesBarChart';
 import { OverdueLoansTable } from '../../features/reports/components/OverdueLoansTable';
 import { QuickReportsCard } from '../../features/reports/components/QuickReportsCard';
+import { ReportTemplateModal } from '../../features/reports/components/ReportTemplateModal';
+import {
+  buildReportTemplateData,
+  exportReportTemplateToCsv,
+} from '../../features/reports/reports-templates.data';
+import type { ReportTemplateData } from '../../features/reports/reports-templates.types';
+import { useAdminLoans } from '../../features/loans/admin-loans.query';
 
 import { CirculacionStatsView } from '../../features/reports/components/CirculacionStatsView';
 import { ProcesosTecnicosStatsView } from '../../features/reports/components/ProcesosTecnicosStatsView';
@@ -38,6 +45,9 @@ export const ReportsPage: React.FC = () => {
   const queryClient = useQueryClient();
   const [activeTab, setActiveTab] = useState<ActiveTab>('resumen');
 
+  // Interactive executive template modal state
+  const [selectedTemplateReport, setSelectedTemplateReport] = useState<ReportTemplateData | null>(null);
+
   // Data entry modal state
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [modalTab, setModalTab] = useState<'sancion' | 'espacio' | 'computo' | 'baja'>('sancion');
@@ -53,6 +63,9 @@ export const ReportsPage: React.FC = () => {
   });
 
   const [toastMessage, setToastMessage] = useState<string | null>(null);
+
+  // Cargar préstamos admin para enriquecer reportes con datos reales
+  const { data: loansList = [] } = useAdminLoans();
 
   // React Query — staleTime: 5 min para estadísticas SIABUC.
   // No se hace polling porque el endpoint puede tener efectos secundarios.
@@ -142,34 +155,15 @@ export const ReportsPage: React.FC = () => {
     showToast('Reporte completo descargado con éxito');
   };
 
+  const handleViewTemplate = (item: QuickReportItem) => {
+    const templateData = buildReportTemplateData(item.id, siabucData, loansList);
+    setSelectedTemplateReport(templateData);
+  };
+
   const handleDownloadQuickReport = (item: QuickReportItem) => {
-    let csvRows = [`Reporte: ${item.title}`, `Fecha: ${new Date().toLocaleDateString('es-MX')}`, ''];
-    if (item.id === 'rep-circulacion') {
-      csvRows.push('Carrera/Facultad,Cantidad');
-      siabucData.circulacion.prestamos_por_carrera.forEach((c) => csvRows.push(`"${c.carrera}",${c.cantidad}`));
-    } else if (item.id === 'rep-sanciones') {
-      csvRows.push('Métrica,Valor');
-      csvRows.push(`Total Sanciones,${siabucData.circulacion.sanciones.total_sanciones}`);
-      csvRows.push(`Monto Pendiente,$${siabucData.circulacion.sanciones.monto_pendiente}`);
-      csvRows.push(`Monto Recaudado,$${siabucData.circulacion.sanciones.monto_recaudado}`);
-    } else if (item.id === 'rep-inventario') {
-      csvRows.push('Estado,Cantidad');
-      siabucData.inventario.distribucion_estados.forEach((d) => csvRows.push(`"${d.estado}",${d.cantidad}`));
-    } else {
-      csvRows.push('Título,Solicitudes');
-      siabucData.circulacion.frecuencia_acervo.forEach((f) => csvRows.push(`"${f.titulo}",${f.solicitudes}`));
-    }
-
-    const csvContent = 'data:text/csv;charset=utf-8,' + csvRows.join('\n');
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement('a');
-    link.setAttribute('href', encodedUri);
-    link.setAttribute('download', item.fileName);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-
-    showToast(`Descargando ${item.title}...`);
+    const templateData = buildReportTemplateData(item.id, siabucData, loansList);
+    exportReportTemplateToCsv(templateData);
+    showToast(`Descargando ${item.title} (formato enriquecido)...`);
   };
 
   return (
@@ -320,7 +314,10 @@ export const ReportsPage: React.FC = () => {
                     </div>
                   </div>
 
-                  <QuickReportsCard onDownloadReport={handleDownloadQuickReport} />
+                  <QuickReportsCard
+                    onDownloadReport={handleDownloadQuickReport}
+                    onViewTemplate={handleViewTemplate}
+                  />
                 </div>
               </div>
             </div>
@@ -364,6 +361,12 @@ export const ReportsPage: React.FC = () => {
         onSuccess={handleModalSuccess}
         catalogos={siabucData.catalogos}
         initialTab={modalTab}
+      />
+
+      {/* Interactive Executive Report Template Modal */}
+      <ReportTemplateModal
+        reportData={selectedTemplateReport}
+        onClose={() => setSelectedTemplateReport(null)}
       />
 
       {/* Toast notification banner */}
