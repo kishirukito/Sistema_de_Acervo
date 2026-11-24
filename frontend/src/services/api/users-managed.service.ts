@@ -31,13 +31,28 @@ function mapEstadoToStatus(estado: string): UserStatus {
   return 'INACTIVE';
 }
 
-function mapRolToCategory(rol: string): 'TEACHER' | 'STUDENT' | 'EXTERNAL' | 'ROOM' | 'GRADUATE' {
+function mapTipoOrRolToCategory(
+  tipoUsuarioId: number | null | undefined,
+  rol: string | undefined,
+  depRaw: string | undefined
+): 'TEACHER' | 'STUDENT' | 'EXTERNAL' | 'ROOM' | 'GRADUATE' {
+  if (tipoUsuarioId === 2) return 'TEACHER';
+  if (tipoUsuarioId === 3) return 'STUDENT';
+  if (tipoUsuarioId === 4) return 'GRADUATE';
+  if (tipoUsuarioId === 5) return 'EXTERNAL';
+
   switch (rol) {
     case 'docente': return 'TEACHER';
     case 'egresado': return 'GRADUATE';
     case 'externo': return 'EXTERNAL';
-    default: return 'STUDENT';
   }
+
+  const dep = (depRaw || '').toLowerCase();
+  if (dep.includes('docente') || dep.includes('profesor')) return 'TEACHER';
+  if (dep.includes('egresado')) return 'GRADUATE';
+  if (dep.includes('externo')) return 'EXTERNAL';
+  if (dep.includes('sala')) return 'ROOM';
+  return 'STUDENT';
 }
 
 function mapUsuarioToManagedUser(row: any, index: number): ManagedUser {
@@ -86,15 +101,12 @@ function mapUsuarioToManagedUser(row: any, index: number): ManagedUser {
     };
   }
 
-  // Categoría determinada primero por rol, luego por dependencia_o_area como fallback
-  let category: 'TEACHER' | 'STUDENT' | 'EXTERNAL' | 'ROOM' | 'GRADUATE' = mapRolToCategory(row.rol);
-  if (category === 'STUDENT') {
-    const dep = (row.dependencia_o_area || row.carrera_o_dependencia || '').toLowerCase();
-    if (dep.includes('docente') || dep.includes('profesor')) category = 'TEACHER';
-    else if (dep.includes('egresado')) category = 'GRADUATE';
-    else if (dep.includes('externo')) category = 'EXTERNAL';
-    else if (dep.includes('sala')) category = 'ROOM';
-  }
+  // Categoría determinada por tipo_usuario_id (fuente real DB), rol y fallback por dependencia_o_area
+  const category = mapTipoOrRolToCategory(
+    row.tipo_usuario_id,
+    row.rol,
+    row.dependencia_o_area || row.carrera_o_dependencia
+  );
 
   return {
     ...base,

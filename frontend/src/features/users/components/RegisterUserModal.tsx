@@ -258,6 +258,7 @@ export const RegisterUserModal: React.FC<RegisterUserModalProps> = ({
           email: data.email.trim().toLowerCase(),
           phone: data.phone?.trim() || undefined,
           borrowerCode: data.borrowerCode.trim().toUpperCase(),
+          matricula: data.borrowerCode.trim().toUpperCase(),
           avatarInitials: initials,
         };
       } else {
@@ -278,8 +279,9 @@ export const RegisterUserModal: React.FC<RegisterUserModalProps> = ({
           email: data.email.trim().toLowerCase(),
           phone: data.phone?.trim() || undefined,
           borrowerCode: data.borrowerCode.trim().toUpperCase(),
+          matricula: data.borrowerCode.trim().toUpperCase(),
           avatarInitials: initials,
-          carreraId: user.carreraId || null,
+          carreraId: data.carreraId || user.carreraId || null,
           carrera: carreraObj,
           dependenciaOArea: carreraNombre || data.dependenciaOArea?.trim() || null,
           roomResponsibleName:

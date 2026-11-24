@@ -100,7 +100,7 @@ class SupabaseService:
     async def get_users(self) -> List[Dict[str, Any]]:
         url = (
             f"{self.base_url}/usuarios?select="
-            "id,rol,email,nombre_completo,matricula_o_nomina,dependencia_o_area,carrera_id,vigencia_hasta,estado,created_at,telefono,"
+            "id,tipo_usuario_id,rol,email,nombre_completo,matricula_o_nomina,dependencia_o_area,carrera_id,vigencia_hasta,estado,created_at,telefono,"
             "carreras(id,nivel,nombre),"
             "prestamos:prestamos!prestamos_usuario_id_fkey(id,estado)"
             "&order=nombre_completo.asc"
@@ -111,7 +111,7 @@ class SupabaseService:
                 # Fallback if relationship or phone isn't available
                 fallback_url = (
                     f"{self.base_url}/usuarios?select="
-                    "id,rol,email,nombre_completo,matricula_o_nomina,dependencia_o_area,carrera_id,vigencia_hasta,estado,created_at,"
+                    "id,tipo_usuario_id,rol,email,nombre_completo,matricula_o_nomina,dependencia_o_area,carrera_id,vigencia_hasta,estado,created_at,"
                     "carreras(id,nivel,nombre)"
                     "&order=nombre_completo.asc"
                 )
@@ -1170,19 +1170,34 @@ class SupabaseService:
             if mat:
                 payload["matricula_o_nomina"] = str(mat).strip()
 
-            # Rol (mapeado a valores válidos en Supabase)
+            # Rol (enum_user_rol solo acepta 'admin', 'personal', 'lector') + tipo_usuario_id
             raw_rol = str(updates.get("rol") or updates.get("role") or "").lower().strip()
             if raw_rol:
-                ROL_MAP = {
-                    "admin": "admin", "administrador": "admin", "superadmin": "admin",
-                    "docente": "docente", "maestro": "docente", "profesor": "docente",
-                    "lector": "lector", "alumno": "lector", "estudiante": "lector",
-                    "egresado": "egresado", "tesista": "egresado",
-                    "externo": "externo",
-                    "personal": "personal",
+                ROL_TO_DB = {
+                    "admin": ("admin", 1),
+                    "administrador": ("admin", 1),
+                    "superadmin": ("admin", 1),
+                    "personal": ("personal", 1),
+                    "bibliotecario": ("personal", 1),
+                    "librarian": ("personal", 1),
+                    "docente": ("lector", 2),
+                    "maestro": ("lector", 2),
+                    "profesor": ("lector", 2),
+                    "teacher": ("lector", 2),
+                    "lector": ("lector", 3),
+                    "alumno": ("lector", 3),
+                    "estudiante": ("lector", 3),
+                    "student": ("lector", 3),
+                    "egresado": ("lector", 4),
+                    "tesista": ("lector", 4),
+                    "graduate": ("lector", 4),
+                    "externo": ("lector", 5),
+                    "external": ("lector", 5),
                 }
-                if raw_rol in ROL_MAP:
-                    payload["rol"] = ROL_MAP[raw_rol]
+                if raw_rol in ROL_TO_DB:
+                    db_rol, db_tipo_id = ROL_TO_DB[raw_rol]
+                    payload["rol"] = db_rol
+                    payload["tipo_usuario_id"] = db_tipo_id
 
             # Teléfono (solo si tiene valor)
             phone = updates.get("telefono") or updates.get("phone")

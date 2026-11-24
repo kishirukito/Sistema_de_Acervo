@@ -111,16 +111,20 @@ async def post_usuario(
     - Resuelve tipo_usuario_id según el rol enviado.
     - Valida campos NOT NULL antes de enviar a Supabase (devuelve HTTP 422 descriptivo).
     """
-    # --- Mapeo rol → tipo_usuario_id ---
-    ROL_TO_TIPO = {
-        "admin": 1, "personal": 1,
-        "docente": 2,
-        "lector": 3, "alumno": 3,
-        "egresado": 4, "tesista": 4,
-        "externo": 5,
+    # --- Mapeo rol → (enum_user_rol, tipo_usuario_id) ---
+    ROL_TO_DB = {
+        "admin": ("admin", 1),
+        "personal": ("personal", 1),
+        "docente": ("lector", 2),
+        "maestro": ("lector", 2),
+        "lector": ("lector", 3),
+        "alumno": ("lector", 3),
+        "egresado": ("lector", 4),
+        "tesista": ("lector", 4),
+        "externo": ("lector", 5),
     }
-    rol = str(payload.get("rol") or "lector").lower().strip()
-    tipo_usuario_id = ROL_TO_TIPO.get(rol, 3)
+    raw_rol = str(payload.get("rol") or "lector").lower().strip()
+    rol, tipo_usuario_id = ROL_TO_DB.get(raw_rol, ("lector", 3))
 
     # --- Campos requeridos ---
     nombre   = (payload.get("nombre_completo") or payload.get("fullName") or "").strip()
