@@ -4,9 +4,10 @@ export interface MetricData {
   value: string | number;
   trend?: string;
   trendType?: 'positive' | 'negative' | 'neutral';
-  iconType: 'book' | 'book-open' | 'clipboard' | 'clock';
+  iconType: 'book' | 'book-open' | 'clipboard' | 'clock' | 'inbox';
   accentColor: string;
   badgeBgColor: string;
+  navigateTo?: string;
 }
 
 export interface QuickActionItem {

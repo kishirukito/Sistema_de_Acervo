@@ -113,14 +113,35 @@ function classifyBook(book: any): string {
 
 /**
  * Primary aggregator: fetches real data from backend endpoints and calculates
- * all 5 widgets of the dashboard without any fake data.
+ * all widgets of the dashboard without any fake data.
  */
 export async function fetchDashboardSnapshot(): Promise<DashboardSnapshot> {
-  const [libros, prestamos, usuarios] = await Promise.all([
+  const [libros, prestamos, usuarios, solicitudesApi] = await Promise.all([
     apiGet<any>('/api/v1/data/libros'),
     apiGet<any>('/api/v1/data/prestamos'),
     apiGet<any>('/api/v1/data/usuarios'),
+    apiGet<any>('/api/v1/data/solicitudes'),
   ]);
+
+  // Si la API no devolvió solicitudes directas, fallback al servicio de solicitudes
+  let rawSolicitudes = solicitudesApi;
+  if (!Array.isArray(rawSolicitudes) || rawSolicitudes.length === 0) {
+    try {
+      const { getAllBorrowRequests } = await import('../../features/loans/requests.service');
+      rawSolicitudes = getAllBorrowRequests();
+    } catch {}
+  }
+
+  const totalSolicitudes = Array.isArray(rawSolicitudes) ? rawSolicitudes.length : 0;
+  let pendingSolicitudes = 0;
+  if (Array.isArray(rawSolicitudes)) {
+    for (const s of rawSolicitudes) {
+      const st = String(s.status || s.estado || '').toUpperCase();
+      if (st === 'PENDING' || st === 'PENDIENTE') {
+        pendingSolicitudes++;
+      }
+    }
+  }
 
   const now = new Date();
 
@@ -166,7 +187,7 @@ export async function fetchDashboardSnapshot(): Promise<DashboardSnapshot> {
     }
   }
 
-  // 3. KPI Cards (3 Métricas principales: Total de libros, Préstamos activos y Préstamos vencidos)
+  // 3. KPI Cards (4 Métricas principales: Total de libros, Préstamos activos, Préstamos vencidos y Solicitudes)
   const metrics: MetricData[] = [
     {
       id: 'metric-books',
@@ -177,6 +198,7 @@ export async function fetchDashboardSnapshot(): Promise<DashboardSnapshot> {
       iconType: 'book',
       accentColor: '#1E3A5F',
       badgeBgColor: '#EFF6FF',
+      navigateTo: '/admin/catalog',
     },
     {
       id: 'metric-active-loans',
@@ -187,6 +209,7 @@ export async function fetchDashboardSnapshot(): Promise<DashboardSnapshot> {
       iconType: 'book-open',
       accentColor: '#27AE60',
       badgeBgColor: '#DDF5E7',
+      navigateTo: '/admin/loans',
     },
     {
       id: 'metric-overdue',
@@ -197,6 +220,18 @@ export async function fetchDashboardSnapshot(): Promise<DashboardSnapshot> {
       iconType: 'clock',
       accentColor: '#EB5757',
       badgeBgColor: '#FDE2E2',
+      navigateTo: '/admin/returns',
+    },
+    {
+      id: 'metric-requests',
+      title: 'SOLICITUDES',
+      value: totalSolicitudes,
+      trend: pendingSolicitudes > 0 ? `${pendingSolicitudes} por revisar` : `${totalSolicitudes} registradas`,
+      trendType: pendingSolicitudes > 0 ? 'positive' : 'neutral',
+      iconType: 'inbox',
+      accentColor: '#D97706',
+      badgeBgColor: '#FEF3C7',
+      navigateTo: '/admin/solicitudes',
     },
   ];
 
