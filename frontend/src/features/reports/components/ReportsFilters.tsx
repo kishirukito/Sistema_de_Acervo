@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Clock, Filter, Download, ChevronDown, Check } from 'lucide-react';
+import { Clock, Filter, ChevronDown, Check } from 'lucide-react';
 import type { ReportsFilterState } from '../reports.types';
 import { BIBLIOGRAPHIC_CATEGORIES } from '../../../constants';
 import { CustomSelect } from '../../../components/ui/CustomSelect';
@@ -8,14 +8,13 @@ interface ReportsFiltersProps {
   filters: ReportsFilterState;
   onFilterChange: <K extends keyof ReportsFilterState>(key: K, value: ReportsFilterState[K]) => void;
   onApplyFilters: () => void;
-  onExportReport: () => void;
+  onExportReport?: () => void;
 }
 
 export const ReportsFilters: React.FC<ReportsFiltersProps> = ({
   filters,
   onFilterChange,
   onApplyFilters,
-  onExportReport,
 }) => {
   const [showDateDropdown, setShowDateDropdown] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -158,16 +157,6 @@ export const ReportsFilters: React.FC<ReportsFiltersProps> = ({
         >
           <Filter size={15} />
           <span>Aplicar filtros</span>
-        </button>
-
-        <button
-          type="button"
-          onClick={onExportReport}
-          className="reports-btn-outline"
-          aria-label="Exportar informe de reporte"
-        >
-          <Download size={15} />
-          <span>Exportar reporte</span>
         </button>
       </div>
     </div>
