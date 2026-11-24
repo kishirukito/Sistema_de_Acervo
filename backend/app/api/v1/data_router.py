@@ -2,7 +2,10 @@ from fastapi import APIRouter, HTTPException, Depends, status
 import time
 import asyncio
 import httpx
+import logging
 from datetime import datetime, timezone
+
+logger = logging.getLogger(__name__)
 from app.core.config import settings
 from app.services.supabase_service import supabase_service
 from app.services.vector_service import VectorService
@@ -814,8 +817,9 @@ async def patch_usuario(
         return {"updated": True, "id": clean_id, "data": result.get("data")}
     except HTTPException:
         raise
-    except Exception:
-        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Error interno al actualizar el usuario.")
+    except Exception as exc:
+        logger.exception("Error interno al actualizar usuario %s: %s", clean_id, exc)
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=f"Error interno al actualizar el usuario: {exc}")
 
 @router.patch("/prestamos/{loan_id}")
 async def patch_prestamo(
