@@ -276,7 +276,7 @@ export const ReportsPage: React.FC = () => {
                   overdueLoans={executive.actividad_reciente}
                   totalOverdueCount={executive.metricas.overdueLoans}
                 />
-                
+
                 {/* Real Alerts & Quick Actions */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
                   <div className="reports-chart-card" style={{ padding: '1.25rem' }}>
