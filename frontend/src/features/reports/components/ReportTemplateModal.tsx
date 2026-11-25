@@ -28,6 +28,8 @@ import './ReportTemplateModal.css';
 interface ReportTemplateModalProps {
   isOpen: boolean;
   initialReportId?: string;
+  initialStartDate?: string;
+  initialEndDate?: string;
   onClose: () => void;
   onExportConfirmed?: (message: string) => void;
 }
@@ -56,6 +58,8 @@ function formatCellDisplay(val: any, type: string): string {
 export const ReportTemplateModal: React.FC<ReportTemplateModalProps> = ({
   isOpen,
   initialReportId = 'rep-carreras',
+  initialStartDate = '',
+  initialEndDate = '',
   onClose,
   onExportConfirmed,
 }) => {
@@ -67,11 +71,22 @@ export const ReportTemplateModal: React.FC<ReportTemplateModalProps> = ({
   const currentDay = String(today.getDate()).padStart(2, '0');
   const todayStr = `${currentYear}-${currentMonth}-${currentDay}`;
 
-  const [startDate, setStartDate] = useState<string>('');
-  const [endDate, setEndDate] = useState<string>('');
-  const [activePreset, setActivePreset] = useState<'all' | 'month' | 'quarter' | 'semester' | 'year' | 'custom'>('all');
+  const [startDate, setStartDate] = useState<string>(initialStartDate);
+  const [endDate, setEndDate] = useState<string>(initialEndDate);
+  const [activePreset, setActivePreset] = useState<'all' | 'month' | 'quarter' | 'semester' | 'year' | 'c1' | 'c2_jul' | 'c2_ago' | 'c3_ago' | 'custom'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
+
+  // Sincronizar fechas iniciales cuando abre el modal
+  useEffect(() => {
+    if (isOpen) {
+      if (initialStartDate || initialEndDate) {
+        setStartDate(initialStartDate);
+        setEndDate(initialEndDate);
+        setActivePreset('custom');
+      }
+    }
+  }, [isOpen, initialStartDate, initialEndDate]);
 
   const [reportModel, setReportModel] = useState<ReportModel | null>(null);
   const [isLoading, setIsLoading] = useState(false);
@@ -115,7 +130,7 @@ export const ReportTemplateModal: React.FC<ReportTemplateModalProps> = ({
     loadModel();
   }, [loadModel]);
 
-  const handleApplyPreset = (preset: 'all' | 'month' | 'quarter' | 'semester' | 'year') => {
+  const handleApplyPreset = (preset: 'all' | 'month' | 'quarter' | 'semester' | 'year' | 'c1' | 'c2_jul' | 'c2_ago' | 'c3_ago') => {
     setActivePreset(preset);
     if (preset === 'all') {
       setStartDate('');
@@ -123,6 +138,18 @@ export const ReportTemplateModal: React.FC<ReportTemplateModalProps> = ({
     } else if (preset === 'month') {
       setStartDate(`${currentYear}-${currentMonth}-01`);
       setEndDate(todayStr);
+    } else if (preset === 'c1') {
+      setStartDate(`${currentYear}-01-01`);
+      setEndDate(`${currentYear}-04-30`);
+    } else if (preset === 'c2_jul') {
+      setStartDate(`${currentYear}-05-01`);
+      setEndDate(`${currentYear}-07-31`);
+    } else if (preset === 'c2_ago') {
+      setStartDate(`${currentYear}-05-01`);
+      setEndDate(`${currentYear}-08-31`);
+    } else if (preset === 'c3_ago') {
+      setStartDate(`${currentYear}-08-01`);
+      setEndDate(`${currentYear}-12-31`);
     } else if (preset === 'quarter') {
       const qStart = new Date(today);
       qStart.setMonth(qStart.getMonth() - 3);
@@ -305,17 +332,35 @@ export const ReportTemplateModal: React.FC<ReportTemplateModalProps> = ({
                 </button>
                 <button
                   type="button"
-                  className={`report-preset-btn ${activePreset === 'quarter' ? 'active' : ''}`}
-                  onClick={() => handleApplyPreset('quarter')}
+                  className={`report-preset-btn ${activePreset === 'c1' ? 'active' : ''}`}
+                  onClick={() => handleApplyPreset('c1')}
+                  title="1er Cuatrimestre: Enero - Abril"
                 >
-                  Trimestre
+                  Ene - Abr
                 </button>
                 <button
                   type="button"
-                  className={`report-preset-btn ${activePreset === 'semester' ? 'active' : ''}`}
-                  onClick={() => handleApplyPreset('semester')}
+                  className={`report-preset-btn ${activePreset === 'c2_jul' ? 'active' : ''}`}
+                  onClick={() => handleApplyPreset('c2_jul')}
+                  title="2do Cuatrimestre: Mayo - Julio"
                 >
-                  Semestre
+                  May - Jul
+                </button>
+                <button
+                  type="button"
+                  className={`report-preset-btn ${activePreset === 'c2_ago' ? 'active' : ''}`}
+                  onClick={() => handleApplyPreset('c2_ago')}
+                  title="2do Cuatrimestre: Mayo - Agosto"
+                >
+                  May - Ago
+                </button>
+                <button
+                  type="button"
+                  className={`report-preset-btn ${activePreset === 'c3_ago' ? 'active' : ''}`}
+                  onClick={() => handleApplyPreset('c3_ago')}
+                  title="3er Cuatrimestre: Agosto - Diciembre"
+                >
+                  Ago - Dic
                 </button>
                 <button
                   type="button"

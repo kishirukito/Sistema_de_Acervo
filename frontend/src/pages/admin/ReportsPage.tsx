@@ -60,11 +60,10 @@ export const ReportsPage: React.FC = () => {
   const [toastMessage, setToastMessage] = useState<string | null>(null);
 
   // React Query — staleTime: 5 min para estadísticas SIABUC.
-  // No se hace polling porque el endpoint puede tener efectos secundarios.
-  // La invalidación solo ocurre tras acción explícita del usuario (handleModalSuccess).
+  // Re-consulta automáticamente cuando cambian los filtros de fecha.
   const { data: siabucData = DEFAULT_SIABUC_DATA, isLoading: loading } = useQuery({
-    queryKey: SIABUC_REPORTS_KEY,
-    queryFn: fetchSiabucReports,
+    queryKey: [...SIABUC_REPORTS_KEY, filters.startDate, filters.endDate],
+    queryFn: () => fetchSiabucReports(filters.startDate, filters.endDate),
     staleTime: 1000 * 60 * 5,   // 5 min
     gcTime: 1000 * 60 * 15,     // 15 min en memoria
     refetchOnWindowFocus: false,
@@ -89,6 +88,7 @@ export const ReportsPage: React.FC = () => {
   };
 
   const handleApplyFilters = () => {
+    queryClient.invalidateQueries({ queryKey: SIABUC_REPORTS_KEY });
     showToast('Filtros aplicados a los reportes');
   };
 
@@ -354,6 +354,8 @@ export const ReportsPage: React.FC = () => {
       <ReportTemplateModal
         isOpen={isMasterReportModalOpen}
         initialReportId={activeMasterReportId}
+        initialStartDate={filters.startDate}
+        initialEndDate={filters.endDate}
         onClose={() => setIsMasterReportModalOpen(false)}
         onExportConfirmed={(msg) => showToast(msg)}
       />

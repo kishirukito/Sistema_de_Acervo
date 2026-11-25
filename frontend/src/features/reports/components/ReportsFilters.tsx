@@ -1,5 +1,5 @@
-import React, { useState, useRef, useEffect } from 'react';
-import { Clock, Filter, ChevronDown, Check } from 'lucide-react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
+import { Clock, Filter, ChevronDown, Check, Calendar, RotateCcw } from 'lucide-react';
 import type { ReportsFilterState } from '../reports.types';
 import { BIBLIOGRAPHIC_CATEGORIES } from '../../../constants';
 import { CustomSelect } from '../../../components/ui/CustomSelect';
@@ -17,7 +17,14 @@ export const ReportsFilters: React.FC<ReportsFiltersProps> = ({
   onApplyFilters,
 }) => {
   const [showDateDropdown, setShowDateDropdown] = useState(false);
+  const [customStart, setCustomStart] = useState(filters.startDate || '');
+  const [customEnd, setCustomEnd] = useState(filters.endDate || '');
   const dropdownRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    setCustomStart(filters.startDate || '');
+    setCustomEnd(filters.endDate || '');
+  }, [filters.startDate, filters.endDate]);
 
   useEffect(() => {
     if (!showDateDropdown) return;
@@ -39,13 +46,46 @@ export const ReportsFilters: React.FC<ReportsFiltersProps> = ({
     };
   }, [showDateDropdown]);
 
-  const datePresets = [
-    { label: 'Periodo Completo (Todos los registros)', start: '', end: '' },
-    { label: 'Noviembre 2026 (Mes actual)', start: '2026-11-01', end: '2026-11-30' },
-    { label: 'Octubre 2026 (Mes anterior)', start: '2026-10-01', end: '2026-10-31' },
-    { label: 'Últimos 30 días', start: '2026-10-07', end: '2026-11-06' },
-    { label: 'Año 2026 completo', start: '2026-01-01', end: '2026-12-31' },
-  ];
+  const currentYear = useMemo(() => new Date().getFullYear(), []);
+
+  // Cuatrimestres universitarios y escolares
+  const cuatrimestresPresets = useMemo(() => [
+    { label: '1er Cuatrimestre (Enero - Abril)', short: 'Ene - Abr', start: `${currentYear}-01-01`, end: `${currentYear}-04-30` },
+    { label: '2do Cuatrimestre (Mayo - Julio)', short: 'May - Jul', start: `${currentYear}-05-01`, end: `${currentYear}-07-31` },
+    { label: '2do Cuatrimestre (Mayo - Agosto)', short: 'May - Ago', start: `${currentYear}-05-01`, end: `${currentYear}-08-31` },
+    { label: '3er Cuatrimestre (Agosto - Diciembre)', short: 'Ago - Dic', start: `${currentYear}-08-01`, end: `${currentYear}-12-31` },
+    { label: '3er Cuatrimestre (Septiembre - Diciembre)', short: 'Sep - Dic', start: `${currentYear}-09-01`, end: `${currentYear}-12-31` },
+  ], [currentYear]);
+
+  // Periodos estándar
+  const standardPresets = useMemo(() => [
+    { label: 'Periodo Completo (Todos los registros)', short: 'Periodo Completo', start: '', end: '' },
+    { label: `Mes actual (${currentYear})`, short: 'Mes actual', start: `${currentYear}-11-01`, end: `${currentYear}-11-30` },
+    { label: `Año ${currentYear} completo`, short: `Año ${currentYear}`, start: `${currentYear}-01-01`, end: `${currentYear}-12-31` },
+  ], [currentYear]);
+
+  const handleSelectPreset = (preset: { label: string; short: string; start: string; end: string }) => {
+    onFilterChange('dateRange', preset.short);
+    onFilterChange('startDate', preset.start);
+    onFilterChange('endDate', preset.end);
+    setShowDateDropdown(false);
+  };
+
+  const handleApplyCustomDates = () => {
+    if (!customStart && !customEnd) {
+      onFilterChange('dateRange', 'Periodo Completo');
+      onFilterChange('startDate', '');
+      onFilterChange('endDate', '');
+    } else {
+      const label = customStart && customEnd
+        ? `${customStart} al ${customEnd}`
+        : customStart ? `Desde ${customStart}` : `Hasta ${customEnd}`;
+      onFilterChange('dateRange', label);
+      onFilterChange('startDate', customStart);
+      onFilterChange('endDate', customEnd);
+    }
+    setShowDateDropdown(false);
+  };
 
   return (
     <div className="reports-toolbar-card" role="toolbar" aria-label="Filtros de reportes">
@@ -56,13 +96,15 @@ export const ReportsFilters: React.FC<ReportsFiltersProps> = ({
             type="button"
             onClick={() => setShowDateDropdown(!showDateDropdown)}
             className={`reports-date-picker-btn ${showDateDropdown ? 'reports-date-picker-btn--active' : ''}`}
-            aria-label="Seleccionar rango de fechas"
+            aria-label="Seleccionar rango de fechas o cuatrimestre"
             aria-expanded={showDateDropdown}
             aria-haspopup="menu"
-            title="Cambiar periodo de análisis"
+            title="Cambiar periodo o cuatrimestre de análisis"
           >
             <Clock size={15} color="#6B7280" />
-            <span>{filters.dateRange || 'Periodo Completo'}</span>
+            <span style={{ maxWidth: '240px', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+              {filters.dateRange || 'Periodo Completo'}
+            </span>
             <ChevronDown size={14} color="#6B7280" />
           </button>
 
@@ -70,35 +112,167 @@ export const ReportsFilters: React.FC<ReportsFiltersProps> = ({
             <div
               className="reports-date-dropdown-menu"
               role="menu"
-              aria-label="Rangos de fecha predefinidos"
+              aria-label="Rangos de fecha y cuatrimestres"
               style={{
                 position: 'absolute',
                 top: 'calc(100% + 6px)',
                 left: 0,
                 zIndex: 60,
-                minWidth: '290px',
+                minWidth: '320px',
+                maxWidth: '360px',
+                maxHeight: '440px',
+                overflowY: 'auto',
+                boxShadow: '0 10px 25px -5px rgba(0,0,0,0.15), 0 8px 10px -6px rgba(0,0,0,0.1)',
+                backgroundColor: '#FFFFFF',
+                borderRadius: '12px',
+                border: '1px solid #E2E8F0',
+                padding: '8px',
               }}
             >
-              {datePresets.map((preset) => {
+              {/* Header Cuatrimestres */}
+              <div style={{ padding: '6px 10px 4px', fontSize: '0.6875rem', fontWeight: 700, color: '#6B7280', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                🎓 Cuatrimestres Universitarios ({currentYear})
+              </div>
+
+              {cuatrimestresPresets.map((preset) => {
                 const isSelected = filters.startDate === preset.start && filters.endDate === preset.end;
                 return (
                   <button
                     key={preset.label}
                     type="button"
                     role="menuitem"
-                    onClick={() => {
-                      onFilterChange('dateRange', preset.label.split(' (')[0]);
-                      onFilterChange('startDate', preset.start);
-                      onFilterChange('endDate', preset.end);
-                      setShowDateDropdown(false);
-                    }}
+                    onClick={() => handleSelectPreset(preset)}
                     className={`reports-date-preset-item ${isSelected ? 'reports-date-preset-item--selected' : ''}`}
+                    style={{ padding: '7px 10px', fontSize: '0.8125rem' }}
                   >
                     <span>{preset.label}</span>
                     {isSelected && <Check size={14} color="#2563EB" aria-hidden="true" />}
                   </button>
                 );
               })}
+
+              {/* Header Periodos estándar */}
+              <div style={{ padding: '10px 10px 4px', marginTop: '4px', borderTop: '1px solid #F1F5F9', fontSize: '0.6875rem', fontWeight: 700, color: '#6B7280', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
+                📅 Periodos Generales
+              </div>
+
+              {standardPresets.map((preset) => {
+                const isSelected = (!filters.startDate && !filters.endDate && !preset.start && !preset.end) ||
+                  (filters.startDate === preset.start && filters.endDate === preset.end);
+                return (
+                  <button
+                    key={preset.label}
+                    type="button"
+                    role="menuitem"
+                    onClick={() => handleSelectPreset(preset)}
+                    className={`reports-date-preset-item ${isSelected ? 'reports-date-preset-item--selected' : ''}`}
+                    style={{ padding: '7px 10px', fontSize: '0.8125rem' }}
+                  >
+                    <span>{preset.label}</span>
+                    {isSelected && <Check size={14} color="#2563EB" aria-hidden="true" />}
+                  </button>
+                );
+              })}
+
+              {/* Selector de fechas personalizadas */}
+              <div style={{ marginTop: '8px', paddingTop: '8px', borderTop: '1px solid #E2E8F0' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '6px', padding: '0 4px 6px', fontSize: '0.75rem', fontWeight: 700, color: '#1E293B' }}>
+                  <Calendar size={13} color="#2563EB" />
+                  <span>Seleccionar fechas personalizadas</span>
+                </div>
+
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '6px', padding: '0 4px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+                    <label htmlFor="custom-start-date" style={{ fontSize: '0.75rem', color: '#64748B', minWidth: '40px' }}>
+                      Desde:
+                    </label>
+                    <input
+                      id="custom-start-date"
+                      type="date"
+                      value={customStart}
+                      onChange={(e) => setCustomStart(e.target.value)}
+                      style={{
+                        flex: 1,
+                        padding: '4px 8px',
+                        fontSize: '0.8125rem',
+                        border: '1px solid #CBD5E1',
+                        borderRadius: '6px',
+                        outline: 'none',
+                      }}
+                    />
+                  </div>
+
+                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: '8px' }}>
+                    <label htmlFor="custom-end-date" style={{ fontSize: '0.75rem', color: '#64748B', minWidth: '40px' }}>
+                      Hasta:
+                    </label>
+                    <input
+                      id="custom-end-date"
+                      type="date"
+                      value={customEnd}
+                      onChange={(e) => setCustomEnd(e.target.value)}
+                      style={{
+                        flex: 1,
+                        padding: '4px 8px',
+                        fontSize: '0.8125rem',
+                        border: '1px solid #CBD5E1',
+                        borderRadius: '6px',
+                        outline: 'none',
+                      }}
+                    />
+                  </div>
+
+                  <div style={{ display: 'flex', gap: '6px', marginTop: '4px' }}>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setCustomStart('');
+                        setCustomEnd('');
+                        onFilterChange('dateRange', 'Periodo Completo');
+                        onFilterChange('startDate', '');
+                        onFilterChange('endDate', '');
+                        setShowDateDropdown(false);
+                      }}
+                      style={{
+                        flex: 1,
+                        padding: '6px 8px',
+                        fontSize: '0.75rem',
+                        fontWeight: 600,
+                        color: '#64748B',
+                        backgroundColor: '#F1F5F9',
+                        border: '1px solid #E2E8F0',
+                        borderRadius: '6px',
+                        cursor: 'pointer',
+                        display: 'inline-flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: '4px',
+                      }}
+                    >
+                      <RotateCcw size={12} />
+                      <span>Limpiar</span>
+                    </button>
+
+                    <button
+                      type="button"
+                      onClick={handleApplyCustomDates}
+                      style={{
+                        flex: 2,
+                        padding: '6px 10px',
+                        fontSize: '0.75rem',
+                        fontWeight: 600,
+                        color: '#FFFFFF',
+                        backgroundColor: '#2563EB',
+                        border: 'none',
+                        borderRadius: '6px',
+                        cursor: 'pointer',
+                      }}
+                    >
+                      Aplicar rango
+                    </button>
+                  </div>
+                </div>
+              </div>
             </div>
           )}
         </div>

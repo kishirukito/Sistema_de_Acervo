@@ -88,15 +88,21 @@ function getAuthHeaders(): Record<string, string> {
   return headers;
 }
 
-export async function fetchSiabucReports(): Promise<SiabucReportData> {
+export async function fetchSiabucReports(startDate?: string, endDate?: string): Promise<SiabucReportData> {
+  const params: Record<string, string> = {};
+  if (startDate) params.start_date = startDate;
+  if (endDate) params.end_date = endDate;
+
   try {
-    const res = await apiClient.get<SiabucReportData>('/v1/reports/siabuc');
+    const res = await apiClient.get<SiabucReportData>('/v1/reports/siabuc', { params });
     if (res.data && res.data.circulacion) {
       return res.data;
     }
   } catch (error) {
     try {
-      const fallbackRes = await fetch('/api/v1/reports/siabuc', {
+      const searchParams = new URLSearchParams(params).toString();
+      const url = `/api/v1/reports/siabuc${searchParams ? `?${searchParams}` : ''}`;
+      const fallbackRes = await fetch(url, {
         headers: getAuthHeaders(),
       });
       if (fallbackRes.ok) {

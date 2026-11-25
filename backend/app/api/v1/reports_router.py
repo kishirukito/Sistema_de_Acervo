@@ -16,15 +16,11 @@ router = APIRouter(prefix="/reports", tags=["Estadísticas SIABUC"])
 # ==============================================================================
 # CACHÉ EN MEMORIA PARA REPORTES SIABUC (TTL 60 SEGUNDOS)
 # ==============================================================================
-_siabuc_cache: Dict[str, Any] = {
-    "data": None,
-    "expires_at": 0.0
-}
+_siabuc_cache: Dict[str, Dict[str, Any]] = {}
 
 def invalidate_siabuc_cache():
     """Invalida inmediatamente la caché de estadísticas SIABUC."""
-    _siabuc_cache["data"] = None
-    _siabuc_cache["expires_at"] = 0.0
+    _siabuc_cache.clear()
 
 DEWEY_LABELS = {
     "000": "000 Obras Generales y Computación",
@@ -76,15 +72,24 @@ class UpdateEjemplarEstadoPayload(BaseModel):
 
 
 @router.get("/siabuc")
-async def get_siabuc_statistics(admin: Dict[str, Any] = Depends(require_admin)) -> Dict[str, Any]:
+async def get_siabuc_statistics(
+    start_date: Optional[str] = Query(None, description="Fecha inicial YYYY-MM-DD"),
+    end_date: Optional[str] = Query(None, description="Fecha final YYYY-MM-DD"),
+    admin: Dict[str, Any] = Depends(require_admin),
+) -> Dict[str, Any]:
     """
     Retorna los 4 bloques estadísticos estándar de SIABUC con datos reales de Supabase
     más el bloque de Resumen Ejecutivo con detección dinámica de préstamos vencidos por fecha.
-    Implementa caché en memoria con TTL de 60 segundos para alto rendimiento.
+    Implementa caché en memoria con TTL de 60 segundos por rango de fechas.
     """
+    s_date = str(start_date).strip() if isinstance(start_date, str) and start_date.strip() else None
+    e_date = str(end_date).strip() if isinstance(end_date, str) and end_date.strip() else None
+
+    cache_key = f"{s_date or ''}_{e_date or ''}"
     now_ts = time.time()
-    if _siabuc_cache["data"] is not None and now_ts < _siabuc_cache["expires_at"]:
-        return _siabuc_cache["data"]
+    cached = _siabuc_cache.get(cache_key)
+    if cached is not None and now_ts < cached.get("expires_at", 0):
+        return cached["data"]
 
     headers = {
         "apikey": settings.SUPABASE_SERVICE_ROLE_KEY,
@@ -129,6 +134,23 @@ async def get_siabuc_statistics(admin: Dict[str, Any] = Depends(require_admin)) 
         equipos = responses[6].json() if responses[6].status_code == 200 else []
         sesiones_computo = responses[7].json() if responses[7].status_code == 200 else []
         usuarios = responses[8].json() if responses[8].status_code == 200 else []
+
+    # Filtrar por fechas si se especificaron
+    if s_date or e_date:
+        def _in_date_bounds(val: Optional[str]) -> bool:
+            if not val:
+                return False
+            d = str(val)[:10]
+            if s_date and d < s_date:
+                return False
+            if e_date and d > e_date:
+                return False
+            return True
+
+        prestamos = [p for p in prestamos if _in_date_bounds(p.get("fecha_prestamo"))]
+        sanciones = [s for s in sanciones if _in_date_bounds(s.get("created_at"))]
+        reservas = [r for r in reservas if _in_date_bounds(r.get("created_at") or r.get("inicio"))]
+        sesiones_computo = [sc for sc in sesiones_computo if _in_date_bounds(sc.get("created_at"))]
 
     # 1. BLOQUE: CIRCULACIÓN & EVALUACIÓN DINÁMICA DE ESTADOS
     prestamos_por_tipo = {}
@@ -457,8 +479,10 @@ async def get_siabuc_statistics(admin: Dict[str, Any] = Depends(require_admin)) 
         }
     }
 
-    _siabuc_cache["data"] = result_data
-    _siabuc_cache["expires_at"] = time.time() + 60.0
+    _siabuc_cache[cache_key] = {
+        "data": result_data,
+        "expires_at": time.time() + 60.0
+    }
     return result_data
 
 
