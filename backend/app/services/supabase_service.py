@@ -387,7 +387,7 @@ class SupabaseService:
             now_utc = datetime.now(timezone.utc)
 
             if not clean_payload.get("fecha_prestamo"):
-                clean_payload["fecha_prestamo"] = now_utc.isoformat()
+                clean_payload["fecha_prestamo"] = now_utc.strftime("%Y-%m-%dT%H:%M:%SZ")
             else:
                 clean_payload["fecha_prestamo"] = validate_and_normalize_timestamptz(
                     clean_payload["fecha_prestamo"], "fecha_prestamo"
@@ -395,7 +395,7 @@ class SupabaseService:
 
             if not clean_payload.get("fecha_limite_devolucion"):
                 dias = int(current_tipo.get("dias_plazo_default", 7)) if current_tipo else 7
-                clean_payload["fecha_limite_devolucion"] = (now_utc + timedelta(days=dias)).isoformat()
+                clean_payload["fecha_limite_devolucion"] = (now_utc + timedelta(days=dias)).strftime("%Y-%m-%dT%H:%M:%SZ")
             else:
                 clean_payload["fecha_limite_devolucion"] = validate_and_normalize_timestamptz(
                     clean_payload["fecha_limite_devolucion"], "fecha_limite_devolucion"
@@ -923,7 +923,7 @@ class SupabaseService:
                     if new_ed.is_success and new_ed.json():
                         payload["editorial_id"] = new_ed.json()[0]["id"]
 
-            payload["updated_at"] = datetime.now(timezone.utc).isoformat()
+            payload["updated_at"] = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
 
             # 2. Actualizar metadatos en tabla 'libros'
             updated_book_data = book_info
@@ -1122,7 +1122,7 @@ class SupabaseService:
                     candidatos = sin_historial + con_historial
                     to_remove = candidatos[-diff_to_remove:]
 
-                    now_iso = datetime.now(timezone.utc).isoformat()
+                    now_iso = datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ")
                     for ej_del in to_remove:
                         del_id = ej_del["id"]
                         if del_id in used_ids:

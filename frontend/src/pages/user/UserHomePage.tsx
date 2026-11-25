@@ -21,7 +21,10 @@ import {
 } from 'lucide-react';
 import { BIBLIOGRAPHIC_CATEGORIES, getCategoryFullLabel } from '../../constants';
 import { useAllBooks } from '../../features/catalog/books.query';
+import { getPaginationItems } from '../../utils/pagination';
 import './UserHomePage.css';
+
+const HOME_BOOKS_PER_PAGE = 12;
 
 const CATEGORY_ICONS: Record<string, React.ComponentType<{ size?: number; className?: string }>> = {
   '000': Laptop,
@@ -56,11 +59,17 @@ export const UserHomePage: React.FC = () => {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [coverErrors, setCoverErrors] = useState<Record<string, boolean>>({});
+  const [currentPage, setCurrentPage] = useState(1);
 
   // ── React Query: reutiliza caché de libros si ya fue cargada ─────────────
   // Primera visita: lanza la petición y la guarda en caché 2 min.
   // Regreso a Home desde Catálogo: datos disponibles inmediatamente.
   const { data: liveBooks = [] } = useAllBooks();
+
+  const totalPages = Math.max(1, Math.ceil(liveBooks.length / HOME_BOOKS_PER_PAGE));
+  const safeCurrentPage = Math.min(currentPage, totalPages);
+  const startIndex = (safeCurrentPage - 1) * HOME_BOOKS_PER_PAGE;
+  const paginatedBooks = liveBooks.slice(startIndex, startIndex + HOME_BOOKS_PER_PAGE);
 
   const handleSearchSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -206,7 +215,7 @@ export const UserHomePage: React.FC = () => {
         </div>
 
         <div className="reader-books-grid">
-          {liveBooks.map((book) => {
+          {paginatedBooks.map((book) => {
             const hasCoverImg = Boolean(book.coverUrl) && !coverErrors[book.id];
             const fullCategory = getCategoryFullLabel(book.category);
 
@@ -269,6 +278,57 @@ export const UserHomePage: React.FC = () => {
             );
           })}
         </div>
+
+        {totalPages > 1 && (
+          <nav
+            className="reader-books-pagination"
+            aria-label="Páginas de libros en acervo"
+          >
+            <button
+              type="button"
+              className="reader-page-btn"
+              disabled={safeCurrentPage === 1}
+              onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+              aria-label="Página anterior"
+            >
+              Anterior
+            </button>
+
+            {getPaginationItems(safeCurrentPage, totalPages).map((item) =>
+              typeof item === 'number' ? (
+                <button
+                  key={item}
+                  type="button"
+                  className={`reader-page-btn ${
+                    item === safeCurrentPage ? 'reader-page-btn--active' : ''
+                  }`}
+                  onClick={() => setCurrentPage(item)}
+                  aria-current={item === safeCurrentPage ? 'page' : undefined}
+                >
+                  {item}
+                </button>
+              ) : (
+                <span
+                  key={item}
+                  className="reader-page-ellipsis"
+                  aria-hidden="true"
+                >
+                  …
+                </span>
+              )
+            )}
+
+            <button
+              type="button"
+              className="reader-page-btn"
+              disabled={safeCurrentPage === totalPages}
+              onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+              aria-label="Página siguiente"
+            >
+              Siguiente
+            </button>
+          </nav>
+        )}
       </section>
 
       {/* 4. Bottom Two-Column: Novedades & Tus accesos rápidos */}

@@ -37,16 +37,39 @@ function mapSupabaseBookToBook(b: any): Book {
 export const booksService = {
   async getAll(): Promise<Book[]> {
     try {
-      const { data, error } = await supabase
-        .from('libros')
-        .select('*, libro_autores(*, autores(*)), editoriales(*), ejemplares(*), resumenes_ia(*), libro_temas(*, temas(*))')
-        .order('created_at', { ascending: false });
+      const batchSize = 1000;
+      let offset = 0;
+      const allRows: any[] = [];
 
-      if (error || !data || data.length === 0) {
+      while (true) {
+        const { data, error } = await supabase
+          .from('libros')
+          .select('*, libro_autores(*, autores(*)), editoriales(*), ejemplares(*), resumenes_ia(*), libro_temas(*, temas(*))')
+          .order('created_at', { ascending: false })
+          .order('id', { ascending: true })
+          .range(offset, offset + batchSize - 1);
+
+        if (error) {
+          if (allRows.length > 0) break;
+          return MOCK_BOOKS;
+        }
+
+        if (!data || data.length === 0) {
+          break;
+        }
+
+        allRows.push(...data);
+        if (data.length < batchSize) {
+          break;
+        }
+        offset += batchSize;
+      }
+
+      if (allRows.length === 0) {
         return MOCK_BOOKS;
       }
 
-      return data.map(mapSupabaseBookToBook);
+      return allRows.map(mapSupabaseBookToBook);
     } catch {
       return MOCK_BOOKS;
     }

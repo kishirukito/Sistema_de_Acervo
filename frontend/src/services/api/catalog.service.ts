@@ -167,35 +167,54 @@ export async function fetchCatalogResources(): Promise<Resource[]> {
   }
 
   try {
-    const { data, error } = await supabase
-      .from('libros')
-      .select(`
-        id,
-        isbn,
-        titulo,
-        anio_publicacion,
-        edicion,
-        portada_url,
-        editorial_id,
-        editoriales ( nombre ),
-        libro_autores ( orden, autores ( nombre ) ),
-        libro_temas ( temas ( nombre ) ),
-        ejemplares ( id, codigo_inventario, ubicacion_estante, estado ),
-        resumenes_ia ( resumen_texto, palabras_clave )
-      `)
-      .order('titulo', { ascending: true });
+    const batchSize = 1000;
+    let offset = 0;
+    const allRows: any[] = [];
 
-    if (error) {
-      console.warn('[CatalogService] Supabase error, falling back to mocks:', error.message);
-      return [...MOCK_RESOURCES];
+    while (true) {
+      const { data, error } = await supabase
+        .from('libros')
+        .select(`
+          id,
+          isbn,
+          titulo,
+          anio_publicacion,
+          edicion,
+          portada_url,
+          editorial_id,
+          editoriales ( nombre ),
+          libro_autores ( orden, autores ( nombre ) ),
+          libro_temas ( temas ( nombre ) ),
+          ejemplares ( id, codigo_inventario, ubicacion_estante, estado ),
+          resumenes_ia ( resumen_texto, palabras_clave )
+        `)
+        .order('titulo', { ascending: true })
+        .order('id', { ascending: true })
+        .range(offset, offset + batchSize - 1);
+
+      if (error) {
+        if (allRows.length > 0) break;
+        console.warn('[CatalogService] Supabase error, falling back to mocks:', error.message);
+        return [...MOCK_RESOURCES];
+      }
+
+      if (!data || data.length === 0) {
+        break;
+      }
+
+      allRows.push(...data);
+      if (data.length < batchSize) {
+        break;
+      }
+      offset += batchSize;
     }
 
-    if (!data || data.length === 0) {
+    if (allRows.length === 0) {
       console.info('[CatalogService] No records in Supabase, using mocks');
       return [...MOCK_RESOURCES];
     }
 
-    return data.map(mapLibroToResource);
+    return allRows.map(mapLibroToResource);
   } catch (err) {
     console.warn('[CatalogService] Network error, falling back to mocks:', err);
     return [...MOCK_RESOURCES];

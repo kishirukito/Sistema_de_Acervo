@@ -836,4 +836,79 @@
     padding: 12px 14px;
     gap: 10px;
   }
+
+  .reader-books-pagination {
+    gap: 4px;
+    padding: 8px 4px 12px;
+  }
+
+  .reader-page-btn {
+    padding: 5px 7px;
+    font-size: 0.75rem;
+    min-width: 30px;
+  }
+
+  .reader-page-ellipsis {
+    min-width: 20px;
+    padding: 5px 2px;
+    font-size: 0.75rem;
+  }
+}
+
+/* Pagination for Libros en acervo */
+.reader-books-pagination {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 24px;
+  padding: 8px 8px 4px;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.reader-page-ellipsis {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+  padding: 6px 4px;
+  color: #94A3B8;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  user-select: none;
+}
+
+.reader-page-btn {
+  background-color: #FFFFFF;
+  border: 1px solid #E2E8F0;
+  color: #475569;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  padding: 6px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  min-width: 36px;
+  text-align: center;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+
+.reader-page-btn:hover:not(:disabled) {
+  border-color: #CBD5E1;
+  background-color: #F8FAFC;
+  color: #1E293B;
+}
+
+.reader-page-btn--active {
+  background-color: #2563EB;
+  border-color: #2563EB;
+  color: #FFFFFF;
+}
+
+.reader-page-btn:disabled {
+  opacity: 0.45;
+  cursor: not-allowed;
 }
