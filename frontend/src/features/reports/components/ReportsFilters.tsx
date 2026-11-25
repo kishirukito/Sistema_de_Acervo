@@ -48,12 +48,10 @@ export const ReportsFilters: React.FC<ReportsFiltersProps> = ({
 
   const currentYear = useMemo(() => new Date().getFullYear(), []);
 
-  // Cuatrimestres universitarios y escolares
+  // Cuatrimestres universitarios oficiales
   const cuatrimestresPresets = useMemo(() => [
     { label: '1er Cuatrimestre (Enero - Abril)', short: 'Ene - Abr', start: `${currentYear}-01-01`, end: `${currentYear}-04-30` },
-    { label: '2do Cuatrimestre (Mayo - Julio)', short: 'May - Jul', start: `${currentYear}-05-01`, end: `${currentYear}-07-31` },
     { label: '2do Cuatrimestre (Mayo - Agosto)', short: 'May - Ago', start: `${currentYear}-05-01`, end: `${currentYear}-08-31` },
-    { label: '3er Cuatrimestre (Agosto - Diciembre)', short: 'Ago - Dic', start: `${currentYear}-08-01`, end: `${currentYear}-12-31` },
     { label: '3er Cuatrimestre (Septiembre - Diciembre)', short: 'Sep - Dic', start: `${currentYear}-09-01`, end: `${currentYear}-12-31` },
   ], [currentYear]);
 
@@ -131,7 +129,7 @@ export const ReportsFilters: React.FC<ReportsFiltersProps> = ({
             >
               {/* Header Cuatrimestres */}
               <div style={{ padding: '6px 10px 4px', fontSize: '0.6875rem', fontWeight: 700, color: '#6B7280', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                🎓 Cuatrimestres Universitarios ({currentYear})
+                Cuatrimestres Universitarios ({currentYear})
               </div>
 
               {cuatrimestresPresets.map((preset) => {
@@ -153,7 +151,7 @@ export const ReportsFilters: React.FC<ReportsFiltersProps> = ({
 
               {/* Header Periodos estándar */}
               <div style={{ padding: '10px 10px 4px', marginTop: '4px', borderTop: '1px solid #F1F5F9', fontSize: '0.6875rem', fontWeight: 700, color: '#6B7280', textTransform: 'uppercase', letterSpacing: '0.04em' }}>
-                📅 Periodos Generales
+                Periodos Generales
               </div>
 
               {standardPresets.map((preset) => {

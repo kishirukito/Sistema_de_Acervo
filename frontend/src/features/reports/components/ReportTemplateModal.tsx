@@ -73,7 +73,7 @@ export const ReportTemplateModal: React.FC<ReportTemplateModalProps> = ({
 
   const [startDate, setStartDate] = useState<string>(initialStartDate);
   const [endDate, setEndDate] = useState<string>(initialEndDate);
-  const [activePreset, setActivePreset] = useState<'all' | 'month' | 'quarter' | 'semester' | 'year' | 'c1' | 'c2_jul' | 'c2_ago' | 'c3_ago' | 'custom'>('all');
+  const [activePreset, setActivePreset] = useState<'all' | 'month' | 'quarter' | 'semester' | 'year' | 'c1' | 'c2_ago' | 'c3_sep' | 'custom'>('all');
   const [searchQuery, setSearchQuery] = useState('');
   const [debouncedSearch, setDebouncedSearch] = useState('');
 
@@ -130,7 +130,7 @@ export const ReportTemplateModal: React.FC<ReportTemplateModalProps> = ({
     loadModel();
   }, [loadModel]);
 
-  const handleApplyPreset = (preset: 'all' | 'month' | 'quarter' | 'semester' | 'year' | 'c1' | 'c2_jul' | 'c2_ago' | 'c3_ago') => {
+  const handleApplyPreset = (preset: 'all' | 'month' | 'quarter' | 'semester' | 'year' | 'c1' | 'c2_ago' | 'c3_sep') => {
     setActivePreset(preset);
     if (preset === 'all') {
       setStartDate('');
@@ -141,14 +141,11 @@ export const ReportTemplateModal: React.FC<ReportTemplateModalProps> = ({
     } else if (preset === 'c1') {
       setStartDate(`${currentYear}-01-01`);
       setEndDate(`${currentYear}-04-30`);
-    } else if (preset === 'c2_jul') {
-      setStartDate(`${currentYear}-05-01`);
-      setEndDate(`${currentYear}-07-31`);
     } else if (preset === 'c2_ago') {
       setStartDate(`${currentYear}-05-01`);
       setEndDate(`${currentYear}-08-31`);
-    } else if (preset === 'c3_ago') {
-      setStartDate(`${currentYear}-08-01`);
+    } else if (preset === 'c3_sep') {
+      setStartDate(`${currentYear}-09-01`);
       setEndDate(`${currentYear}-12-31`);
     } else if (preset === 'quarter') {
       const qStart = new Date(today);
@@ -340,14 +337,6 @@ export const ReportTemplateModal: React.FC<ReportTemplateModalProps> = ({
                 </button>
                 <button
                   type="button"
-                  className={`report-preset-btn ${activePreset === 'c2_jul' ? 'active' : ''}`}
-                  onClick={() => handleApplyPreset('c2_jul')}
-                  title="2do Cuatrimestre: Mayo - Julio"
-                >
-                  May - Jul
-                </button>
-                <button
-                  type="button"
                   className={`report-preset-btn ${activePreset === 'c2_ago' ? 'active' : ''}`}
                   onClick={() => handleApplyPreset('c2_ago')}
                   title="2do Cuatrimestre: Mayo - Agosto"
@@ -356,11 +345,11 @@ export const ReportTemplateModal: React.FC<ReportTemplateModalProps> = ({
                 </button>
                 <button
                   type="button"
-                  className={`report-preset-btn ${activePreset === 'c3_ago' ? 'active' : ''}`}
-                  onClick={() => handleApplyPreset('c3_ago')}
-                  title="3er Cuatrimestre: Agosto - Diciembre"
+                  className={`report-preset-btn ${activePreset === 'c3_sep' ? 'active' : ''}`}
+                  onClick={() => handleApplyPreset('c3_sep')}
+                  title="3er Cuatrimestre: Septiembre - Diciembre"
                 >
-                  Ago - Dic
+                  Sep - Dic
                 </button>
                 <button
                   type="button"
