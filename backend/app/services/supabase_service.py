@@ -234,7 +234,8 @@ class SupabaseService:
             return formatted
 
     async def get_catalog(self) -> List[Dict[str, Any]]:
-        url = (
+        """Obtiene todo el catálogo de libros paginando en lotes de 1000 (límite de PostgREST)."""
+        base_select = (
             f"{self.base_url}/libros?select="
             "id,isbn,titulo,anio_publicacion,edicion,portada_url,editorial_id,clasificacion_dewey,"
             "editoriales(nombre),"
@@ -242,12 +243,24 @@ class SupabaseService:
             "libro_temas(temas(nombre,codigo)),"
             "ejemplares(id,codigo_inventario,ubicacion_estante,estado,fecha_baja),"
             "resumenes_ia(resumen_texto,palabras_clave)"
-            "&order=titulo.asc"
+            "&order=titulo.asc,id.asc"
         )
-        async with httpx.AsyncClient(timeout=15.0) as client:
-            resp = await client.get(url, headers=self.headers)
-            resp.raise_for_status()
-            return resp.json()
+        all_books: List[Dict[str, Any]] = []
+        batch_size = 1000
+        offset = 0
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            while True:
+                url = f"{base_select}&limit={batch_size}&offset={offset}"
+                resp = await client.get(url, headers=self.headers)
+                resp.raise_for_status()
+                batch = resp.json()
+                if not batch:
+                    break
+                all_books.extend(batch)
+                if len(batch) < batch_size:
+                    break
+                offset += batch_size
+        return all_books
 
     async def get_loan_types(self) -> List[Dict[str, Any]]:
         """Consulta los tipos de préstamo activos del sistema."""
