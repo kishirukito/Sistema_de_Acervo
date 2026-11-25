@@ -145,7 +145,7 @@ async def _fetch_supabase_report_sources() -> Dict[str, List[Dict[str, Any]]]:
 
         prestamos_primary = (
             f"{base}/rest/v1/prestamos?select="
-            "id,usuario_id,ejemplar_id,tipo_prestamo_id,tipo_prestamo,fecha_prestamo,fecha_limite_devolucion,fecha_devolucion_real,estado,notas,renovaciones_count,"
+            "id,usuario_id,ejemplar_id,tipo_prestamo_id,fecha_prestamo,fecha_limite_devolucion,fecha_devolucion_real,estado,notas,renovaciones_count,"
             "institucion_id,folio_oficio,responsable_externo_nombre,responsable_externo_cargo,responsable_externo_contacto,"
             "tipos_prestamo(id,clave,nombre),"
             "usuarios:usuarios!prestamos_usuario_id_fkey(id,nombre_completo,email,matricula_o_nomina,telefono,rol,dependencia_o_area,carrera_id,tipos_usuario(nombre),carreras(id,nivel,nombre)),"
@@ -156,7 +156,7 @@ async def _fetch_supabase_report_sources() -> Dict[str, List[Dict[str, Any]]]:
         prestamos_fallback = (
             f"{base}/rest/v1/prestamos?select="
             "*,tipos_prestamo(id,clave,nombre),"
-            "usuarios:usuarios!prestamos_usuario_id_fkey(nombre_completo,email,dependencia_o_area,carrera_id,tipos_usuario(nombre),carreras(id,nivel,nombre)),"
+            "usuarios:usuarios!prestamos_usuario_id_fkey(id,nombre_completo,email,matricula_o_nomina,telefono,rol,dependencia_o_area,carrera_id,tipos_usuario(nombre),carreras(id,nivel,nombre)),"
             "instituciones_convenio(id,nombre,nombre_biblioteca),"
             "ejemplares(id,estado,codigo_inventario,libros(id,titulo,clasificacion_dewey))"
             "&order=fecha_prestamo.desc"
@@ -169,7 +169,7 @@ async def _fetch_supabase_report_sources() -> Dict[str, List[Dict[str, Any]]]:
             "&order=created_at.desc"
         )
         sanciones_fallback = (
-            f"{base}/rest/v1/sanciones_multas?select=*,usuarios(nombre_completo,email)&order=created_at.desc"
+            f"{base}/rest/v1/sanciones_multas?select=*,usuarios(id,nombre_completo,email,matricula_o_nomina)&order=created_at.desc"
         )
 
         libros_primary = (
