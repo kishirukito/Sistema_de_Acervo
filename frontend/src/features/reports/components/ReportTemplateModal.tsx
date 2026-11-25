@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   X,
   FileSpreadsheet,
@@ -17,12 +17,15 @@ import {
   Building2,
   BarChart3,
   RefreshCw,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react';
 import { CustomSelect } from '../../../components/ui/CustomSelect';
 import { LoadingSpinner } from '../../../components/ui/LoadingSpinner';
 import type { ReportModel } from '../reports-templates.types';
 import { ALL_QUICK_REPORT_TEMPLATES } from '../reports-templates.data';
 import { fetchReportModel, downloadReportFile } from '../../../services/api/reports.service';
+import { getPaginationItems } from '../../../utils/pagination';
 import './ReportTemplateModal.css';
 
 interface ReportTemplateModalProps {
@@ -92,6 +95,21 @@ export const ReportTemplateModal: React.FC<ReportTemplateModalProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [exportingFormat, setExportingFormat] = useState<'excel' | 'pdf' | null>(null);
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [pageSize, setPageSize] = useState<number>(25);
+
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedReportId, startDate, endDate, debouncedSearch, pageSize]);
+
+  const totalRows = reportModel?.rows.length ?? 0;
+  const totalPages = Math.max(1, Math.ceil(totalRows / pageSize));
+  const safePage = Math.min(currentPage, totalPages);
+  const paginatedRows = useMemo(() => {
+    if (!reportModel?.rows) return [];
+    const startIdx = (safePage - 1) * pageSize;
+    return reportModel.rows.slice(startIdx, startIdx + pageSize);
+  }, [reportModel, safePage, pageSize]);
 
   useEffect(() => {
     if (initialReportId) {
@@ -539,8 +557,8 @@ export const ReportTemplateModal: React.FC<ReportTemplateModalProps> = ({
                           </td>
                         </tr>
                       ) : (
-                        reportModel.rows.map((row, rowIdx) => (
-                          <tr key={rowIdx}>
+                        paginatedRows.map((row, rowIdx) => (
+                          <tr key={(safePage - 1) * pageSize + rowIdx}>
                             {reportModel.columns.map((col) => (
                               <td key={col.key} style={{ textAlign: col.align || 'left' }}>
                                 <span className="report-cell-text">
@@ -568,6 +586,119 @@ export const ReportTemplateModal: React.FC<ReportTemplateModalProps> = ({
                     </tbody>
                   </table>
                 </div>
+
+                {totalRows > 0 && (
+                  <div
+                    style={{
+                      display: 'flex',
+                      flexWrap: 'wrap',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      gap: '0.75rem',
+                      marginTop: '0.85rem',
+                      paddingTop: '0.75rem',
+                      borderTop: '1px solid #E2E8F0',
+                      fontSize: '0.82rem',
+                      color: '#475569',
+                    }}
+                  >
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
+                      <span>
+                        Mostrando {(safePage - 1) * pageSize + 1}–{Math.min(safePage * pageSize, totalRows)} de {totalRows} registros
+                      </span>
+                      <select
+                        value={pageSize}
+                        onChange={(e) => setPageSize(Number(e.target.value))}
+                        aria-label="Filas por página"
+                        style={{
+                          padding: '4px 8px',
+                          borderRadius: '6px',
+                          border: '1px solid #CBD5E1',
+                          backgroundColor: '#FFFFFF',
+                          color: '#1E293B',
+                          fontSize: '0.8rem',
+                          cursor: 'pointer',
+                        }}
+                      >
+                        <option value={15}>15 por pág.</option>
+                        <option value={25}>25 por pág.</option>
+                        <option value={50}>50 por pág.</option>
+                        <option value={100}>100 por pág.</option>
+                      </select>
+                    </div>
+
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '4px', flexWrap: 'wrap' }}>
+                      <button
+                        type="button"
+                        disabled={safePage <= 1}
+                        onClick={() => setCurrentPage((p) => Math.max(1, p - 1))}
+                        aria-label="Página anterior"
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '3px',
+                          padding: '5px 10px',
+                          borderRadius: '6px',
+                          border: '1px solid #CBD5E1',
+                          backgroundColor: safePage <= 1 ? '#F8FAFC' : '#FFFFFF',
+                          color: safePage <= 1 ? '#94A3B8' : '#1E293B',
+                          cursor: safePage <= 1 ? 'not-allowed' : 'pointer',
+                          fontWeight: 500,
+                        }}
+                      >
+                        <ChevronLeft size={14} /> Anterior
+                      </button>
+
+                      {getPaginationItems(safePage, totalPages).map((item) =>
+                        typeof item === 'number' ? (
+                          <button
+                            key={item}
+                            type="button"
+                            onClick={() => setCurrentPage(item)}
+                            style={{
+                              minWidth: '32px',
+                              height: '30px',
+                              padding: '0 8px',
+                              borderRadius: '6px',
+                              border: item === safePage ? '1px solid #2563EB' : '1px solid #CBD5E1',
+                              backgroundColor: item === safePage ? '#2563EB' : '#FFFFFF',
+                              color: item === safePage ? '#FFFFFF' : '#1E293B',
+                              fontWeight: item === safePage ? 600 : 500,
+                              cursor: 'pointer',
+                            }}
+                          >
+                            {item}
+                          </button>
+                        ) : (
+                          <span key={item} style={{ padding: '0 6px', color: '#94A3B8', userSelect: 'none' }}>
+                            …
+                          </span>
+                        )
+                      )}
+
+                      <button
+                        type="button"
+                        disabled={safePage >= totalPages}
+                        onClick={() => setCurrentPage((p) => Math.min(totalPages, p + 1))}
+                        aria-label="Página siguiente"
+                        style={{
+                          display: 'inline-flex',
+                          alignItems: 'center',
+                          gap: '3px',
+                          padding: '5px 10px',
+                          borderRadius: '6px',
+                          border: '1px solid #CBD5E1',
+                          backgroundColor: safePage >= totalPages ? '#F8FAFC' : '#FFFFFF',
+                          color: safePage >= totalPages ? '#94A3B8' : '#1E293B',
+                          cursor: safePage >= totalPages ? 'not-allowed' : 'pointer',
+                          fontWeight: 500,
+                        }}
+                      >
+                        Siguiente <ChevronRight size={14} />
+                      </button>
+                    </div>
+                  </div>
+                )}
               </section>
 
               {/* RECOMENDACIONES Y CRITERIOS METODOLÓGICOS */}

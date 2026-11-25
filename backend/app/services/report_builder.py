@@ -120,7 +120,7 @@ async def _fetch_supabase_report_sources() -> Dict[str, List[Dict[str, Any]]]:
     }
     base = settings.SUPABASE_URL.rstrip("/")
 
-    async with httpx.AsyncClient(timeout=15.0) as client:
+    async with httpx.AsyncClient(timeout=30.0) as client:
         # Sincronizar préstamos activos vencidos antes de consultar
         try:
             now_iso = datetime.now(timezone.utc).isoformat()
@@ -133,13 +133,36 @@ async def _fetch_supabase_report_sources() -> Dict[str, List[Dict[str, Any]]]:
             pass
 
         async def get_with_fallback(primary_url: str, fallback_url: str) -> List[Dict[str, Any]]:
-            resp = await client.get(primary_url, headers=headers)
-            if resp.status_code in (400, 404):
-                resp = await client.get(fallback_url, headers=headers)
-            if resp.is_success:
-                data = resp.json()
-                return data if isinstance(data, list) else []
-            return []
+            """Consulta todas las filas paginando en lotes de 1000 (límite de PostgREST)."""
+            batch_size = 1000
+            offset = 0
+            active_url = primary_url
+            all_rows: List[Dict[str, Any]] = []
+
+            while True:
+                sep = "&" if "?" in active_url else "?"
+                resp = await client.get(
+                    f"{active_url}{sep}limit={batch_size}&offset={offset}",
+                    headers=headers,
+                )
+                if offset == 0 and resp.status_code in (400, 404) and active_url != fallback_url:
+                    active_url = fallback_url
+                    sep = "&" if "?" in active_url else "?"
+                    resp = await client.get(
+                        f"{active_url}{sep}limit={batch_size}&offset={offset}",
+                        headers=headers,
+                    )
+                if not resp.is_success:
+                    break
+                batch = resp.json()
+                if not isinstance(batch, list) or not batch:
+                    break
+                all_rows.extend(batch)
+                if len(batch) < batch_size:
+                    break
+                offset += batch_size
+
+            return all_rows
 
         import asyncio
 
@@ -178,20 +201,20 @@ async def _fetch_supabase_report_sources() -> Dict[str, List[Dict[str, Any]]]:
             "editoriales(nombre),"
             "libro_autores(orden,autores(nombre)),"
             "ejemplares(id,codigo_inventario,estado,ubicacion_estante,observaciones,created_at)"
-            "&order=titulo.asc"
+            "&order=titulo.asc,id.asc"
         )
         libros_fallback = (
-            f"{base}/rest/v1/libros?select=id,titulo,anio_publicacion,clasificacion_dewey,created_at&order=titulo.asc"
+            f"{base}/rest/v1/libros?select=id,titulo,anio_publicacion,clasificacion_dewey,created_at&order=titulo.asc,id.asc"
         )
 
         ejemplares_primary = (
             f"{base}/rest/v1/ejemplares?select="
             "id,libro_id,codigo_inventario,estado,ubicacion_estante,observaciones,created_at,"
             "libros(id,isbn,titulo,anio_publicacion,edicion,clasificacion_dewey,editoriales(nombre),libro_autores(autores(nombre)))"
-            "&order=codigo_inventario.asc"
+            "&order=codigo_inventario.asc,id.asc"
         )
         ejemplares_fallback = (
-            f"{base}/rest/v1/ejemplares?select=id,libro_id,codigo_inventario,estado,ubicacion_estante,observaciones,created_at"
+            f"{base}/rest/v1/ejemplares?select=id,libro_id,codigo_inventario,estado,ubicacion_estante,observaciones,created_at&order=id.asc"
         )
 
         solicitudes_primary = (
