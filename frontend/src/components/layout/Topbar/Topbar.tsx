@@ -9,15 +9,22 @@ interface TopbarProps {
   onOpenMobileMenu?: () => void;
 }
 
+function getInitials(name: string): string {
+  if (!name) return 'AG';
+  const parts = name.trim().split(/\s+/);
+  if (parts.length >= 2) return `${parts[0][0]}${parts[parts.length - 1][0]}`.toUpperCase();
+  return (name.slice(0, 2) || 'AG').toUpperCase();
+}
+
 export const Topbar: React.FC<TopbarProps> = ({ title = 'Dashboard', onOpenMobileMenu }) => {
   const { user } = useAuth();
   const navigate = useNavigate();
   const [showNotifications, setShowNotifications] = useState(false);
   const notifyRef = useRef<HTMLDivElement>(null);
 
-  const userName =
-    user?.name === 'Administrador del Sistema' ? 'Camila Flores' : user?.name || 'Camila Flores';
-  const userRole = user?.kind === 'ADMINISTRATIVE' ? 'Administradora' : 'Usuario';
+  const userName = user?.name || 'Administrador General';
+  const userInitials = getInitials(userName);
+  const userRole = (user as any)?.role === 'ADMIN' ? 'Administrador' : (user?.kind === 'ADMINISTRATIVE' ? 'Administrador' : 'Usuario');
 
   // Close notifications on outside click or Escape key
   useEffect(() => {
@@ -142,7 +149,15 @@ export const Topbar: React.FC<TopbarProps> = ({ title = 'Dashboard', onOpenMobil
           aria-label="Perfil del administrador"
         >
           <div className="app-topbar-avatar" aria-hidden="true">
-            CF
+            {(user as any)?.avatarUrl ? (
+              <img
+                src={(user as any).avatarUrl}
+                alt={userName}
+                style={{ width: '100%', height: '100%', borderRadius: '50%', objectFit: 'cover' }}
+              />
+            ) : (
+              userInitials
+            )}
           </div>
           <div className="app-topbar-user-info">
             <span className="app-topbar-user-name">{userName}</span>

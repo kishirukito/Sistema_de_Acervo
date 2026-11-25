@@ -19,18 +19,18 @@ export const ReaderTopbar: React.FC<ReaderTopbarProps> = ({
   const navigate = useNavigate();
   const [showNotifications, setShowNotifications] = useState(false);
 
-  const userName = user?.name || 'Camila Flores';
+  const userName = user?.name || 'Usuario Lector';
   const userCategory = user?.departmentOrCareer === 'Estudiante' || user?.category === 'STUDENT'
     ? 'Estudiante'
     : user?.departmentOrCareer || 'Estudiante';
 
-  // Get user initials (e.g. Camila Flores -> CF)
+  // Get user initials (e.g. Alumno Prueba -> AP)
   const initials = userName
     .split(' ')
     .filter(Boolean)
     .slice(0, 2)
     .map((part) => part[0]?.toUpperCase())
-    .join('') || 'CF';
+    .join('') || 'UL';
 
   return (
     <header className="reader-topbar" aria-label="Cabecera del lector">
