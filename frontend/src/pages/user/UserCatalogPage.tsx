@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import { getPaginationItems } from '../../utils/pagination';
 import { Link, useSearchParams, useLocation } from 'react-router-dom';
 import {
   Search,
@@ -914,22 +915,28 @@ export const UserCatalogPage: React.FC = () => {
                     Anterior
                   </button>
 
-                  {Array.from({ length: totalPages }, (_, i) => i + 1).map(
-                    (pageNum) => (
+                  {getPaginationItems(safeCurrentPage, totalPages).map((item) =>
+                    typeof item === 'number' ? (
                       <button
-                        key={pageNum}
+                        key={item}
                         type="button"
                         className={clsx(
                           'catalog-page-btn',
-                          pageNum === safeCurrentPage && 'catalog-page-btn--active'
+                          item === safeCurrentPage && 'catalog-page-btn--active'
                         )}
-                        onClick={() => setCurrentPage(pageNum)}
-                        aria-current={
-                          pageNum === safeCurrentPage ? 'page' : undefined
-                        }
+                        onClick={() => setCurrentPage(item)}
+                        aria-current={item === safeCurrentPage ? 'page' : undefined}
                       >
-                        {pageNum}
+                        {item}
                       </button>
+                    ) : (
+                      <span
+                        key={item}
+                        className="catalog-page-ellipsis"
+                        aria-hidden="true"
+                      >
+                        …
+                      </span>
                     )
                   )}
 
