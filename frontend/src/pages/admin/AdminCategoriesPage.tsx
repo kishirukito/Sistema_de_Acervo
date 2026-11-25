@@ -49,21 +49,36 @@ export const AdminCategoriesPage: React.FC = () => {
   const [pendingToggle, setPendingToggle] = useState<number | null>(null);
   const [toggleError, setToggleError] = useState<string | null>(null);
 
-  /* ── Filtrado reactivo ── */
+  /* ── Filtrado y ordenamiento reactivo (código numérico ascendente) ── */
   const filtered = useMemo(() => {
     if (!temas) return [];
     const q = search.trim().toLowerCase();
-    return temas.filter((t) => {
-      const matchSearch =
-        !q ||
-        t.nombre.toLowerCase().includes(q) ||
-        (t.codigo ?? '').toLowerCase().includes(q);
-      const matchStatus =
-        statusFilter === 'all' ||
-        (statusFilter === 'active' && t.activa) ||
-        (statusFilter === 'inactive' && !t.activa);
-      return matchSearch && matchStatus;
-    });
+    return temas
+      .filter((t) => {
+        const matchSearch =
+          !q ||
+          t.nombre.toLowerCase().includes(q) ||
+          (t.codigo ?? '').toLowerCase().includes(q);
+        const matchStatus =
+          statusFilter === 'all' ||
+          (statusFilter === 'active' && t.activa) ||
+          (statusFilter === 'inactive' && !t.activa);
+        return matchSearch && matchStatus;
+      })
+      .sort((a, b) => {
+        const codeA = (a.codigo ?? '').trim();
+        const codeB = (b.codigo ?? '').trim();
+        const numA = codeA !== '' && /^\d+$/.test(codeA) ? Number(codeA) : null;
+        const numB = codeB !== '' && /^\d+$/.test(codeB) ? Number(codeB) : null;
+
+        if (numA !== null && numB !== null) {
+          if (numA !== numB) return numA - numB;
+          return a.nombre.localeCompare(b.nombre, 'es');
+        }
+        if (numA !== null) return -1;
+        if (numB !== null) return 1;
+        return a.nombre.localeCompare(b.nombre, 'es');
+      });
   }, [temas, search, statusFilter]);
 
   /* ── Handlers ── */
