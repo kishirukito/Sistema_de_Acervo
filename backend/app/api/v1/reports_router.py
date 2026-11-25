@@ -4,6 +4,7 @@ from pydantic import BaseModel
 import httpx
 import asyncio
 import time
+import re
 from app.core.config import settings
 from app.core.security import require_admin
 from app.services.report_builder import build_report_model, REPORT_CATALOG
@@ -36,14 +37,58 @@ DEWEY_LABELS = {
     "Otro": "Otras Clasificaciones"
 }
 
-def get_dewey_group(dewey_str: str | None) -> str:
-    if not dewey_str:
-        return "Otro"
-    clean = dewey_str.strip()
-    if clean and clean[0].isdigit():
-        hundred = clean[0] + "00"
-        return DEWEY_LABELS.get(hundred, "Otro")
-    return "Otro"
+def get_dewey_group(dewey_str: str | None, libro_temas: Optional[List[Dict[str, Any]]] = None) -> str:
+    """Clasifica un libro en uno de los 10 grupos principales Dewey (000–900) o Otras Clasificaciones."""
+    if dewey_str:
+        clean = dewey_str.strip()
+        # Quitar prefijos de colección/procedencia como "DO " o "C " antes del número Dewey
+        stripped = re.sub(r"^(?:DO|C)\s+", "", clean, flags=re.IGNORECASE)
+        if stripped and stripped[0].isdigit():
+            hundred = stripped[0] + "00"
+            if hundred in DEWEY_LABELS:
+                return DEWEY_LABELS[hundred]
+        # Códigos literarios con prefijo de país pegado (ej. M861, CO863, COL863, BR869, F846)
+        m_lit = re.match(r"^[A-Za-z]{1,4}(\d)\d{2}\b", stripped)
+        if m_lit:
+            hundred = m_lit.group(1) + "00"
+            if hundred in DEWEY_LABELS:
+                return DEWEY_LABELS[hundred]
+
+    # Respaldo con categoría Dewey asignada en libro_temas
+    if isinstance(libro_temas, list):
+        for lt in libro_temas:
+            tema = lt.get("temas") if isinstance(lt, dict) else None
+            codigo = str(tema.get("codigo") or "").strip() if isinstance(tema, dict) else ""
+            if codigo and codigo[0].isdigit():
+                hundred = codigo[0] + "00"
+                if hundred in DEWEY_LABELS:
+                    return DEWEY_LABELS[hundred]
+
+    return DEWEY_LABELS["Otro"]
+
+
+async def _fetch_all_paginated(
+    client: httpx.AsyncClient,
+    url: str,
+    headers: Dict[str, str],
+    batch_size: int = 1000,
+) -> List[Dict[str, Any]]:
+    """Obtiene todos los registros de PostgREST paginando en lotes de 1000."""
+    rows: List[Dict[str, Any]] = []
+    offset = 0
+    sep = "&" if "?" in url else "?"
+    while True:
+        resp = await client.get(f"{url}{sep}limit={batch_size}&offset={offset}", headers=headers)
+        if resp.status_code != 200:
+            break
+        batch = resp.json()
+        if not batch:
+            break
+        rows.extend(batch)
+        if len(batch) < batch_size:
+            break
+        offset += batch_size
+    return rows
 
 # Modelos de entrada para captura de nuevos datos en los reportes
 class CreateSancionPayload(BaseModel):
@@ -96,7 +141,7 @@ async def get_siabuc_statistics(
         "Authorization": f"Bearer {settings.SUPABASE_SERVICE_ROLE_KEY}"
     }
 
-    async with httpx.AsyncClient() as client:
+    async with httpx.AsyncClient(timeout=30.0) as client:
         # Sincronizar automáticamente préstamos vencidos en Supabase cuya fecha límite haya expirado
         try:
             now_iso_utc = datetime.now(timezone.utc).isoformat()
@@ -114,8 +159,16 @@ async def get_siabuc_statistics(
                 headers=headers
             ),
             client.get(f"{settings.SUPABASE_URL}/rest/v1/sanciones_multas?select=*,usuarios(id,nombre_completo,email,matricula_o_nomina,telefono,carreras(nombre)),prestamos(id,fecha_prestamo,fecha_limite_devolucion,ejemplares(codigo_inventario,libros(titulo)))&order=created_at.desc", headers=headers),
-            client.get(f"{settings.SUPABASE_URL}/rest/v1/libros?select=id,titulo,anio_publicacion,creado_por_id,clasificacion_dewey,created_at,usuarios:usuarios!libros_creado_por_id_fkey(nombre_completo)&order=created_at.desc", headers=headers),
-            client.get(f"{settings.SUPABASE_URL}/rest/v1/ejemplares?select=id,libro_id,codigo_inventario,estado,ubicacion_estante,observaciones,created_at,libros(id,titulo,isbn,clasificacion_dewey)&order=codigo_inventario.asc", headers=headers),
+            _fetch_all_paginated(
+                client,
+                f"{settings.SUPABASE_URL}/rest/v1/libros?select=id,titulo,anio_publicacion,creado_por_id,clasificacion_dewey,created_at,usuarios:usuarios!libros_creado_por_id_fkey(nombre_completo),libro_temas(temas(codigo))&order=created_at.desc,id.asc",
+                headers,
+            ),
+            _fetch_all_paginated(
+                client,
+                f"{settings.SUPABASE_URL}/rest/v1/ejemplares?select=id,libro_id,codigo_inventario,estado,ubicacion_estante,observaciones,created_at,libros(id,titulo,isbn,clasificacion_dewey)&order=codigo_inventario.asc,id.asc",
+                headers,
+            ),
             client.get(f"{settings.SUPABASE_URL}/rest/v1/espacios_biblioteca?select=*&order=id.asc", headers=headers),
             client.get(f"{settings.SUPABASE_URL}/rest/v1/reservas_espacios?select=*,espacios_biblioteca(nombre,tipo),usuarios(nombre_completo)&order=created_at.desc", headers=headers),
             client.get(f"{settings.SUPABASE_URL}/rest/v1/equipos_computo?select=*&order=id.asc", headers=headers),
@@ -127,8 +180,8 @@ async def get_siabuc_statistics(
         
         prestamos = responses[0].json() if responses[0].status_code == 200 else []
         sanciones = responses[1].json() if responses[1].status_code == 200 else []
-        libros = responses[2].json() if responses[2].status_code == 200 else []
-        ejemplares = responses[3].json() if responses[3].status_code == 200 else []
+        libros = responses[2]
+        ejemplares = responses[3]
         espacios = responses[4].json() if responses[4].status_code == 200 else []
         reservas = responses[5].json() if responses[5].status_code == 200 else []
         equipos = responses[6].json() if responses[6].status_code == 200 else []
@@ -280,7 +333,7 @@ async def get_siabuc_statistics(
 
     dewey_counts = {v: 0 for v in DEWEY_LABELS.values()}
     for l in libros:
-        dewey_grp = get_dewey_group(l.get("clasificacion_dewey"))
+        dewey_grp = get_dewey_group(l.get("clasificacion_dewey"), l.get("libro_temas"))
         dewey_counts[dewey_grp] = dewey_counts.get(dewey_grp, 0) + 1
 
     dewey_stats = [{"clasificacion": k, "cantidad": v} for k, v in dewey_counts.items() if v > 0]
