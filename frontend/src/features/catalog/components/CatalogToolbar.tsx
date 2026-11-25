@@ -1,6 +1,6 @@
 import React from 'react';
 import { Search } from 'lucide-react';
-import type { CatalogFilterState } from '../catalog.types';
+import type { CatalogFilterState, MaterialTypeOption } from '../catalog.types';
 import { BIBLIOGRAPHIC_CATEGORIES } from '../../../constants';
 import { CustomSelect } from '../../../components/ui/CustomSelect';
 
@@ -11,6 +11,7 @@ interface CatalogToolbarProps {
   totalFilteredCount: number;
   currentPage: number;
   totalPages: number;
+  materialTypes?: MaterialTypeOption[];
 }
 
 export const CatalogToolbar: React.FC<CatalogToolbarProps> = ({
@@ -20,12 +21,14 @@ export const CatalogToolbar: React.FC<CatalogToolbarProps> = ({
   totalFilteredCount,
   currentPage,
   totalPages,
+  materialTypes = [],
 }) => {
   const hasActiveFilters =
     Boolean(filters.searchQuery) ||
     Boolean(filters.category) ||
     Boolean(filters.status) ||
-    Boolean(filters.publicationYear);
+    Boolean(filters.publicationYear) ||
+    Boolean(filters.materialType);
 
   return (
     <div className="catalog-filter-card">
@@ -58,6 +61,21 @@ export const CatalogToolbar: React.FC<CatalogToolbarProps> = ({
           ]}
           fullWidth={false}
           aria-label="Filtrar por categoría"
+        />
+
+        {/* Material Type Dropdown (from tipos_material) */}
+        <CustomSelect
+          value={filters.materialType || ''}
+          onChange={(val) => onFilterChange({ ...filters, materialType: val })}
+          options={[
+            { value: '', label: 'Tipo' },
+            ...materialTypes.map((mt) => ({
+              value: String(mt.id),
+              label: mt.nombre,
+            })),
+          ]}
+          fullWidth={false}
+          aria-label="Filtrar por tipo de material"
         />
 
         {/* Availability Status Dropdown */}

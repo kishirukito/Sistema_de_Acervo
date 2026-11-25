@@ -10,11 +10,11 @@ import { DeleteBookModal } from '../../features/catalog/components/DeleteBookMod
 import { BulkImportBooksModal } from '../../features/catalog/components/BulkImportBooksModal';
 import { LoadingSpinner } from '../../components/ui/LoadingSpinner';
 import { MOCK_RESOURCES } from '../../features/catalog/catalog.mock';
-import { fetchCatalogResources, deleteResource, updateResource } from '../../services/api/catalog.service';
+import { fetchCatalogResources, fetchMaterialTypes, deleteResource, updateResource } from '../../services/api/catalog.service';
 import { useAdminLoans } from '../../features/loans/admin-loans.query';
 import { useRealtimeTable } from '../../hooks/useRealtimeTable';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import type { CatalogFilterState, Resource } from '../../features/catalog/catalog.types';
+import type { CatalogFilterState, MaterialTypeOption, Resource } from '../../features/catalog/catalog.types';
 import { resolveCategory } from '../../constants';
 import '../../features/catalog/catalog.css';
 
@@ -23,6 +23,7 @@ const INITIAL_FILTERS: CatalogFilterState = {
   category: '',
   status: '',
   publicationYear: '',
+  materialType: '',
 };
 
 /** Clave compartida del catálogo admin. staleTime: 2 min. */
@@ -47,6 +48,7 @@ export const CatalogPage: React.FC = () => {
     category: searchParams.get('category') || '',
     status: normalizedInitialStatus,
     publicationYear: '',
+    materialType: searchParams.get('tipo') || '',
   });
   const [metricFilter, setMetricFilter] = useState<CatalogMetricFilter>(null);
   const [currentPage, setCurrentPage] = useState<number>(1);
@@ -79,6 +81,13 @@ export const CatalogPage: React.FC = () => {
     queryKey: [ADMIN_CATALOG_KEY],
     queryFn: fetchCatalogResources,
     staleTime: 2 * 60 * 1000,
+    refetchOnWindowFocus: false,
+  });
+
+  const { data: materialTypes = [] } = useQuery<MaterialTypeOption[]>({
+    queryKey: ['material-types'],
+    queryFn: fetchMaterialTypes,
+    staleTime: 5 * 60 * 1000,
     refetchOnWindowFocus: false,
   });
 
@@ -285,6 +294,12 @@ export const CatalogPage: React.FC = () => {
         )
           return false;
         if (filters.publicationYear === 'PRE-2000' && year >= 2000) return false;
+      }
+
+      if (filters.materialType) {
+        if (String(resource.materialTypeId ?? '') !== filters.materialType) {
+          return false;
+        }
       }
 
       return true;
@@ -541,6 +556,7 @@ export const CatalogPage: React.FC = () => {
         totalFilteredCount={filteredResources.length}
         currentPage={currentPage}
         totalPages={totalPages}
+        materialTypes={materialTypes}
       />
 
       {/* Table / Results / Empty State */}

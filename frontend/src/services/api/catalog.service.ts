@@ -7,7 +7,7 @@
 
 import { supabase } from './supabase';
 import { MOCK_RESOURCES } from '../../features/catalog/catalog.mock';
-import type { Resource, ResourceStatus } from '../../features/catalog/catalog.types';
+import type { Resource, ResourceStatus, MaterialTypeOption } from '../../features/catalog/catalog.types';
 import { getCategoryFullLabel } from '../../constants';
 
 /**
@@ -104,8 +104,44 @@ function mapLibroToResource(row: any): Resource {
     publisher,
     description,
     coverUrl: row.portada_url || undefined,
+    materialTypeId: row.tipo_material_id ?? row.tipos_material?.id ?? null,
+    materialTypeName: row.tipos_material?.nombre || '',
     ejemplares: Array.isArray(row.ejemplares) ? row.ejemplares : [],
   };
+}
+
+/**
+ * Obtiene el catálogo normalizado de tipos de material desde tipos_material.
+ */
+export async function fetchMaterialTypes(): Promise<MaterialTypeOption[]> {
+  try {
+    const token = localStorage.getItem('acervo_token');
+    const headers: Record<string, string> = {
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    };
+    const res = await fetch('/api/v1/data/tipos-material', { headers });
+    if (res.ok) {
+      const data = await res.json();
+      if (Array.isArray(data)) {
+        return data;
+      }
+    }
+  } catch (err) {
+    console.warn('[CatalogService] Backend proxy fetchMaterialTypes failed, falling back to Supabase:', err);
+  }
+
+  try {
+    const { data, error } = await supabase
+      .from('tipos_material')
+      .select('id, nombre, descripcion')
+      .order('id', { ascending: true });
+    if (!error && Array.isArray(data)) {
+      return data;
+    }
+  } catch {
+    // ignore fallback error
+  }
+  return [];
 }
 
 /**

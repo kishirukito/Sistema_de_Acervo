@@ -237,7 +237,8 @@ class SupabaseService:
         """Obtiene todo el catálogo de libros paginando en lotes de 1000 (límite de PostgREST)."""
         base_select = (
             f"{self.base_url}/libros?select="
-            "id,isbn,titulo,anio_publicacion,edicion,portada_url,editorial_id,clasificacion_dewey,"
+            "id,isbn,titulo,anio_publicacion,edicion,portada_url,editorial_id,clasificacion_dewey,tipo_material_id,"
+            "tipos_material(id,nombre),"
             "editoriales(nombre),"
             "libro_autores(orden,autores(nombre)),"
             "libro_temas(temas(nombre,codigo)),"
@@ -261,6 +262,14 @@ class SupabaseService:
                     break
                 offset += batch_size
         return all_books
+
+    async def get_tipos_material(self) -> List[Dict[str, Any]]:
+        """Consulta los tipos de material disponibles (Libro, Tesis, Donación, etc.)."""
+        url = f"{self.base_url}/tipos_material?select=id,nombre,descripcion&order=id.asc"
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            resp = await client.get(url, headers=self.headers)
+            resp.raise_for_status()
+            return resp.json()
 
     async def get_loan_types(self) -> List[Dict[str, Any]]:
         """Consulta los tipos de préstamo activos del sistema."""

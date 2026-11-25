@@ -438,6 +438,17 @@ async def get_mis_prestamos(current_user: Dict[str, Any] = Depends(get_current_u
             detail="Error al consultar los préstamos personales."
         )
 
+@router.get("/tipos-material", response_model=List[Dict[str, Any]])
+async def get_tipos_material(current_user: Dict[str, Any] = Depends(get_current_user)):
+    """Obtiene el catálogo normalizado de tipos de material (Libro, Tesis, Donación, etc.)."""
+    try:
+        return await supabase_service.get_tipos_material()
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Error al consultar los tipos de material."
+        )
+
 @router.get("/libros", response_model=List[Dict[str, Any]])
 async def get_all_libros(current_user: Dict[str, Any] = Depends(get_current_user)):
     """Obtiene el catálogo de libros con autores y ejemplares con caché de 60s. Requiere usuario autenticado."""

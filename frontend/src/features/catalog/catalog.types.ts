@@ -38,7 +38,15 @@ export interface Resource {
   coverInitials?: string;
   publisher?: string;
   description?: string;
+  materialTypeId?: number | null;
+  materialTypeName?: string;
   ejemplares?: EjemplarItem[];
+}
+
+export interface MaterialTypeOption {
+  id: number;
+  nombre: string;
+  descripcion?: string;
 }
 
 export interface CatalogFilterState {
@@ -46,4 +54,5 @@ export interface CatalogFilterState {
   category: string;
   status: string;
   publicationYear: string;
+  materialType?: string;
 }
