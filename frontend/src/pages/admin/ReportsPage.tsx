@@ -9,7 +9,9 @@ import {
   LayoutDashboard,
   PlusCircle,
   AlertTriangle,
+  ChevronRight,
 } from 'lucide-react';
+import { AlertDetailModal, type AlertType } from '../../features/reports/components/AlertDetailModal';
 import { ReportsFilters } from '../../features/reports/components/ReportsFilters';
 import { ReportsSummary } from '../../features/reports/components/ReportsSummary';
 import { LoansTrendChart } from '../../features/reports/components/LoansTrendChart';
@@ -42,6 +44,15 @@ export const ReportsPage: React.FC = () => {
   // Modal maestro interactivo de generación y previsualización de reportes
   const [isMasterReportModalOpen, setIsMasterReportModalOpen] = useState(false);
   const [activeMasterReportId, setActiveMasterReportId] = useState<string>('rep-carreras');
+
+  // Modal de detalle de alertas del acervo
+  const [isAlertModalOpen, setIsAlertModalOpen] = useState(false);
+  const [alertModalType, setAlertModalType] = useState<AlertType | null>(null);
+
+  const handleOpenAlertModal = (type: AlertType) => {
+    setAlertModalType(type);
+    setIsAlertModalOpen(true);
+  };
 
   // Data entry modal state
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -277,27 +288,117 @@ export const ReportsPage: React.FC = () => {
                     </div>
 
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem' }}>
-                      <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.65rem 0.85rem', backgroundColor: '#FEF3C7', borderRadius: '8px', fontSize: '0.85rem' }}>
-                        <span style={{ color: '#92400E', fontWeight: 500 }}>Ejemplares no disponibles:</span>
-                        <strong style={{ color: '#92400E' }}>{executive.alertas.ejemplares_no_disponibles} ejemplares</strong>
+                      {/* Alerta 1: Ejemplares no disponibles */}
+                      <div
+                        role="button"
+                        tabIndex={0}
+                        onClick={() => handleOpenAlertModal('ejemplares')}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            handleOpenAlertModal('ejemplares');
+                          }
+                        }}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          padding: '0.75rem 0.95rem',
+                          backgroundColor: '#FEF3C7',
+                          borderRadius: '8px',
+                          fontSize: '0.85rem',
+                          cursor: 'pointer',
+                          border: '1px solid #FDE68A',
+                          transition: 'transform 0.12s ease, box-shadow 0.12s ease',
+                        }}
+                        title="Haz clic para ver la lista de ejemplares no disponibles"
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span style={{ color: '#92400E', fontWeight: 600 }}>Ejemplares no disponibles:</span>
+                          <strong style={{ color: '#92400E' }}>{executive.alertas.ejemplares_no_disponibles} ejemplares</strong>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: '#92400E', fontSize: '0.75rem', fontWeight: 600 }}>
+                          <span>Ver detalle</span>
+                          <ChevronRight size={14} />
+                        </div>
                       </div>
 
-                      <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.65rem 0.85rem', backgroundColor: executive.alertas.multas_pendientes > 0 ? '#FEE2E2' : '#F0FDF4', borderRadius: '8px', fontSize: '0.85rem' }}>
-                        <span style={{ color: executive.alertas.multas_pendientes > 0 ? '#991B1B' : '#166534', fontWeight: 500 }}>
-                          Multas pendientes de cobro:
-                        </span>
-                        <strong style={{ color: executive.alertas.multas_pendientes > 0 ? '#991B1B' : '#166534' }}>
-                          ${executive.alertas.multas_pendientes.toFixed(2)} MXN
-                        </strong>
+                      {/* Alerta 2: Multas pendientes de cobro */}
+                      <div
+                        role="button"
+                        tabIndex={0}
+                        onClick={() => handleOpenAlertModal('multas')}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            handleOpenAlertModal('multas');
+                          }
+                        }}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          padding: '0.75rem 0.95rem',
+                          backgroundColor: executive.alertas.multas_pendientes > 0 ? '#FEE2E2' : '#F0FDF4',
+                          border: executive.alertas.multas_pendientes > 0 ? '1px solid #FECACA' : '1px solid #DCFCE7',
+                          borderRadius: '8px',
+                          fontSize: '0.85rem',
+                          cursor: 'pointer',
+                          transition: 'transform 0.12s ease, box-shadow 0.12s ease',
+                        }}
+                        title="Haz clic para ver qué usuarios tienen multas y qué libros solicitaron"
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span style={{ color: executive.alertas.multas_pendientes > 0 ? '#991B1B' : '#166534', fontWeight: 600 }}>
+                            Multas pendientes de cobro:
+                          </span>
+                          <strong style={{ color: executive.alertas.multas_pendientes > 0 ? '#991B1B' : '#166534' }}>
+                            ${executive.alertas.multas_pendientes.toFixed(2)} MXN
+                          </strong>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: executive.alertas.multas_pendientes > 0 ? '#991B1B' : '#166534', fontSize: '0.75rem', fontWeight: 600 }}>
+                          <span>Ver detalle</span>
+                          <ChevronRight size={14} />
+                        </div>
                       </div>
 
-                      <div style={{ display: 'flex', justifyContent: 'space-between', padding: '0.65rem 0.85rem', backgroundColor: executive.alertas.prestamos_vencidos > 0 ? '#FEE2E2' : '#F0FDF4', borderRadius: '8px', fontSize: '0.85rem' }}>
-                        <span style={{ color: executive.alertas.prestamos_vencidos > 0 ? '#991B1B' : '#166534', fontWeight: 500 }}>
-                          Préstamos vencidos:
-                        </span>
-                        <strong style={{ color: executive.alertas.prestamos_vencidos > 0 ? '#991B1B' : '#166534' }}>
-                          {executive.alertas.prestamos_vencidos}
-                        </strong>
+                      {/* Alerta 3: Préstamos vencidos */}
+                      <div
+                        role="button"
+                        tabIndex={0}
+                        onClick={() => handleOpenAlertModal('vencidos')}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter' || e.key === ' ') {
+                            e.preventDefault();
+                            handleOpenAlertModal('vencidos');
+                          }
+                        }}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'space-between',
+                          padding: '0.75rem 0.95rem',
+                          backgroundColor: executive.alertas.prestamos_vencidos > 0 ? '#FEE2E2' : '#F0FDF4',
+                          border: executive.alertas.prestamos_vencidos > 0 ? '1px solid #FECACA' : '1px solid #DCFCE7',
+                          borderRadius: '8px',
+                          fontSize: '0.85rem',
+                          cursor: 'pointer',
+                          transition: 'transform 0.12s ease, box-shadow 0.12s ease',
+                        }}
+                        title="Haz clic para ver los préstamos vencidos y días de mora"
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span style={{ color: executive.alertas.prestamos_vencidos > 0 ? '#991B1B' : '#166534', fontWeight: 600 }}>
+                            Préstamos vencidos:
+                          </span>
+                          <strong style={{ color: executive.alertas.prestamos_vencidos > 0 ? '#991B1B' : '#166534' }}>
+                            {executive.alertas.prestamos_vencidos}
+                          </strong>
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '4px', color: executive.alertas.prestamos_vencidos > 0 ? '#991B1B' : '#166534', fontSize: '0.75rem', fontWeight: 600 }}>
+                          <span>Ver detalle</span>
+                          <ChevronRight size={14} />
+                        </div>
                       </div>
                     </div>
                   </div>
@@ -358,6 +459,14 @@ export const ReportsPage: React.FC = () => {
         initialEndDate={filters.endDate}
         onClose={() => setIsMasterReportModalOpen(false)}
         onExportConfirmed={(msg) => showToast(msg)}
+      />
+
+      {/* Modal de detalle de alertas del acervo */}
+      <AlertDetailModal
+        isOpen={isAlertModalOpen}
+        onClose={() => setIsAlertModalOpen(false)}
+        alertType={alertModalType}
+        alertasData={executive.alertas}
       />
 
       {/* Toast notification banner */}

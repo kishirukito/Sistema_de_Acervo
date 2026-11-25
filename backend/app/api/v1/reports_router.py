@@ -110,12 +110,12 @@ async def get_siabuc_statistics(
 
         reqs = [
             client.get(
-                f"{settings.SUPABASE_URL}/rest/v1/prestamos?select=*,tipos_prestamo(id,clave,nombre),usuarios:usuarios!prestamos_usuario_id_fkey(nombre_completo,email,dependencia_o_area,carrera_id,tipo_usuario_id,tipos_usuario(nombre),carreras(id,nivel,nombre)),instituciones_convenio(id,nombre,nombre_biblioteca),autorizado_por:usuarios!prestamos_autorizado_por_id_fkey(id,nombre_completo),ejemplares(id,estado,codigo_inventario,libros(id,titulo,clasificacion_dewey))&order=fecha_prestamo.desc",
+                f"{settings.SUPABASE_URL}/rest/v1/prestamos?select=*,tipos_prestamo(id,clave,nombre),usuarios:usuarios!prestamos_usuario_id_fkey(id,nombre_completo,email,matricula_o_nomina,telefono,dependencia_o_area,carrera_id,tipo_usuario_id,tipos_usuario(nombre),carreras(id,nivel,nombre)),instituciones_convenio(id,nombre,nombre_biblioteca),autorizado_por:usuarios!prestamos_autorizado_por_id_fkey(id,nombre_completo),ejemplares(id,estado,codigo_inventario,libros(id,titulo,clasificacion_dewey))&order=fecha_prestamo.desc",
                 headers=headers
             ),
-            client.get(f"{settings.SUPABASE_URL}/rest/v1/sanciones_multas?select=*,usuarios(nombre_completo,email)&order=created_at.desc", headers=headers),
+            client.get(f"{settings.SUPABASE_URL}/rest/v1/sanciones_multas?select=*,usuarios(id,nombre_completo,email,matricula_o_nomina,telefono,carreras(nombre)),prestamos(id,fecha_prestamo,fecha_limite_devolucion,ejemplares(codigo_inventario,libros(titulo)))&order=created_at.desc", headers=headers),
             client.get(f"{settings.SUPABASE_URL}/rest/v1/libros?select=id,titulo,anio_publicacion,creado_por_id,clasificacion_dewey,created_at,usuarios:usuarios!libros_creado_por_id_fkey(nombre_completo)&order=created_at.desc", headers=headers),
-            client.get(f"{settings.SUPABASE_URL}/rest/v1/ejemplares?select=id,libro_id,codigo_inventario,estado,ubicacion_estante,observaciones,created_at", headers=headers),
+            client.get(f"{settings.SUPABASE_URL}/rest/v1/ejemplares?select=id,libro_id,codigo_inventario,estado,ubicacion_estante,observaciones,created_at,libros(id,titulo,isbn,clasificacion_dewey)&order=codigo_inventario.asc", headers=headers),
             client.get(f"{settings.SUPABASE_URL}/rest/v1/espacios_biblioteca?select=*&order=id.asc", headers=headers),
             client.get(f"{settings.SUPABASE_URL}/rest/v1/reservas_espacios?select=*,espacios_biblioteca(nombre,tipo),usuarios(nombre_completo)&order=created_at.desc", headers=headers),
             client.get(f"{settings.SUPABASE_URL}/rest/v1/equipos_computo?select=*&order=id.asc", headers=headers),
@@ -377,6 +377,98 @@ async def get_siabuc_statistics(
         })
 
     avatar_colors = ["#2F80ED", "#27AE60", "#D97706", "#8B5CF6", "#06B6D4", "#EC4899"]
+    # Mapear préstamo activo por ejemplar_id
+    active_loans_by_ejemplar = {}
+    for p in prestamos:
+        if p.get("estado") in ["activo", "vencido"] and not p.get("fecha_devolucion_real"):
+            ej_id = p.get("ejemplar_id")
+            if ej_id:
+                active_loans_by_ejemplar[str(ej_id)] = p
+
+    # Detalle de ejemplares no disponibles (prestados, en mantenimiento, extraviados, baja)
+    lista_ejemplares_no_disp = []
+    for e in ejemplares:
+        st = (e.get("estado") or "").lower()
+        if st in ["prestado", "mantenimiento", "extraviado", "baja"]:
+            lb = e.get("libros") or {}
+            p_act = active_loans_by_ejemplar.get(str(e.get("id")))
+            u_act = p_act.get("usuarios") if p_act else {}
+
+            dias_retraso_ej = p_act.get("_dias_retraso", 0) if p_act else 0
+            u_nombre = u_act.get("nombre_completo") if u_act else ("En mantenimiento" if st == "mantenimiento" else "No asignado")
+            u_mat = u_act.get("matricula_o_nomina") if u_act else "N/A"
+
+            lista_ejemplares_no_disp.append({
+                "id": str(e.get("id")),
+                "codigoInventario": e.get("codigo_inventario") or "N/A",
+                "titulo": lb.get("titulo") or "Título no disponible",
+                "isbn": lb.get("isbn") or "N/A",
+                "dewey": lb.get("clasificacion_dewey") or "N/A",
+                "ubicacion": e.get("ubicacion_estante") or "Sin ubicación asignada",
+                "estado": st.capitalize(),
+                "observaciones": e.get("observaciones") or "En circulación",
+                "usuario": u_nombre,
+                "matricula": u_mat,
+                "fechaPrestamo": p_act.get("fecha_prestamo")[:10] if (p_act and p_act.get("fecha_prestamo")) else "N/A",
+                "fechaLimite": p_act.get("fecha_limite_devolucion")[:10] if (p_act and p_act.get("fecha_limite_devolucion")) else "N/A",
+                "diasRetraso": dias_retraso_ej
+            })
+
+    # Detalle de multas pendientes de cobro
+    lista_multas_pendientes = []
+    for s in sanciones:
+        if (s.get("estado_pago") or "").lower() == "pendiente":
+            u = s.get("usuarios") or {}
+            c_obj = u.get("carreras") if isinstance(u, dict) else {}
+            c_nom = c_obj.get("nombre") if isinstance(c_obj, dict) else None
+
+            # Obtener libro desde el préstamo asociado o historial
+            p_rel = s.get("prestamos") or {}
+            ej_rel = p_rel.get("ejemplares") or {}
+            lb_rel = ej_rel.get("libros") or {}
+            libro_titulo = lb_rel.get("titulo") if isinstance(lb_rel, dict) else None
+
+            if not libro_titulo:
+                u_id = s.get("usuario_id")
+                u_loans = [p for p in prestamos if p.get("usuario_id") == u_id]
+                if u_loans:
+                    ej_u = u_loans[0].get("ejemplares") or {}
+                    lb_u = ej_u.get("libros") or {}
+                    libro_titulo = lb_u.get("titulo") or "Material bibliográfico"
+                else:
+                    libro_titulo = "Material bibliográfico"
+
+            created_iso = s.get("created_at") or ""
+            dias_retraso_m = 0
+            motivo_str = s.get("motivo") or "Retraso en entrega"
+            import re
+            m_match = re.search(r"(\d+)\s*d[ií]as?", motivo_str, re.IGNORECASE)
+            if m_match:
+                dias_retraso_m = int(m_match.group(1))
+            elif created_iso:
+                try:
+                    c_dt = datetime.fromisoformat(created_iso.replace("Z", "+00:00"))
+                    diff = (now_ref - c_dt).total_seconds()
+                    dias_retraso_m = max(1, int(diff // 86400))
+                except Exception:
+                    dias_retraso_m = 1
+
+            lista_multas_pendientes.append({
+                "id": str(s.get("id")),
+                "folioSancion": f"SAN-{str(s.get('id', ''))[:8].upper()}",
+                "nombre": u.get("nombre_completo") or "Usuario del sistema",
+                "matricula": u.get("matricula_o_nomina") or "No disponible",
+                "email": u.get("email") or "No disponible",
+                "telefono": u.get("telefono") or "No disponible",
+                "carrera": c_nom or "General",
+                "libro": libro_titulo,
+                "motivo": motivo_str,
+                "monto": float(s.get("monto_multa") or 0.0),
+                "diasRetraso": dias_retraso_m,
+                "fechaEmision": created_iso[:10] if created_iso else "N/A",
+                "estadoPago": "Pendiente"
+            })
+
     overdue_loans = []
     # Filtrar todos los que se determinaron como vencidos
     prestamos_vencidos_lista = [x for x in prestamos if x.get("_estado_calculado") == "vencido"]
@@ -388,7 +480,9 @@ async def get_siabuc_statistics(
         ej = p.get("ejemplares") or {}
         lb = ej.get("libros") or {} if isinstance(ej, dict) else {}
         b_title = lb.get("titulo") if isinstance(lb, dict) else f"Ejemplar #{p.get('ejemplar_id')}"
-        
+        c_obj = u.get("carreras") if isinstance(u, dict) else {}
+        c_nom = c_obj.get("nombre") if isinstance(c_obj, dict) else u.get("dependencia_o_area")
+
         due_iso = p.get("fecha_limite_devolucion") or ""
         days_overdue = p.get("_dias_retraso", 0)
 
@@ -396,9 +490,15 @@ async def get_siabuc_statistics(
             "id": p.get("id"),
             "folio": f"PR-{str(idx + 1).zfill(3)}",
             "userName": u_name,
+            "matricula": u.get("matricula_o_nomina") or "No disponible",
+            "carrera": c_nom or "No disponible",
+            "email": u.get("email") or "No disponible",
+            "telefono": u.get("telefono") or "No disponible",
             "userInitials": initials,
             "userAvatarColor": avatar_colors[idx % len(avatar_colors)],
             "bookTitle": b_title,
+            "codigoInventario": ej.get("codigo_inventario") or "N/A",
+            "fechaPrestamo": p.get("fecha_prestamo")[:10] if p.get("fecha_prestamo") else "N/A",
             "dueDate": due_iso[:10] if due_iso else "Hoy",
             "daysOverdue": days_overdue,
             "status": "OVERDUE"
@@ -466,9 +566,12 @@ async def get_siabuc_statistics(
             "categorias_solicitadas": categorias_metrics,
             "actividad_reciente": overdue_loans,
             "alertas": {
-                "ejemplares_no_disponibles": sum(1 for e in ejemplares if e.get("estado") in ["prestado", "mantenimiento"]),
+                "ejemplares_no_disponibles": len(lista_ejemplares_no_disp),
                 "multas_pendientes": multas_pendientes_monto,
-                "prestamos_vencidos": vencidos_count
+                "prestamos_vencidos": vencidos_count,
+                "detalle_ejemplares_no_disponibles": lista_ejemplares_no_disp,
+                "detalle_multas_pendientes": lista_multas_pendientes,
+                "detalle_prestamos_vencidos": overdue_loans
             }
         },
         "catalogos": {

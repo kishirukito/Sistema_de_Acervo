@@ -38,12 +38,50 @@ export interface OverdueLoanItem {
   id: string;
   folio: string;
   userName: string;
+  matricula?: string;
+  carrera?: string;
+  email?: string;
+  telefono?: string;
   userInitials: string;
   userAvatarColor: string;
   bookTitle: string;
+  codigoInventario?: string;
+  fechaPrestamo?: string;
   dueDate: string;
   daysOverdue: number;
   status: 'OVERDUE';
+}
+
+export interface MultaAlertaDetalle {
+  id: string;
+  folioSancion: string;
+  nombre: string;
+  matricula: string;
+  email: string;
+  telefono: string;
+  carrera: string;
+  libro: string;
+  motivo: string;
+  monto: number;
+  diasRetraso: number;
+  fechaEmision: string;
+  estadoPago: string;
+}
+
+export interface EjemplarNoDisponibleAlertaDetalle {
+  id: string;
+  codigoInventario: string;
+  titulo: string;
+  isbn: string;
+  dewey: string;
+  ubicacion: string;
+  estado: string;
+  observaciones: string;
+  usuario: string;
+  matricula: string;
+  fechaPrestamo: string;
+  fechaLimite: string;
+  diasRetraso: number;
 }
 
 export interface QuickReportItem {
@@ -126,6 +164,9 @@ export interface ResumenEjecutivoReal {
     ejemplares_no_disponibles: number;
     multas_pendientes: number;
     prestamos_vencidos: number;
+    detalle_ejemplares_no_disponibles?: EjemplarNoDisponibleAlertaDetalle[];
+    detalle_multas_pendientes?: MultaAlertaDetalle[];
+    detalle_prestamos_vencidos?: OverdueLoanItem[];
   };
 }
 
