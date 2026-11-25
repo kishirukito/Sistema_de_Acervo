@@ -29,6 +29,16 @@ export const EDIT_BOOK_DESTINATION_OPTIONS = [
   { value: 'OTRA_BIBLIOTECA', label: 'En otra biblioteca (Convenio interbibliotecario)' },
 ];
 
+const getEditionLabel = (index: number): string => {
+  let n = index;
+  let letters = '';
+  while (n >= 0) {
+    letters = String.fromCharCode(65 + (n % 26)) + letters;
+    n = Math.floor(n / 26) - 1;
+  }
+  return `Edición ${letters}`;
+};
+
 export interface EditEjemplarItem {
   id?: string;
   codigo_inventario: string;
@@ -535,14 +545,14 @@ export const EditResourceModal: React.FC<EditResourceModalProps> = ({
                   >
                     <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                       <span
+                        title={ej.codigo_inventario}
                         style={{
                           fontSize: '0.8125rem',
                           fontWeight: 700,
                           color: '#1E293B',
-                          fontFamily: 'monospace',
                         }}
                       >
-                        {ej.codigo_inventario}
+                        {getEditionLabel(index)}
                       </span>
                       <span
                         style={{
