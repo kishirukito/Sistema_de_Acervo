@@ -1,5 +1,6 @@
 import React from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { getPaginationItems } from '../../../utils/pagination';
 
 interface UsersPaginationProps {
   currentPage: number;
@@ -21,7 +22,7 @@ export const UsersPagination: React.FC<UsersPaginationProps> = ({
   const startItem = (currentPage - 1) * itemsPerPage + 1;
   const endItem = Math.min(currentPage * itemsPerPage, totalItems);
 
-  const pagesArray = Array.from({ length: totalPages }, (_, i) => i + 1);
+  const paginationItems = getPaginationItems(currentPage, totalPages);
 
   return (
     <div className="users-pagination-row">
@@ -41,20 +42,31 @@ export const UsersPagination: React.FC<UsersPaginationProps> = ({
           <span>Anterior</span>
         </button>
 
-        {pagesArray.map((pageNum) => {
-          const isActive = pageNum === currentPage;
+        {paginationItems.map((item) => {
+          if (typeof item !== 'number') {
+            return (
+              <span
+                key={item}
+                aria-hidden="true"
+                style={{ padding: '0 6px', color: '#9CA3AF', userSelect: 'none' }}
+              >
+                …
+              </span>
+            );
+          }
+          const isActive = item === currentPage;
           return (
             <button
-              key={pageNum}
+              key={item}
               type="button"
-              onClick={() => onPageChange(pageNum)}
+              onClick={() => onPageChange(item)}
               className={`users-page-number-btn ${
                 isActive ? 'users-page-number-btn--active' : ''
               }`}
               aria-current={isActive ? 'page' : undefined}
-              aria-label={`Página ${pageNum}`}
+              aria-label={`Página ${item}`}
             >
-              {pageNum}
+              {item}
             </button>
           );
         })}

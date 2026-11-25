@@ -461,8 +461,10 @@
 /* Pagination Row */
 .catalog-pagination-row {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
+  gap: 0.75rem;
   padding: 1.25rem 0.25rem 0.5rem 0.25rem;
   width: 100%;
 }
@@ -470,12 +472,25 @@
 .catalog-pagination-info {
   font-size: 0.8125rem;
   color: #9CA3AF;
+  white-space: nowrap;
 }
 
 .catalog-pagination-controls {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: 6px;
+}
+
+.catalog-page-ellipsis {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 28px;
+  height: 36px;
+  font-size: 0.875rem;
+  color: #9CA3AF;
+  user-select: none;
 }
 
 .catalog-page-btn {

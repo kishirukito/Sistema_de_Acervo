@@ -1,5 +1,6 @@
 import React from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { getPaginationItems } from '../../../utils/pagination';
 
 interface CatalogPaginationProps {
   currentPage: number;
@@ -21,7 +22,7 @@ export const CatalogPagination: React.FC<CatalogPaginationProps> = ({
   const startItem = (currentPage - 1) * itemsPerPage + 1;
   const endItem = Math.min(currentPage * itemsPerPage, totalItems);
 
-  const pagesArray = Array.from({ length: totalPages }, (_, i) => i + 1);
+  const paginationItems = getPaginationItems(currentPage, totalPages);
 
   return (
     <div className="catalog-pagination-row">
@@ -41,19 +42,29 @@ export const CatalogPagination: React.FC<CatalogPaginationProps> = ({
           <span>Anterior</span>
         </button>
 
-        {pagesArray.map((pageNum) => (
-          <button
-            key={pageNum}
-            type="button"
-            onClick={() => onPageChange(pageNum)}
-            className={`catalog-page-btn ${
-              pageNum === currentPage ? 'catalog-page-btn--active' : ''
-            }`}
-            aria-current={pageNum === currentPage ? 'page' : undefined}
-          >
-            {pageNum}
-          </button>
-        ))}
+        {paginationItems.map((item) =>
+          typeof item === 'number' ? (
+            <button
+              key={item}
+              type="button"
+              onClick={() => onPageChange(item)}
+              className={`catalog-page-btn ${
+                item === currentPage ? 'catalog-page-btn--active' : ''
+              }`}
+              aria-current={item === currentPage ? 'page' : undefined}
+            >
+              {item}
+            </button>
+          ) : (
+            <span
+              key={item}
+              className="catalog-page-ellipsis"
+              aria-hidden="true"
+            >
+              …
+            </span>
+          )
+        )}
 
         <button
           type="button"
