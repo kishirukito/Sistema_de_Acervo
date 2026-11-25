@@ -422,21 +422,15 @@ async def get_siabuc_statistics(
             c_obj = u.get("carreras") if isinstance(u, dict) else {}
             c_nom = c_obj.get("nombre") if isinstance(c_obj, dict) else None
 
-            # Obtener libro desde el préstamo asociado o historial
+            # Obtener libro desde el préstamo asociado si existe explícitamente
             p_rel = s.get("prestamos") or {}
-            ej_rel = p_rel.get("ejemplares") or {}
-            lb_rel = ej_rel.get("libros") or {}
+            ej_rel = p_rel.get("ejemplares") or {} if isinstance(p_rel, dict) else {}
+            lb_rel = ej_rel.get("libros") or {} if isinstance(ej_rel, dict) else {}
             libro_titulo = lb_rel.get("titulo") if isinstance(lb_rel, dict) else None
 
+            # Si no hay préstamo explícito en la sanción, no inventar préstamos posteriores
             if not libro_titulo:
-                u_id = s.get("usuario_id")
-                u_loans = [p for p in prestamos if p.get("usuario_id") == u_id]
-                if u_loans:
-                    ej_u = u_loans[0].get("ejemplares") or {}
-                    lb_u = ej_u.get("libros") or {}
-                    libro_titulo = lb_u.get("titulo") or "Material bibliográfico"
-                else:
-                    libro_titulo = "Material bibliográfico"
+                libro_titulo = "Material bibliográfico (Sanción en caja)"
 
             created_iso = s.get("created_at") or ""
             dias_retraso_m = 0

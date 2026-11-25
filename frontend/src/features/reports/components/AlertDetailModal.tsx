@@ -78,7 +78,7 @@ export const AlertDetailModal: React.FC<AlertDetailModalProps> = ({
   const titles = {
     multas: {
       title: 'Multas Pendientes de Cobro',
-      subtitle: 'Listado detallado de alumnos y usuarios con adeudos activos por material bibliográfico.',
+      subtitle: 'Adeudos contables registrados en caja pendientes de liquidación (sanciones emitidas por entrega tardía o faltas reglamentarias).',
       icon: <AlertCircle size={22} color="#DC2626" />,
       badgeColor: '#FEE2E2',
       badgeText: '#991B1B',
@@ -281,8 +281,8 @@ export const AlertDetailModal: React.FC<AlertDetailModalProps> = ({
                       <tr style={{ backgroundColor: '#F8FAFC', borderBottom: '1px solid #E2E8F0' }}>
                         <th style={{ padding: '10px 14px', fontWeight: 700, color: '#475569' }}>Folio / Fecha</th>
                         <th style={{ padding: '10px 14px', fontWeight: 700, color: '#475569' }}>Usuario / Matrícula</th>
-                        <th style={{ padding: '10px 14px', fontWeight: 700, color: '#475569' }}>Libro Solicitado</th>
-                        <th style={{ padding: '10px 14px', fontWeight: 700, color: '#475569' }}>Motivo & Retraso</th>
+                        <th style={{ padding: '10px 14px', fontWeight: 700, color: '#475569' }}>Material / Referencia</th>
+                        <th style={{ padding: '10px 14px', fontWeight: 700, color: '#475569' }}>Motivo de la Sanción</th>
                         <th style={{ padding: '10px 14px', fontWeight: 700, color: '#475569', textAlign: 'right' }}>Monto Pendiente</th>
                       </tr>
                     </thead>
@@ -297,7 +297,7 @@ export const AlertDetailModal: React.FC<AlertDetailModalProps> = ({
                         >
                           <td style={{ padding: '10px 14px', whiteSpace: 'nowrap' }}>
                             <div style={{ fontWeight: 700, color: '#1E293B' }}>{m.folioSancion}</div>
-                            <div style={{ fontSize: '0.71875rem', color: '#64748B' }}>{m.fechaEmision}</div>
+                            <div style={{ fontSize: '0.71875rem', color: '#64748B' }}>Emisión: {m.fechaEmision}</div>
                           </td>
                           <td style={{ padding: '10px 14px' }}>
                             <div style={{ fontWeight: 600, color: '#0F172A' }}>{m.nombre}</div>
@@ -326,14 +326,14 @@ export const AlertDetailModal: React.FC<AlertDetailModalProps> = ({
                                   display: 'inline-block',
                                   marginTop: '4px',
                                   padding: '1px 7px',
-                                  backgroundColor: '#FEE2E2',
-                                  color: '#DC2626',
+                                  backgroundColor: '#FEF3C7',
+                                  color: '#92400E',
                                   borderRadius: '4px',
-                                  fontWeight: 700,
+                                  fontWeight: 600,
                                   fontSize: '0.6875rem',
                                 }}
                               >
-                                {m.diasRetraso} día(s) de mora
+                                Origen: {m.diasRetraso} día(s) de entrega tardía
                               </span>
                             )}
                           </td>
