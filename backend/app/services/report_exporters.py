@@ -52,8 +52,10 @@ _TEXT_MUTED = "64748B"
 
 _DOUGHNUT_PALETTE = ["2563EB", "0EA5E9", "1E3A5F", "60A5FA", "94A3B8", "0284C7", "38BDF8", "64748B"]
 _ISO_DATE_RE = re.compile(r"^\d{4}-\d{2}-\d{2}$")
-_SUMMARY_COLS = 12
+_SUMMARY_COLS = 13  # A:F (izq), G (separador), H:M (der)
 _SUMMARY_COL_WIDTH = 14.5
+_SUMMARY_GUTTER_COL = 7
+_SUMMARY_GUTTER_WIDTH = 3.0
 
 
 def _thin_border(color: str = _BORDER_GRAY) -> Border:
@@ -149,19 +151,24 @@ def _allocate_kpi_spans(kpis: List[Dict[str, Any]], total_cols: int = _SUMMARY_C
         spans[-1] += total_cols - sum(spans)
         return spans
 
-    # 5 o más KPIs: dar 4 columnas a tarjetas con texto largo si caben en 12 columnas
+    # 5 o más KPIs en 13 columnas: dar 4 columnas a tarjetas con texto largo
     wide_indices = [
         i for i, k in enumerate(kpis)
         if k.get("format") == "text" and len(str(k.get("value") or "")) > 14
     ]
     if n == 5:
         if len(wide_indices) == 1:
-            spans = [2] * 5
+            spans = [2, 2, 2, 2, 2]
             spans[wide_indices[0]] = 4
+            # Sumar 1 columna extra al primer KPI no ancho para llegar a 13
+            for i in range(5):
+                if i != wide_indices[0]:
+                    spans[i] += 1
+                    break
             return spans
-        return [3, 3, 2, 2, 2]
+        return [3, 3, 3, 2, 2]
     if n == 6:
-        return [2] * 6
+        return [2, 2, 2, 2, 2, 3]
     base = max(2, total_cols // n)
     return [base] * n
 
@@ -295,6 +302,16 @@ def _build_native_chart(
         xl_chart.y_axis.delete = False
         xl_chart.y_axis.scaling.min = 0
         xl_chart.y_axis.number_format = "#,##0" if v_fmt == "int" else "$#,##0"
+        if v_fmt == "int":
+            max_val = max((float(v) for v in vals), default=0.0)
+            if max_val <= 0:
+                xl_chart.y_axis.scaling.max = 5
+                xl_chart.y_axis.majorUnit = 1
+            elif max_val <= 10:
+                xl_chart.y_axis.scaling.max = max(int(math.ceil(max_val)) + 1, 2)
+                xl_chart.y_axis.majorUnit = 1
+            else:
+                xl_chart.y_axis.majorUnit = max(1, math.ceil(max_val / 5))
         xl_chart.dataLabels = DataLabelList()
         xl_chart.dataLabels.showVal = True
         xl_chart.dataLabels.showCatName = False
@@ -324,6 +341,16 @@ def _build_native_chart(
         xl_chart.x_axis.scaling.orientation = "maxMin"
         xl_chart.y_axis.scaling.min = 0
         xl_chart.y_axis.number_format = "$#,##0" if v_fmt == "currency" else "#,##0"
+        if v_fmt == "int":
+            max_val = max((float(v) for v in vals), default=0.0)
+            if max_val <= 0:
+                xl_chart.y_axis.scaling.max = 5
+                xl_chart.y_axis.majorUnit = 1
+            elif max_val <= 10:
+                xl_chart.y_axis.scaling.max = max(int(math.ceil(max_val)) + 1, 2)
+                xl_chart.y_axis.majorUnit = 1
+            else:
+                xl_chart.y_axis.majorUnit = max(1, math.ceil(max_val / 5))
         xl_chart.x_axis.tickLblPos = "low"
 
         xl_chart.dataLabels = DataLabelList()
@@ -347,8 +374,8 @@ def _build_native_chart(
     # Título fuera del área de trazado, arriba
     if xl_chart.title is not None:
         xl_chart.title.overlay = False
-    xl_chart.width = 18.0
-    xl_chart.height = 9.5
+    xl_chart.width = 15.2
+    xl_chart.height = 9.2
     return xl_chart
 
 
@@ -439,17 +466,18 @@ def export_report_to_xlsx(model: Dict[str, Any]) -> bytes:
     ws_res.views.sheetView[0].showGridLines = True
 
     for col_idx in range(1, _SUMMARY_COLS + 1):
-        ws_res.column_dimensions[get_column_letter(col_idx)].width = _SUMMARY_COL_WIDTH
+        w = _SUMMARY_GUTTER_WIDTH if col_idx == _SUMMARY_GUTTER_COL else _SUMMARY_COL_WIDTH
+        ws_res.column_dimensions[get_column_letter(col_idx)].width = w
 
     # a) Encabezado institucional
-    ws_res.merge_cells("A1:L1")
+    ws_res.merge_cells("A1:M1")
     ws_res["A1"] = "UNIVERSIDAD POLITÉCNICA DE DURANGO — SISTEMA DE ACERVO BIBLIOTECARIO"
     ws_res["A1"].font = styles["title_font"]
     ws_res["A1"].fill = styles["header_fill"]
     ws_res["A1"].alignment = Alignment(horizontal="left", vertical="center", indent=1)
     ws_res.row_dimensions[1].height = 30
 
-    ws_res.merge_cells("A2:L2")
+    ws_res.merge_cells("A2:M2")
     ws_res["A2"] = f"{model['title']} ({model['code']})"
     ws_res["A2"].font = styles["subtitle_font"]
     ws_res["A2"].fill = styles["light_fill"]
@@ -472,13 +500,13 @@ def export_report_to_xlsx(model: Dict[str, Any]) -> bytes:
         c_v1.font = styles["regular_font"]
         c_v1.alignment = Alignment(horizontal="left", vertical="center", wrap_text=True)
 
-        ws_res.merge_cells(start_row=r_idx, start_column=7, end_row=r_idx, end_column=8)
-        c_l2 = ws_res.cell(row=r_idx, column=7, value=l2)
+        ws_res.merge_cells(start_row=r_idx, start_column=8, end_row=r_idx, end_column=9)
+        c_l2 = ws_res.cell(row=r_idx, column=8, value=l2)
         c_l2.font = styles["bold_font"]
         c_l2.alignment = Alignment(horizontal="left", vertical="center")
 
-        ws_res.merge_cells(start_row=r_idx, start_column=9, end_row=r_idx, end_column=12)
-        c_v2 = ws_res.cell(row=r_idx, column=9, value=v2)
+        ws_res.merge_cells(start_row=r_idx, start_column=10, end_row=r_idx, end_column=13)
+        c_v2 = ws_res.cell(row=r_idx, column=10, value=v2)
         c_v2.font = styles["regular_font"]
         c_v2.alignment = Alignment(horizontal="left", vertical="center", wrap_text=True)
         ws_res.row_dimensions[r_idx].height = 20
@@ -578,7 +606,7 @@ def export_report_to_xlsx(model: Dict[str, Any]) -> bytes:
 
         if right_spec is not None:
             right_data = _prepare_chart_series(right_spec, has_rows)
-            r_hdr, r_start, r_end = _write_support_table(ws_res, row_cursor, 7, 11, 12, right_spec, right_data, styles)
+            r_hdr, r_start, r_end = _write_support_table(ws_res, row_cursor, 8, 12, 13, right_spec, right_data, styles)
             chart_top_row = max(l_end, r_end) + 2
         else:
             right_data = None
@@ -597,14 +625,14 @@ def export_report_to_xlsx(model: Dict[str, Any]) -> bytes:
 
         if right_spec is not None and right_data is not None:
             if not right_data["empty"]:
-                xl_right = _build_native_chart(ws_res, right_spec, right_data, r_hdr, r_start, r_end, 12, 7)
-                ws_res.add_chart(xl_right, f"G{chart_top_row}")
+                xl_right = _build_native_chart(ws_res, right_spec, right_data, r_hdr, r_start, r_end, 13, 8)
+                ws_res.add_chart(xl_right, f"H{chart_top_row}")
             else:
-                ws_res.merge_cells(start_row=chart_top_row, start_column=7, end_row=chart_top_row + 3, end_column=12)
-                c_no_r = ws_res.cell(row=chart_top_row, column=7, value=f"{right_spec['title']}: Sin datos para el periodo")
+                ws_res.merge_cells(start_row=chart_top_row, start_column=8, end_row=chart_top_row + 3, end_column=13)
+                c_no_r = ws_res.cell(row=chart_top_row, column=8, value=f"{right_spec['title']}: Sin datos para el periodo")
                 c_no_r.font = styles["muted_font"]
                 c_no_r.alignment = Alignment(horizontal="center", vertical="center")
-                _apply_box_border(ws_res, chart_top_row, 7, chart_top_row + 3, 12, _BORDER_GRAY)
+                _apply_box_border(ws_res, chart_top_row, 8, chart_top_row + 3, 13, _BORDER_GRAY)
 
         has_any_chart = (not left_data["empty"]) or (right_data is not None and not right_data["empty"])
         row_cursor = chart_top_row + (20 if has_any_chart else 5)

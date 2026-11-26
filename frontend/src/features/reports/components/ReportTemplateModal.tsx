@@ -227,14 +227,6 @@ export const ReportTemplateModal: React.FC<ReportTemplateModalProps> = ({
         {/* HEADER SUPERIOR */}
         <header className="report-modal-header">
           <div className="report-modal-header-info">
-            <div className="report-modal-badges-row">
-              <span className="report-modal-code-badge">{reportModel?.code || activeMeta.code}</span>
-              <span className="report-modal-cat-badge">{reportModel?.badge || activeMeta.badge}</span>
-              <span className="report-modal-period-badge">
-                <Calendar size={12} style={{ display: 'inline', marginRight: 4, verticalAlign: -1 }} />
-                {reportModel?.period_label || 'Consultando periodo...'}
-              </span>
-            </div>
             <h2 className="report-modal-title">{(reportModel?.title || activeMeta.title).toUpperCase()}</h2>
             <p className="report-modal-desc">{reportModel?.description || activeMeta.description}</p>
           </div>
