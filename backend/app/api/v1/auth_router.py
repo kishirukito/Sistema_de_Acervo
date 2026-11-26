@@ -1,15 +1,27 @@
 from fastapi import APIRouter, HTTPException, Depends, status
 from pydantic import BaseModel, Field
-from typing import Dict, Any
+from typing import Dict, Any, List, Optional
 import httpx
+import secrets
+import time
 try:
     import bcrypt
 except ImportError:
     bcrypt = None
 from app.core.config import settings
-from app.core.security import create_access_token, get_current_user
+from app.core.security import create_access_token, get_current_user, require_admin
 
 router = APIRouter(prefix="/auth", tags=["Autenticación Segura"])
+
+# ---------------------------------------------------------------------------
+# In-memory store for pending password-reset requests (no DB migration needed)
+# Key: user_id (str), Value: {email, nombre, requested_at (epoch float)}
+# ---------------------------------------------------------------------------
+_reset_requests: Dict[str, Dict[str, Any]] = {}
+
+# Simple rate-limit: last request timestamp per email
+_rate_limit: Dict[str, float] = {}
+_RATE_LIMIT_SECONDS = 600  # 10 minutes
 
 class LoginRequest(BaseModel):
     email: str
@@ -168,3 +180,75 @@ async def change_password(
             "success": True,
             "message": "Contraseña actualizada exitosamente."
         }
+
+
+# ---------------------------------------------------------------------------
+# Forgot-password: user submits email → admin gets an in-app alert
+# ---------------------------------------------------------------------------
+
+class ForgotPasswordRequest(BaseModel):
+    email: str = Field(..., min_length=3, description="Correo del usuario")
+
+
+@router.post("/forgot-password")
+async def forgot_password(req: ForgotPasswordRequest):
+    """
+    Recibe la solicitud de restablecimiento de contraseña de un usuario.
+    Siempre responde con el mismo mensaje genérico para no revelar qué correos están registrados.
+    Si la cuenta existe y está activa, almacena la solicitud en memoria para que el admin la vea.
+    """
+    _GENERIC_MSG = {"message": "Si el correo está registrado, hemos notificado al administrador de tu solicitud."}
+    email = req.email.strip().lower()
+
+    # Rate limit: máx 1 solicitud por correo cada 10 minutos
+    now = time.time()
+    if email in _rate_limit and (now - _rate_limit[email]) < _RATE_LIMIT_SECONDS:
+        return _GENERIC_MSG  # Silently ignore
+
+    url = (
+        f"{settings.SUPABASE_URL}/rest/v1/usuarios"
+        f"?email=eq.{email}&select=id,nombre_completo,email,estado"
+    )
+    headers = {
+        "apikey": settings.SUPABASE_SERVICE_ROLE_KEY,
+        "Authorization": f"Bearer {settings.SUPABASE_SERVICE_ROLE_KEY}",
+    }
+
+    try:
+        async with httpx.AsyncClient(timeout=10.0) as client:
+            resp = await client.get(url, headers=headers)
+            users = resp.json() if resp.is_success else []
+    except Exception:
+        users = []
+
+    if users:
+        u = users[0]
+        if u.get("estado") == "activo":
+            _reset_requests[str(u["id"])] = {
+                "user_id": str(u["id"]),
+                "email": u["email"],
+                "nombre": u.get("nombre_completo") or u["email"],
+                "requested_at": now,
+            }
+            _rate_limit[email] = now
+
+    return _GENERIC_MSG
+
+
+@router.get("/forgot-password/pending")
+async def get_pending_reset_requests(
+    current_user: Dict[str, Any] = Depends(require_admin),
+):
+    """Devuelve la lista de solicitudes pendientes de restablecimiento (solo admin)."""
+    return list(_reset_requests.values())
+
+
+@router.delete("/forgot-password/pending/{user_id}")
+async def clear_reset_request(
+    user_id: str,
+    current_user: Dict[str, Any] = Depends(require_admin),
+):
+    """Elimina una solicitud pendiente una vez que el admin la gestionó (solo admin)."""
+    _reset_requests.pop(user_id, None)
+    return {"message": "Solicitud eliminada."}
+

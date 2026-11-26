@@ -3,6 +3,11 @@ import time
 import asyncio
 import httpx
 import logging
+import secrets
+try:
+    import bcrypt
+except ImportError:
+    bcrypt = None
 from datetime import datetime, timezone
 
 logger = logging.getLogger(__name__)
@@ -12,6 +17,7 @@ from app.services.vector_service import VectorService
 from app.core.security import get_current_user, require_admin
 from app.schemas.book_schema import BookCreateSchema, BookUpdateSchema
 from app.api.v1.reports_router import invalidate_siabuc_cache
+from app.api.v1.auth_router import _reset_requests
 from typing import List, Dict, Any, Optional
 
 router = APIRouter(prefix="/data", tags=["Datos Seguros de Supabase"])
@@ -1000,3 +1006,56 @@ async def patch_solicitud(
         if not resp.is_success:
             raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Error al actualizar la solicitud.")
         return {"updated": True, "id": clean_id, "data": resp.json()}
+
+
+@router.post("/usuarios/{user_id}/password-reset")
+async def admin_reset_user_password(
+    user_id: str,
+    current_user: Dict[str, Any] = Depends(require_admin),
+):
+    """
+    El administrador restablece la contraseña de otro usuario.
+    - Genera una contraseña temporal aleatoria (~16 chars, URL-safe).
+    - La hashea con bcrypt y actualiza el registro en Supabase.
+    - Devuelve la contraseña temporal UNA sola vez. No se registra en logs.
+    - El admin no puede restablecer su propia contraseña por esta vía.
+    """
+    clean_id = str(user_id).strip()
+    admin_id = str(current_user.get("id") or "").strip()
+    if admin_id == clean_id:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="No puedes restablecer tu propia contraseña por esta vía. Usa 'Cambiar contraseña'.",
+        )
+
+    headers = {
+        "apikey": settings.SUPABASE_SERVICE_ROLE_KEY,
+        "Authorization": f"Bearer {settings.SUPABASE_SERVICE_ROLE_KEY}",
+        "Content-Type": "application/json",
+        "Prefer": "return=representation",
+    }
+
+    get_url = f"{settings.SUPABASE_URL}/rest/v1/usuarios?id=eq.{clean_id}&select=id,estado"
+    async with httpx.AsyncClient(timeout=10.0) as client:
+        get_resp = await client.get(get_url, headers=headers)
+        rows = get_resp.json() if get_resp.is_success else []
+        if not rows:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Usuario no encontrado.")
+
+        temp_password = secrets.token_urlsafe(12)
+        if bcrypt:
+            salt = bcrypt.gensalt(rounds=10)
+            new_hash = bcrypt.hashpw(temp_password.encode("utf-8"), salt).decode("utf-8")
+        else:
+            new_hash = f"plain:{temp_password}"
+
+        patch_url = f"{settings.SUPABASE_URL}/rest/v1/usuarios?id=eq.{clean_id}"
+        patch_resp = await client.patch(patch_url, headers=headers, json={"password_hash": new_hash})
+        if not patch_resp.is_success:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="Error al actualizar la contraseña en la base de datos.",
+            )
+
+    _reset_requests.pop(clean_id, None)
+    return {"temp_password": temp_password}

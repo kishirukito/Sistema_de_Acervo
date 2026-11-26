@@ -1,8 +1,15 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Bell, ChevronDown, Clock, BookOpen, CheckCircle2, Menu } from 'lucide-react';
+import { Bell, ChevronDown, Clock, BookOpen, CheckCircle2, Menu, KeyRound } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../features/auth/AuthContext';
 import './Topbar.css';
+
+interface PendingPasswordReset {
+  user_id: string;
+  email: string;
+  nombre: string;
+  requested_at: number;
+}
 
 interface TopbarProps {
   title?: React.ReactNode;
@@ -20,11 +27,43 @@ export const Topbar: React.FC<TopbarProps> = ({ title = 'Dashboard', onOpenMobil
   const { user } = useAuth();
   const navigate = useNavigate();
   const [showNotifications, setShowNotifications] = useState(false);
+  const [pendingResets, setPendingResets] = useState<PendingPasswordReset[]>([]);
   const notifyRef = useRef<HTMLDivElement>(null);
 
   const userName = user?.name || 'Administrador General';
   const userInitials = getInitials(userName);
   const userRole = (user as any)?.role === 'ADMIN' ? 'Administrador' : (user?.kind === 'ADMINISTRATIVE' ? 'Administrador' : 'Usuario');
+
+  // Poll pending password reset requests for administrative users
+  useEffect(() => {
+    if (user?.kind !== 'ADMINISTRATIVE') return;
+    let active = true;
+
+    const fetchPendingResets = async () => {
+      try {
+        const token = localStorage.getItem('acervo_token');
+        if (!token) return;
+        const res = await fetch('/api/v1/auth/forgot-password/pending', {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (res.ok && active) {
+          const data = await res.json();
+          if (Array.isArray(data)) {
+            setPendingResets(data);
+          }
+        }
+      } catch {
+        // Ignore transient network errors
+      }
+    };
+
+    fetchPendingResets();
+    const interval = setInterval(fetchPendingResets, 60000);
+    return () => {
+      active = false;
+      clearInterval(interval);
+    };
+  }, [user?.kind]);
 
   // Close notifications on outside click or Escape key
   useEffect(() => {
@@ -90,9 +129,36 @@ export const Topbar: React.FC<TopbarProps> = ({ title = 'Dashboard', onOpenMobil
             <div className="app-notifications-popover" role="dialog" aria-label="Notificaciones del sistema">
               <div className="app-notifications-header">
                 <span className="app-notifications-title">Notificaciones</span>
-                <span className="app-notifications-badge">2 nuevas</span>
+                <span className="app-notifications-badge">
+                  {pendingResets.length > 0
+                    ? `${pendingResets.length} solicitud(es) de clave`
+                    : '2 nuevas'}
+                </span>
               </div>
               <div className="app-notifications-list">
+                {pendingResets.map((req) => (
+                  <button
+                    key={req.user_id}
+                    type="button"
+                    className="app-notification-item"
+                    style={{ width: '100%', border: 'none', textAlign: 'left', cursor: 'pointer' }}
+                    onClick={() => {
+                      setShowNotifications(false);
+                      navigate('/admin/users');
+                    }}
+                  >
+                    <div className="app-notification-icon app-notification-icon--warning" aria-hidden="true">
+                      <KeyRound size={14} />
+                    </div>
+                    <div className="app-notification-content">
+                      <p className="app-notification-text">
+                        <strong>Restablecer contraseña</strong>: {req.nombre} ({req.email}) solicitó ayuda.
+                      </p>
+                      <span className="app-notification-time">Ir a Usuarios para atender</span>
+                    </div>
+                  </button>
+                ))}
+
                 <div className="app-notification-item">
                   <div className="app-notification-icon app-notification-icon--warning" aria-hidden="true">
                     <Clock size={14} />

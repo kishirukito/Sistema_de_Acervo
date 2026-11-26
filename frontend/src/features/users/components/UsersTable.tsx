@@ -1,5 +1,5 @@
 import React from 'react';
-import { Eye, SquarePen, Ban, CheckCircle2 } from 'lucide-react';
+import { Eye, SquarePen, Ban, CheckCircle2, KeyRound } from 'lucide-react';
 import { UserTypeBadge } from './UserTypeBadge';
 import { UserStatusBadge } from './UserStatusBadge';
 import { extractGeneration } from '../users.generation';
@@ -10,6 +10,7 @@ interface UsersTableProps {
   onViewUser: (user: ManagedUser) => void;
   onEditUser: (user: ManagedUser) => void;
   onToggleUserStatus: (user: ManagedUser) => void;
+  onResetPassword: (user: ManagedUser) => void;
 }
 
 export const UsersTable: React.FC<UsersTableProps> = ({
@@ -17,6 +18,7 @@ export const UsersTable: React.FC<UsersTableProps> = ({
   onViewUser,
   onEditUser,
   onToggleUserStatus,
+  onResetPassword,
 }) => {
   return (
     <div className="users-table-card">
@@ -144,6 +146,15 @@ export const UsersTable: React.FC<UsersTableProps> = ({
                         title="Editar usuario"
                       >
                         <SquarePen size={16} />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => onResetPassword(user)}
+                        className="users-action-btn"
+                        aria-label={`Restablecer contraseña de ${user.fullName}`}
+                        title="Restablecer contraseña"
+                      >
+                        <KeyRound size={16} />
                       </button>
                       <button
                         type="button"

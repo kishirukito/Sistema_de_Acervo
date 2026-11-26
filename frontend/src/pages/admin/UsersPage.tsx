@@ -6,6 +6,7 @@ import {
   AlertCircle,
   FileSpreadsheet,
   CalendarCog,
+  KeyRound,
 } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
 import { UserClassificationTabs } from '../../features/users/components/UserClassificationTabs';
@@ -17,6 +18,7 @@ import { UserDetailModal } from '../../features/users/components/UserDetailModal
 import { UserStatusModal } from '../../features/users/components/UserStatusModal';
 import { BulkImportUsersModal } from '../../features/users/components/BulkImportUsersModal';
 import { GenerationConfigModal } from '../../features/users/components/GenerationConfigModal';
+import { PasswordResetModal } from '../../features/users/components/PasswordResetModal';
 import { LoadingSpinner } from '../../components/ui/LoadingSpinner';
 import { Button } from '../../components/ui/Button';
 import { MOCK_MANAGED_USERS } from '../../features/users/users.mock';
@@ -82,6 +84,21 @@ export const UsersPage: React.FC = () => {
   const [selectedUserDetail, setSelectedUserDetail] = useState<ManagedUser | null>(null);
   const [editingUser, setEditingUser] = useState<ManagedUser | null>(null);
   const [statusTargetUser, setStatusTargetUser] = useState<ManagedUser | null>(null);
+  const [resetPasswordUser, setResetPasswordUser] = useState<ManagedUser | null>(null);
+  const [pendingResets, setPendingResets] = useState<Array<{ user_id: string; email: string; nombre: string }>>([]);
+
+  useEffect(() => {
+    const token = localStorage.getItem('acervo_token');
+    if (!token) return;
+    fetch('/api/v1/auth/forgot-password/pending', {
+      headers: { Authorization: `Bearer ${token}` },
+    })
+      .then((res) => (res.ok ? res.json() : []))
+      .then((data) => {
+        if (Array.isArray(data)) setPendingResets(data);
+      })
+      .catch(() => {});
+  }, []);
 
   const itemsPerPage = 8;
 
@@ -391,6 +408,34 @@ export const UsersPage: React.FC = () => {
         </div>
       </div>
 
+      {/* Alerta de solicitudes pendientes de restablecimiento de contraseña */}
+      {pendingResets.length > 0 && (
+        <div
+          role="alert"
+          style={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: '1rem',
+            padding: '0.875rem 1.25rem',
+            marginBottom: '1.25rem',
+            backgroundColor: '#FEF3C7',
+            border: '1px solid #FCD34D',
+            borderRadius: '10px',
+            color: '#92400E',
+            fontSize: '0.875rem',
+          }}
+        >
+          <div style={{ display: 'flex', alignItems: 'center', gap: '0.625rem' }}>
+            <KeyRound size={18} style={{ flexShrink: 0 }} />
+            <span>
+              <strong>{pendingResets.length} usuario(s)</strong> han solicitado restablecimiento de contraseña:{' '}
+              {pendingResets.map((r) => `${r.nombre} (${r.email})`).join(', ')}. Busca su nombre en la lista y usa el botón de llave para ayudarlos.
+            </span>
+          </div>
+        </div>
+      )}
+
       {/* Tablero Interactivo de Clasificación de Usuarios (Ocupa el lugar de las métricas con tarjetas ampliadas) */}
       <UserClassificationTabs
         activeClassification={filters.classification}
@@ -434,6 +479,7 @@ export const UsersPage: React.FC = () => {
             onViewUser={handleViewUser}
             onEditUser={handleEditUser}
             onToggleUserStatus={handleToggleUserStatus}
+            onResetPassword={(user) => setResetPasswordUser(user)}
           />
 
           <UsersPagination
@@ -530,6 +576,15 @@ export const UsersPage: React.FC = () => {
         onSuccess={(count) => {
           invalidateAdminUsers(queryClient);
           showToast(`Se importaron ${count} usuarios exitosamente al sistema.`, 'success');
+        }}
+      />
+
+      {/* Password Reset Modal */}
+      <PasswordResetModal
+        user={resetPasswordUser}
+        onClose={() => setResetPasswordUser(null)}
+        onRequestHandled={(handledUserId) => {
+          setPendingResets((prev) => prev.filter((r) => r.user_id !== handledUserId));
         }}
       />
     </div>

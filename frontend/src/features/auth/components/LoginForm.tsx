@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { Eye, EyeOff, Bookmark, AlertCircle } from 'lucide-react';
@@ -14,7 +15,6 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSuccessRedirect }) => {
   const { login } = useAuth();
   const [showPassword, setShowPassword] = useState(false);
   const [authError, setAuthError] = useState<string | null>(null);
-  const [forgotNotice, setForgotNotice] = useState<string | null>(null);
 
   const {
     register,
@@ -32,7 +32,6 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSuccessRedirect }) => {
 
   const onSubmit = async (data: LoginFormData) => {
     setAuthError(null);
-    setForgotNotice(null);
 
     try {
       // Simulate 500ms network delay for realistic loading feedback
@@ -66,10 +65,6 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSuccessRedirect }) => {
     setAuthError(null);
   };
 
-  const handleForgotPassword = () => {
-    setForgotNotice('Para recuperar tu contraseña, por favor contacta al departamento de soporte de la biblioteca.');
-  };
-
   return (
     <div className="login-card">
       <div className="login-header-icon" aria-hidden="true">
@@ -85,24 +80,6 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSuccessRedirect }) => {
         <div className="login-alert-error" role="alert">
           <AlertCircle size={18} style={{ flexShrink: 0 }} />
           <span>{authError}</span>
-        </div>
-      )}
-
-      {forgotNotice && (
-        <div
-          style={{
-            padding: '0.75rem 1rem',
-            backgroundColor: '#EFF6FF',
-            border: '1px solid #BFDBFE',
-            color: '#1E40AF',
-            borderRadius: '8px',
-            fontSize: '0.85rem',
-            marginBottom: '1.25rem',
-            lineHeight: '1.4',
-          }}
-          role="status"
-        >
-          {forgotNotice}
         </div>
       )}
 
@@ -174,13 +151,13 @@ export const LoginForm: React.FC<LoginFormProps> = ({ onSuccessRedirect }) => {
             <span>Recordarme</span>
           </label>
 
-          <button
-            type="button"
+          <Link
+            to="/forgot-password"
             className="login-forgot-link"
-            onClick={handleForgotPassword}
+            style={{ textDecoration: 'none' }}
           >
             ¿Olvidaste tu contraseña?
-          </button>
+          </Link>
         </div>
 
         {/* Submit button */}

@@ -6,6 +6,7 @@ import { UserLayout } from '../components/layout/UserLayout';
 
 // Auth page
 import { LoginPage } from '../pages/auth/LoginPage';
+import { ForgotPasswordPage } from '../pages/auth/ForgotPasswordPage';
 
 // Admin pages
 import { AdminDashboardPage } from '../pages/admin/AdminDashboardPage';
@@ -78,6 +79,10 @@ export const router = createBrowserRouter([
   {
     path: '/login',
     element: <LoginPage />,
+  },
+  {
+    path: '/forgot-password',
+    element: <ForgotPasswordPage />,
   },
   {
     path: '/solicitudes',
