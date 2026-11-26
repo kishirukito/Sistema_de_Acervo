@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Bell, ChevronDown, Menu, Check } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../features/auth/AuthContext';
@@ -18,6 +18,7 @@ export const ReaderTopbar: React.FC<ReaderTopbarProps> = ({
   const { user } = useAuth();
   const navigate = useNavigate();
   const [showNotifications, setShowNotifications] = useState(false);
+  const notifyRef = useRef<HTMLDivElement>(null);
 
   const userName = user?.name || 'Usuario Lector';
   const userCategory = user?.departmentOrCareer === 'Estudiante' || user?.category === 'STUDENT'
@@ -31,6 +32,30 @@ export const ReaderTopbar: React.FC<ReaderTopbarProps> = ({
     .slice(0, 2)
     .map((part) => part[0]?.toUpperCase())
     .join('') || 'UL';
+
+  // Cerrar popover al hacer click fuera o presionar Escape
+  useEffect(() => {
+    if (!showNotifications) return;
+
+    const handleClickOutside = (e: MouseEvent) => {
+      if (notifyRef.current && !notifyRef.current.contains(e.target as Node)) {
+        setShowNotifications(false);
+      }
+    };
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        setShowNotifications(false);
+      }
+    };
+
+    document.addEventListener('mousedown', handleClickOutside);
+    document.addEventListener('keydown', handleKeyDown);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+      document.removeEventListener('keydown', handleKeyDown);
+    };
+  }, [showNotifications]);
 
   return (
     <header className="reader-topbar" aria-label="Cabecera del lector">
@@ -58,7 +83,7 @@ export const ReaderTopbar: React.FC<ReaderTopbarProps> = ({
 
       <div className="reader-topbar-right">
         {/* Notification Bell with red dot */}
-        <div className="reader-topbar-notify-wrapper">
+        <div className="reader-topbar-notify-wrapper" ref={notifyRef}>
           <button
             type="button"
             className="reader-topbar-bell-btn"
