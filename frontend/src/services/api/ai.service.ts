@@ -16,6 +16,10 @@ export interface AISummaryResult {
   modelo?: string;
   proveedor?: string;
   guardado_en_db?: boolean;
+  /** Estado del job LLM: "generando_ia" | "procesando" | "completado" */
+  estado?: string;
+  /** ID del libro usado para hacer polling de estado */
+  job_id?: string | null;
 }
 
 function getAuthHeaders(): Record<string, string> {
@@ -192,5 +196,23 @@ export async function requestIndexAcervo(): Promise<{ indexados: number; total_l
     throw new Error(`Error al indexar acervo (${directRes.status}): ${errText}`);
   }
 
+  return await directRes.json();
+}
+
+/** Consulta el estado del resumen IA de un libro (para polling). */
+export async function pollAISummaryStatus(libroId: string): Promise<AISummaryResult> {
+  const headers = getAuthHeaders();
+  const url = `/api/v1/ai/resumen/status/${libroId}`;
+  const directUrl = `http://127.0.0.1:8000/api/v1/ai/resumen/status/${libroId}`;
+
+  try {
+    const res = await fetch(url, { headers });
+    if (res.ok) return await res.json();
+  } catch {
+    // fall through to direct
+  }
+
+  const directRes = await fetch(directUrl, { headers });
+  if (!directRes.ok) throw new Error(`Poll status error ${directRes.status}`);
   return await directRes.json();
 }

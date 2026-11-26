@@ -743,6 +743,26 @@ class SupabaseService:
                 resp.raise_for_status()
                 return {"inserted": True}
 
+    async def get_summary(self, libro_id: str) -> Dict[str, Any] | None:
+        """
+        Obtiene el resumen IA de un libro desde Supabase.
+        Retorna un dict con resumen_ia, palabras_clave_ia, modelo_ia, o None si no existe.
+        """
+        url = f"{self.base_url}/resumenes_ia?libro_id=eq.{libro_id}&select=resumen_texto,palabras_clave,modelo_usado&limit=1"
+        async with httpx.AsyncClient(timeout=5.0) as client:
+            resp = await client.get(url, headers=self.headers)
+            if not resp.is_success:
+                return None
+            items = resp.json()
+            if not isinstance(items, list) or len(items) == 0:
+                return None
+            row = items[0]
+            return {
+                "resumen_ia": row.get("resumen_texto", ""),
+                "palabras_clave_ia": row.get("palabras_clave", ""),
+                "modelo_ia": row.get("modelo_usado", ""),
+            }
+
     async def delete_book(self, book_id: str) -> Dict[str, Any]:
         """
         Elimina un libro de Supabase validando existencia e integridad referencial:

@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, status, Depends
+from fastapi import APIRouter, HTTPException, status, Depends, BackgroundTasks
 from app.schemas.ai_schema import (
     AISummaryRequest,
     AISearchRequest,
@@ -13,44 +13,155 @@ from app.services.supabase_service import supabase_service
 from app.core.config import settings
 from app.core.security import get_current_user, require_admin
 from typing import Dict, Any
+import asyncio
 
 router = APIRouter(prefix="/ai", tags=["Microservicio de IA"])
+
+# ==============================================================================
+# Background LLM task: se ejecuta después de responder con el heurístico.
+# Persiste el resultado en Supabase para que el polling lo encuentre vía DB.
+# ==============================================================================
+async def _run_llm_in_background(titulo: str, autor: str, sinopsis: str, libro_id: str) -> None:
+    """
+    Genera el resumen con Ollama en background y lo persiste en Supabase.
+    Si falla (timeout, error), no afecta la experiencia del usuario.
+    """
+    try:
+        result = await AIService.generate_book_summary(
+            titulo=titulo,
+            autor=autor,
+            sinopsis_o_tema=sinopsis
+        )
+        # Solo guarda si el resultado es del modelo real (no heurístico)
+        if result.get("proveedor") != "local_fallback" and libro_id:
+            await supabase_service.save_summary(
+                libro_id=libro_id,
+                resumen_texto=result["resumen"],
+                palabras_clave=result.get("palabras_clave", ""),
+                modelo_usado=result.get("modelo", settings.LOCAL_AI_MODEL)
+            )
+            print(f"[AI BG] Resumen IA guardado para libro {libro_id} con modelo {result.get('modelo')}")
+        elif resultado := result.get("proveedor"):
+            print(f"[AI BG] LLM devolvió proveedor='{resultado}' para libro {libro_id}, no se sobreescribe heurístico.")
+    except asyncio.CancelledError:
+        pass
+    except Exception as e:
+        print(f"[AI BG] Error en background LLM para libro {libro_id}: {e}")
+
 
 @router.post("/resumen")
 async def generate_summary(
     payload: AISummaryRequest,
+    background_tasks: BackgroundTasks,
     admin: Dict[str, Any] = Depends(require_admin)
 ):
     """
-    Genera un resumen analítico y palabras clave de un libro mediante el modelo LLM local.
-    Requiere rol de administrador o personal autorizado.
-    Si se proporciona libro_id, lo guarda o actualiza directamente en la base de datos Supabase.
+    Genera un resumen bibliográfico de forma asíncrona en dos fases:
+
+    **Fase 1 (inmediata, <1s):** Devuelve un resumen heurístico de alta calidad
+    con `estado: "generando_ia"` y `job_id` = libro_id.
+
+    **Fase 2 (background, ~1-2 min):** El modelo LLM local (Ollama) genera el
+    resumen real. Cuando termina, lo persiste en Supabase automáticamente.
+
+    El frontend puede hacer polling a `GET /ai/resumen/status/{libro_id}` cada
+    5–10 segundos para saber si el resumen IA ya está disponible.
     """
+    # Fase 1: Generar heurístico inmediatamente (siempre funciona, <1s)
+    heuristic = AIService.generate_heuristic_summary(
+        titulo=payload.titulo,
+        autor=payload.autor,
+        sinopsis_o_tema=payload.sinopsis_o_tema or ""
+    )
+
+    # Si ya existe resumen en DB, devolverlo directamente sin relanzar LLM
+    if payload.libro_id:
+        try:
+            existing = await supabase_service.get_summary(payload.libro_id)
+            if existing and existing.get("resumen_ia"):
+                return {
+                    "resumen": existing["resumen_ia"],
+                    "palabras_clave": existing.get("palabras_clave_ia", ""),
+                    "modelo": existing.get("modelo_ia", "llm-local"),
+                    "proveedor": "local",
+                    "guardado_en_db": True,
+                    "estado": "completado",
+                    "job_id": payload.libro_id,
+                }
+        except Exception:
+            pass  # Si falla la consulta, continuar con heurístico + background
+
+    # Guardar heurístico en DB como punto de partida
+    if payload.libro_id:
+        try:
+            await supabase_service.save_summary(
+                libro_id=payload.libro_id,
+                resumen_texto=heuristic["resumen"],
+                palabras_clave=heuristic.get("palabras_clave", ""),
+                modelo_usado="heuristico-local"
+            )
+        except Exception:
+            pass
+
+    # Fase 2: Encolar tarea LLM en background (no bloquea la respuesta HTTP)
+    if payload.libro_id:
+        background_tasks.add_task(
+            _run_llm_in_background,
+            payload.titulo,
+            payload.autor,
+            payload.sinopsis_o_tema or "",
+            payload.libro_id
+        )
+
+    return {
+        **heuristic,
+        "guardado_en_db": bool(payload.libro_id),
+        "estado": "generando_ia",
+        "job_id": payload.libro_id or None,
+    }
+
+
+@router.get("/resumen/status/{libro_id}")
+async def get_resumen_status(
+    libro_id: str,
+    admin: Dict[str, Any] = Depends(require_admin)
+):
+    """
+    Consulta el estado del resumen IA para un libro.
+    Usado por el frontend para hacer polling tras llamar a POST /resumen.
+
+    - `estado: "completado"` → el modelo LLM ya generó el resumen real.
+    - `estado: "procesando"` → todavía en background (el heurístico sigue vigente).
+    """
+    clean_id = str(libro_id).strip()
+    if not clean_id:
+        raise HTTPException(status_code=400, detail="libro_id inválido.")
     try:
-        result = await AIService.generate_book_summary(
-            titulo=payload.titulo,
-            autor=payload.autor,
-            sinopsis_o_tema=payload.sinopsis_o_tema or ""
-        )
+        row = await supabase_service.get_summary(clean_id)
+        if not row:
+            raise HTTPException(status_code=404, detail="No se encontró resumen para este libro.")
 
-        if payload.libro_id:
-            try:
-                await supabase_service.save_summary(
-                    libro_id=payload.libro_id,
-                    resumen_texto=result["resumen"],
-                    palabras_clave=result.get("palabras_clave", ""),
-                    modelo_usado=result.get("modelo", "llama3.2:3b")
-                )
-                result["guardado_en_db"] = True
-            except Exception as db_err:
-                result["guardado_en_db"] = False
+        modelo = row.get("modelo_ia", "")
+        # Si el modelo guardado es el heurístico, aún está procesando
+        if modelo in ("heuristico-local", "heuristico-local-fallback", ""):
+            return {
+                "estado": "procesando",
+                "libro_id": clean_id,
+                "resumen": row.get("resumen_ia", ""),
+                "modelo": modelo,
+            }
 
-        return result
+        return {
+            "estado": "completado",
+            "libro_id": clean_id,
+            "resumen": row.get("resumen_ia", ""),
+            "palabras_clave": row.get("palabras_clave_ia", ""),
+            "modelo": modelo,
+        }
+    except HTTPException:
+        raise
     except Exception as e:
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Error al procesar el resumen con el modelo de IA."
-        )
+        raise HTTPException(status_code=500, detail=f"Error consultando estado: {str(e)}")
 
 @router.post("/sugerencias")
 async def search_suggestions(

@@ -160,6 +160,24 @@ class AIService:
         }
 
     @classmethod
+    def generate_heuristic_summary(cls, titulo: str, autor: str, sinopsis_o_tema: str = "") -> Dict[str, Any]:
+        """
+        Genera un resumen heurístico de alta calidad de forma síncrona e instantánea (<1ms).
+        Usado como respuesta inmediata mientras el LLM trabaja en background.
+        """
+        area = sinopsis_o_tema.strip() if sinopsis_o_tema and sinopsis_o_tema.strip() else "Ciencias e Ingeniería"
+        return {
+            "resumen": (
+                f"'{titulo}' de {autor} es una obra de referencia académica orientada al área de {area}. "
+                f"Proporciona un análisis conceptual y metodológico aplicable en el contexto universitario, "
+                f"siendo material recomendado para estudiantes e investigadores del acervo CIU."
+            ),
+            "palabras_clave": f"{titulo}, {autor}, {area}, Referencia Académica, CIU",
+            "modelo": "heuristico-local",
+            "proveedor": "local_fallback",
+        }
+
+    @classmethod
     async def get_embeddings(cls, texto: str) -> List[float]:
         """
         Genera el vector de embeddings del texto usando el modelo local de embeddings (ej. nomic-embed-text)
