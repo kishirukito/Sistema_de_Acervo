@@ -52,7 +52,8 @@ export const PasswordResetModal: React.FC<PasswordResetModalProps> = ({
       }
 
       setTempPassword(data.temp_password);
-      onRequestHandled?.(user.id);
+      // NO llamamos onRequestHandled aquí — el modal debe permanecer abierto
+      // hasta que el admin presione "Cerrar" y vea la contraseña
     } catch (err: any) {
       setError(err?.message || 'Error al restablecer la contraseña.');
     } finally {
@@ -111,7 +112,7 @@ export const PasswordResetModal: React.FC<PasswordResetModalProps> = ({
           <Button
             type="button"
             variant="outline"
-            onClick={tempPassword ? onClose : handleMarkHandledAndClose}
+            onClick={tempPassword ? () => { onRequestHandled?.(user.id); onClose(); } : handleMarkHandledAndClose}
             disabled={loading}
           >
             {tempPassword ? 'Cerrar' : 'Cancelar'}

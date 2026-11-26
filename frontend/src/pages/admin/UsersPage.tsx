@@ -9,6 +9,7 @@ import {
   KeyRound,
 } from 'lucide-react';
 import { useQueryClient } from '@tanstack/react-query';
+import { useLocation } from 'react-router-dom';
 import { UserClassificationTabs } from '../../features/users/components/UserClassificationTabs';
 import { UsersToolbar } from '../../features/users/components/UsersToolbar';
 import { UsersTable } from '../../features/users/components/UsersTable';
@@ -52,6 +53,7 @@ const INITIAL_FILTERS: UsersFilterState = {
 
 export const UsersPage: React.FC = () => {
   const queryClient = useQueryClient();
+  const location = useLocation();
 
   // ── React Query: lista de usuarios con caché de 2 minutos ────────────────
   const { data: usersList = [], isLoading } = useAdminUsers();
@@ -99,6 +101,18 @@ export const UsersPage: React.FC = () => {
       })
       .catch(() => {});
   }, []);
+
+  // Abrir modal de restablecimiento si llegamos navegando desde la notificación del Topbar
+  useEffect(() => {
+    const navState = location.state as { resetUserId?: string } | null;
+    if (!navState?.resetUserId || isLoading || usersList.length === 0) return;
+    const targetUser = usersList.find((u) => u.id === navState.resetUserId);
+    if (targetUser) {
+      setResetPasswordUser(targetUser);
+      // Limpiar el state para que no se vuelva a abrir si el componente re-renderiza
+      window.history.replaceState({}, '');
+    }
+  }, [location.state, isLoading, usersList]);
 
   const itemsPerPage = 8;
 
