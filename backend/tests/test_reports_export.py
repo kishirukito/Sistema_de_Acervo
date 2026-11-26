@@ -158,17 +158,23 @@ async def test_all_reports_excel_and_pdf_export(report_meta):
     assert model["code"] == report_meta["code"]
     assert "SIABUC" not in model["title"].upper()
 
-    # Validar Excel (.xlsx)
+    # Validar Excel (.xlsx): sin hoja Criterios, solo Resumen y Detalle
     xlsx_bytes = export_report_to_xlsx(model)
     wb = load_workbook(BytesIO(xlsx_bytes))
-    assert wb.sheetnames == ["Resumen", "Detalle", "Criterios"]
+    assert wb.sheetnames == ["Resumen", "Detalle"]
+    assert "Criterios" not in wb.sheetnames
 
     ws_res = wb["Resumen"]
     assert len(ws_res._charts) >= 1  # Gráficas nativas de Excel
+    res_texts = [str(v) for row in ws_res.iter_rows(values_only=True) for v in row if v is not None]
+    assert "NOTAS DEL REPORTE" in res_texts
+    assert not any("Criterios!" in t or "#REF!" in t for t in res_texts)
 
     ws_det = wb["Detalle"]
-    assert ws_det.freeze_panes == "A2"
+    assert ws_det.freeze_panes in ("A2", "B2")
     assert ws_det.auto_filter.ref is not None
+    assert ws_det.page_setup.orientation == ws_det.ORIENTATION_LANDSCAPE
+    assert ws_det.page_setup.fitToWidth == 1
 
     # Validar PDF (.pdf)
     pdf_bytes = export_report_to_pdf(model)

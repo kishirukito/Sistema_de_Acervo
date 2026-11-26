@@ -245,7 +245,7 @@ export const ReportTemplateModal: React.FC<ReportTemplateModalProps> = ({
               className="report-modal-action-btn report-modal-btn--export-excel"
               onClick={() => handleExport('excel')}
               disabled={exportingFormat !== null || isLoading}
-              title="Descargar libro Excel (.xlsx) real con hojas Resumen (gráficas nativas), Detalle y Criterios"
+              title="Descargar libro Excel (.xlsx) real con hojas Resumen (gráficas nativas) y Detalle"
             >
               <FileSpreadsheet size={16} />
               <span>{exportingFormat === 'excel' ? 'Generando Excel...' : 'Exportar Excel (.xlsx)'}</span>
