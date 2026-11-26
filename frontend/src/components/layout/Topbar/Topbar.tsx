@@ -2,6 +2,8 @@ import React, { useState, useRef, useEffect } from 'react';
 import { Bell, ChevronDown, Clock, BookOpen, CheckCircle2, Menu, KeyRound } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../../../features/auth/AuthContext';
+import { PasswordResetModal } from '../../../features/users/components/PasswordResetModal';
+import type { ManagedUser } from '../../../features/users/users.types';
 import './Topbar.css';
 
 interface PendingPasswordReset {
@@ -28,6 +30,7 @@ export const Topbar: React.FC<TopbarProps> = ({ title = 'Dashboard', onOpenMobil
   const navigate = useNavigate();
   const [showNotifications, setShowNotifications] = useState(false);
   const [pendingResets, setPendingResets] = useState<PendingPasswordReset[]>([]);
+  const [resetModalUser, setResetModalUser] = useState<ManagedUser | null>(null);
   const notifyRef = useRef<HTMLDivElement>(null);
 
   const userName = user?.name || 'Administrador General';
@@ -96,6 +99,7 @@ export const Topbar: React.FC<TopbarProps> = ({ title = 'Dashboard', onOpenMobil
   };
 
   return (
+    <>
     <header className="app-topbar">
       <div className="app-topbar-left">
         {onOpenMobileMenu && (
@@ -144,7 +148,26 @@ export const Topbar: React.FC<TopbarProps> = ({ title = 'Dashboard', onOpenMobil
                     style={{ width: '100%', border: 'none', textAlign: 'left', cursor: 'pointer' }}
                     onClick={() => {
                       setShowNotifications(false);
-                      navigate('/admin/users');
+                      // Construir un ManagedUser mínimo desde los datos de la solicitud
+                      const minimalUser: ManagedUser = {
+                        id: req.user_id,
+                        fullName: req.nombre,
+                        email: req.email,
+                        status: 'ACTIVE',
+                        kind: 'NORMAL',
+                        category: 'STUDENT',
+                        activeLoans: 0,
+                        borrowerCode: '',
+                        matricula: null,
+                        createdAt: '',
+                        hasOverdueLoan: false,
+                        avatarColor: '#1E3A5F',
+                        avatarInitials: req.nombre.slice(0, 2).toUpperCase(),
+                        carreraId: null,
+                        carrera: null,
+                        dependenciaOArea: null,
+                      };
+                      setResetModalUser(minimalUser);
                     }}
                   >
                     <div className="app-notification-icon app-notification-icon--warning" aria-hidden="true">
@@ -233,5 +256,16 @@ export const Topbar: React.FC<TopbarProps> = ({ title = 'Dashboard', onOpenMobil
         </div>
       </div>
     </header>
+
+    {/* Modal de restablecimiento abierto desde notificación */}
+    <PasswordResetModal
+      user={resetModalUser}
+      onClose={() => setResetModalUser(null)}
+      onRequestHandled={(userId) => {
+        setPendingResets((prev) => prev.filter((r) => r.user_id !== userId));
+        setResetModalUser(null);
+      }}
+    />
+    </>
   );
 };

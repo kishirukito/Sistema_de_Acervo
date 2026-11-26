@@ -60,6 +60,7 @@ export const PasswordResetModal: React.FC<PasswordResetModalProps> = ({
     }
   };
 
+  // "Marcar como atendida" / "Cancelar con acción" — borra la solicitud pendiente
   const handleMarkHandledAndClose = async () => {
     try {
       const token = localStorage.getItem('acervo_token');
@@ -92,7 +93,7 @@ export const PasswordResetModal: React.FC<PasswordResetModalProps> = ({
   return (
     <Modal
       open={Boolean(user)}
-      onClose={handleMarkHandledAndClose}
+      onClose={onClose}
       size="medium"
       role="dialog"
       closeOnBackdrop={!loading}
@@ -110,7 +111,7 @@ export const PasswordResetModal: React.FC<PasswordResetModalProps> = ({
           <Button
             type="button"
             variant="outline"
-            onClick={handleMarkHandledAndClose}
+            onClick={tempPassword ? onClose : handleMarkHandledAndClose}
             disabled={loading}
           >
             {tempPassword ? 'Cerrar' : 'Cancelar'}

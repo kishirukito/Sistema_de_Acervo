@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { ArrowLeft, Bookmark, CheckCircle2, AlertCircle, Mail } from 'lucide-react';
+import { ArrowLeft, Bookmark, CheckCircle2, AlertCircle } from 'lucide-react';
 import '../../features/auth/login.css';
 
 export const ForgotPasswordPage: React.FC = () => {
@@ -149,9 +149,6 @@ export const ForgotPasswordPage: React.FC = () => {
                   disabled={loading}
                   required
                 />
-                <span className="login-input-icon" aria-hidden="true" style={{ right: '0.875rem', pointerEvents: 'none' }}>
-                  <Mail size={16} color="#9CA3AF" />
-                </span>
               </div>
             </div>
 
