@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { KeyRound, Copy, Check, AlertTriangle, ShieldAlert } from 'lucide-react';
+import { KeyRound, Copy, Check, AlertTriangle, ShieldAlert, Eye, EyeOff } from 'lucide-react';
 import { Modal } from '../../../components/ui/Modal';
 import { Button } from '../../../components/ui/Button';
 import type { ManagedUser } from '../users.types';
@@ -20,6 +20,7 @@ export const PasswordResetModal: React.FC<PasswordResetModalProps> = ({
   const [error, setError] = useState<string | null>(null);
   const [tempPassword, setTempPassword] = useState<string | null>(null);
   const [copied, setCopied] = useState(false);
+  const [showPassword, setShowPassword] = useState(true);
 
   // Limpiar estado al abrir o cambiar de usuario
   useEffect(() => {
@@ -27,6 +28,7 @@ export const PasswordResetModal: React.FC<PasswordResetModalProps> = ({
     setError(null);
     setTempPassword(null);
     setCopied(false);
+    setShowPassword(true);
   }, [user?.id]);
 
   if (!user) return null;
@@ -91,7 +93,7 @@ export const PasswordResetModal: React.FC<PasswordResetModalProps> = ({
     <Modal
       open={Boolean(user)}
       onClose={handleMarkHandledAndClose}
-      size="small"
+      size="medium"
       role="dialog"
       closeOnBackdrop={!loading}
       closeOnEscape={!loading}
@@ -111,7 +113,7 @@ export const PasswordResetModal: React.FC<PasswordResetModalProps> = ({
             onClick={handleMarkHandledAndClose}
             disabled={loading}
           >
-            {tempPassword ? 'Cerrar' : 'Marcar como atendida'}
+            {tempPassword ? 'Cerrar' : 'Cancelar'}
           </Button>
           {!tempPassword && (
             <Button
@@ -121,7 +123,7 @@ export const PasswordResetModal: React.FC<PasswordResetModalProps> = ({
               onClick={handleGenerateTempPassword}
               disabled={loading}
             >
-              {loading ? 'Generando...' : 'Generar contraseña temporal'}
+              {loading ? 'Generando...' : 'Generar contraseña'}
             </Button>
           )}
         </div>
@@ -160,11 +162,25 @@ export const PasswordResetModal: React.FC<PasswordResetModalProps> = ({
 
         {tempPassword && (
           <div className="password-reset-result">
-            <label className="password-reset-result-label">
-              Contraseña temporal generada:
-            </label>
+            <div className="password-reset-result-header">
+              <label className="password-reset-result-label">
+                Contraseña temporal generada:
+              </label>
+              <button
+                type="button"
+                className="password-reset-toggle-btn"
+                onClick={() => setShowPassword((v) => !v)}
+                aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'}
+                title={showPassword ? 'Ocultar' : 'Mostrar'}
+              >
+                {showPassword ? <EyeOff size={15} /> : <Eye size={15} />}
+                <span>{showPassword ? 'Ocultar' : 'Mostrar'}</span>
+              </button>
+            </div>
             <div className="password-reset-copy-row">
-              <code className="password-reset-code">{tempPassword}</code>
+              <code className="password-reset-code">
+                {showPassword ? tempPassword : '•'.repeat(tempPassword.length)}
+              </code>
               <button
                 type="button"
                 className="password-reset-copy-btn"
@@ -177,7 +193,7 @@ export const PasswordResetModal: React.FC<PasswordResetModalProps> = ({
               </button>
             </div>
             <p className="password-reset-once-warning">
-              Esta contraseña se mostrará una sola vez. Cierra esta ventana cuando la hayas compartido con el usuario.
+              ⚠ Esta contraseña se mostrará una sola vez. Ciérrala cuando la hayas compartido con el usuario.
             </p>
           </div>
         )}
