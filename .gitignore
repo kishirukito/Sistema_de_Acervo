@@ -41,3 +41,10 @@ Thumbs.db
 
 # Temporary Office locks
 ~$*.xlsx
+
+# Local working files & exports
+.review/
+carga_masiva_20_libros.csv
+carga_masiva_20_libros.xlsx
+docs/especificacion_funcional_reportes_ciu.md
+inventario_CIU_estructurado.xlsx
