@@ -102,7 +102,7 @@ class AIService:
                             "temperature": 0.15,
                             "top_p": 0.9,
                             "repeat_penalty": 1.15,
-                            "num_predict": 400
+                            "num_predict": 200
                         }
                     }
                 )
